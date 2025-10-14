@@ -1,0 +1,32 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.python-version
+
+# Audio files
+*.mp3
+*.aiff
+*.wav
+*.m4a
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Virtual environments
+venv/
+env/
+.env/
+
+# Logs and temporary files
+*.log
+*.tmp
+temp_*

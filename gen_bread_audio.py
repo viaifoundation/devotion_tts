@@ -7,15 +7,16 @@ from bible_parser import convert_bible_reference
 
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
-靈晨靈糧10月15日葛立新执事：<“恩典25”第13篇：我们的故事，他的恩典>
+靈晨靈糧11月11日翁榮根牧師：<“恩典25”第32篇：2025感恩見證分享>
 
-2005年，我带着不到三岁的女儿 Emily 第一次受邀参加基督六家举办的亲子关系讲座，在参加儿童节目时，Emily 的手被门夹伤，医生甚至诊断手指可能再也不能生长。第一次参加教会活动，就遭遇如此打击，按理说，我们可能不会再回教会。然而，神的恩典不离不弃，祂的爱在我们最脆弱的时刻彰显出来。在 Emily 伤势恢复期间，她无法去幼儿园，我又需上班，感谢教会张利萍姐妹带着女儿来帮忙照看 Emily。神的爱透过弟兄姐妹的实际行动活了出来，让我深切体会到 “爱是恒久忍耐，又有恩慈”（哥林多前书 13:4）的真实。借着这件事我们全家也经历了神的奇妙恩典 —— Emily的手不仅完全恢复，高中时还在教会国语部司琴。正如圣经所说：“神使万事互相效力，叫爱神的人得益处”（罗马书 8:28）。神的爱始终不离不弃，我们的家庭因此蒙福。
-在参加良友团契组织的篮球、露营和分享等活动中，我们逐渐感受到弟兄姐妹间的关怀，也将基督六家视为自己的家。在神的带领下，2006年的感恩节，我受洗归主，正式成为神国的一员。
+【感恩 25】是甚麼概念？講出基督六家在蒙神的看顧保守中渡過了 25  個年頭。25 年前的開始（即 2006），與我無關，我對它一無所知，那時的我活在它的對岸（波士頓）。今天卻要感恩，這 25 年的內容，有無數的前輩、先賢和盡心盡力捨己的主內肢體，奠定了基督六家的模式，行出基督信仰的榜樣，守住了神託付的大誡命和大使命。這感恩分享，是奠基在他們像保羅所經歷一樣，為主為教會打過了美好仗，為信的道真守住了，為我們面前的路，他們盡忠跑完了，那我們就在主和眾聖徒的足印上，竭力傳承囑託，忠心侍主。
 
-屬靈三代一家親！
-在基督六家，从孩子的成长到我属灵生命的历程，我深深体会到神一路奇妙的带领与恩典。大女儿 Emily 和小女儿 Joy 从小参加教会活动、AWANA 服事，更有张长老和淑芬师母做孩子属灵长辈的保驾护航；我也在颜牧师和 Sharon 师母的带领下，于 2010 年加入AWANA 服事至 2023 年，期间不仅孩子们得以成长，我的灵命也不断被造就。之后，神呼召我将服事重点转向社区，参与爱邻社的社区宣教事工，将神的爱带到社区，荣耀神的名。
-从 2005 年到 2025 年，二十年间，神的恩典一路同行。我们的家庭蒙祝福，两个孩子在基督六家的大家庭中成长，人生各阶段都有神的看顾与引导。回望过去，我满心感恩神的不离不弃，也感谢教会弟兄姐妹一路同行与支持。正如诗篇所言：“你们要称谢耶和华，因他本为善，他的慈爱永远长存。”（诗篇 136:1）在恩典 25 的庆典中，我怀着感恩的心，将我们全家的故事献给神，见证祂的信实与恩典。
-基督六家 —— 神的家，我们永远的家。
+【感恩 25】對我又如何？前言開始我沒有份兒，只從前輩的過去，或肢體口中的流傳，25 年的上半部，讓人振奮，教會在人力資源的不足，憑藉對神的那份信望愛，每每在難過的時刻，經歷了神的同在、神的憐憫、神的拯救。開發出（英文/兒童）一個個動人的畫面，看到了上半部的 357，和下半部 NLT 的成果，今天的學員仍一個個站在臺上努力事主，他們的授教精神，到今天仍在教會每個層面、每個年齡層，作出他們的貢獻，是有目共睹的，為牧者與學員的委身事主要感謝神。25 年的下半部，基督六家終有我記錄的開始，2012 年底，堂主任黎廣傳牧師在基督工人神學院（CWTS）的週四分享會後，一經握手，被知道能通粵語，從此就在六家作實習傳道，到傳道，後被按立牧師，快長達 13 年的匆匆歲月，沒有異心的遵主命而行。
+
+雖快 13 年，感恩六家對我的不離不棄，黎牧師和教牧同工，當然還有整個粵語部對我的包容忍耐，讓我在當中經歷了被愛。已故的陳慧婷姊妹對我這實習神學生照顧有加，甚至有講員帶來神學作品，覺得對我有益就買下來送給我，她的無私榜樣，成就了我今天外展事工的發展。感恩教會給了我事奉的機會，當由實習到正式傳道的過程中，感謝張平夷長老的諄諄告誡，讓我們有明確的事奉方向，也謝過粵語肢體們的接納，讓我們十多年的事奉仍喜樂渡日，更將他們對我們的好，言傳身教對我們的同工和弟兄姊妹。
+
+感恩 3/15/25 終於由傳道再變身為牧師，這更新是經過千錘百鍊，神在疫情中為粵語部添加了同工：方麗鴻傳道。在我們（翁牧師、Sarah師母、方傳道）的時間配合下，推動了樂家、友家、約瑟芬、海庭、回歸線和422查經小組等外展事工，還有不同家庭探訪、臨終關懷、兒童主日學等服事，這些事工在神的恩典下，有些超過三年歲月的運作，並每個小組都能領人歸主、帶人受洗。所以，要為小組負責人感謝神，他們是神揀選的精英，是神差派他們出來服事。對事工：他們真的毫無保留、毫無退卻、毫無遺憾。對人：更是愛人如己，我們在主內向他們致敬，我們的事奉缺誰都不可，在主裡要合一，彼此相愛，作成主的工，榮耀主的名。
+
 """
 
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
@@ -45,8 +46,22 @@ zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
 """
 # Voice settings
 FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
+SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
 SECOND_VOICE = "zh-CN-XiaoyiNeural"  # Second voice (main content)
-OUTPUT = "/Users/mhuo/Downloads/bread_1015.mp3"
+#FIRST_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
+#SECOND_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+#SECOND_VOICE = "zh-HK-HiuMaanNeural"  # Second voice (main content)
+SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
+FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+FIRST_VOICE = "zh-TW-HsiaoChenNeural"  # First voice (introduction)
+#SECOND_VOICE = "zh-TW-YunJheNeural"  # Second voice (main content)
+FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
+SECOND_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
+#FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
+#SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
+SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
+FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+OUTPUT = "/Users/mhuo/Downloads/bread_1111_cantonese.mp3"
 TEMP_DIR = "/Users/mhuo/Downloads/"  # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_bread.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_bread.mp3"

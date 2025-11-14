@@ -1,3 +1,4 @@
+
 import asyncio
 import sys
 import edge_tts
@@ -7,15 +8,16 @@ from bible_parser import convert_bible_reference
 
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
-靈晨靈糧11月11日翁榮根牧師：<“恩典25”第32篇：2025感恩見證分享>
+靈晨靈糧11月14日纪明新弟兄：<“恩典25”第35篇：在基督里的恩典>
 
-【感恩 25】是甚麼概念？講出基督六家在蒙神的看顧保守中渡過了 25  個年頭。25 年前的開始（即 2006），與我無關，我對它一無所知，那時的我活在它的對岸（波士頓）。今天卻要感恩，這 25 年的內容，有無數的前輩、先賢和盡心盡力捨己的主內肢體，奠定了基督六家的模式，行出基督信仰的榜樣，守住了神託付的大誡命和大使命。這感恩分享，是奠基在他們像保羅所經歷一樣，為主為教會打過了美好仗，為信的道真守住了，為我們面前的路，他們盡忠跑完了，那我們就在主和眾聖徒的足印上，竭力傳承囑託，忠心侍主。
+我于2011年通过弟兄姐妹介绍进入基督之家第六家，在这之前自己虽然已受洗成为基督徒，但因根基甚浅，甚至是没根基的基督徒，还是随着世界走，自己我行我素，从不听别人的建议，好大喜功。当我第一次看到这么多有热心、爱心和快乐单纯的弟兄姐妹，就像圣经教导的“我实在告诉你们，凡要接受上帝国的，若不像小孩子，绝不能进去。”（马可福音 10:15）这节经文真实地把我当时进到教会所看见的场景印在我心中 ，更加巧合的是碰到了一位弟兄（到教会才知道姓程名阳杰），我们是在一次远志明牧师布道会认识的，我当时认定这就我们的家了！后来良友小组分为A、B两个小组，但两个小组弟兄姐妹们的爱始终在我心中永不分离。“神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不致灭亡，反得永生。”（约翰福音‬3:16）
 
-【感恩 25】對我又如何？前言開始我沒有份兒，只從前輩的過去，或肢體口中的流傳，25 年的上半部，讓人振奮，教會在人力資源的不足，憑藉對神的那份信望愛，每每在難過的時刻，經歷了神的同在、神的憐憫、神的拯救。開發出（英文/兒童）一個個動人的畫面，看到了上半部的 357，和下半部 NLT 的成果，今天的學員仍一個個站在臺上努力事主，他們的授教精神，到今天仍在教會每個層面、每個年齡層，作出他們的貢獻，是有目共睹的，為牧者與學員的委身事主要感謝神。25 年的下半部，基督六家終有我記錄的開始，2012 年底，堂主任黎廣傳牧師在基督工人神學院（CWTS）的週四分享會後，一經握手，被知道能通粵語，從此就在六家作實習傳道，到傳道，後被按立牧師，快長達 13 年的匆匆歲月，沒有異心的遵主命而行。
+通过在小组团契生活和良友小组常去露营的集体生活里，我感受到弟兄们和睦同居的快乐，在纪念教会25周年感恩的历程中，自己和家人都是在主恩典中成长与度过，越是在患难中，越能体会神的恩典在其中。
 
-雖快 13 年，感恩六家對我的不離不棄，黎牧師和教牧同工，當然還有整個粵語部對我的包容忍耐，讓我在當中經歷了被愛。已故的陳慧婷姊妹對我這實習神學生照顧有加，甚至有講員帶來神學作品，覺得對我有益就買下來送給我，她的無私榜樣，成就了我今天外展事工的發展。感恩教會給了我事奉的機會，當由實習到正式傳道的過程中，感謝張平夷長老的諄諄告誡，讓我們有明確的事奉方向，也謝過粵語肢體們的接納，讓我們十多年的事奉仍喜樂渡日，更將他們對我們的好，言傳身教對我們的同工和弟兄姊妹。
+我于2015被查出患有肝癌的早期发现，这本来就是不可能的事情，因为肝癌没有早期发现这一说，等到发现就是晚期了，只有等待见上帝的份了！真是感谢主，因着自己连续发高烧低烧而把主要的肝癌查出来，万事互相效力，叫爱神的人得益处。
 
-感恩 3/15/25 終於由傳道再變身為牧師，這更新是經過千錘百鍊，神在疫情中為粵語部添加了同工：方麗鴻傳道。在我們（翁牧師、Sarah師母、方傳道）的時間配合下，推動了樂家、友家、約瑟芬、海庭、回歸線和422查經小組等外展事工，還有不同家庭探訪、臨終關懷、兒童主日學等服事，這些事工在神的恩典下，有些超過三年歲月的運作，並每個小組都能領人歸主、帶人受洗。所以，要為小組負責人感謝神，他們是神揀選的精英，是神差派他們出來服事。對事工：他們真的毫無保留、毫無退卻、毫無遺憾。對人：更是愛人如己，我們在主內向他們致敬，我們的事奉缺誰都不可，在主裡要合一，彼此相愛，作成主的工，榮耀主的名。
+感恩当教会知道我得癌症的信息后，马上就为我和我的家做了40天的禁食祷告，神是垂听祷告的神，在圣灵的引导和医生仔细的手术下，我得到医治和平安。耶稣说：“我去医治他。”（马太福音 8:7）；“我留下平安给你们，我把我的平安赐给你们。我所赐给你们的，不像世人所赐的。你们心里不要忧愁，也不要胆怯。”（约翰福音 14:27）在手术后的休养期间，黎牧师每周一带我上韩国祷告山祷告，使我在山上得以平静地聆听神的话，也爱上了上山祷告的生活，更加快乐地面对自己患难，为主做见证，感谢赞美主！
+
 
 """
 
@@ -44,24 +46,61 @@ zh-TW,zh-TW-HsiaoChenNeural,Female,"Friendly, Positive",General
 zh-TW,zh-TW-HsiaoYuNeural,Female,"Friendly, Positive",General
 zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
 """
+"""
+Locale,ShortName,Gender,Voice Personalities,Content Categories
+zh-CN,zh-CN-XiaoxiaoNeural,Female,Warm,"News, Novel"
+zh-CN,zh-CN-XiaoyiNeural,Female,Lively,"Cartoon, Novel"
+zh-CN,zh-CN-YunjianNeural,Male,Passion,"Sports, Novel"
+zh-CN,zh-CN-YunxiNeural,Male,"Lively, Sunshine",Novel
+zh-CN,zh-CN-YunxiaNeural,Male,Cute,"Cartoon, Novel"
+zh-CN,zh-CN-YunyangNeural,Male,"Professional, Reliable",News
+zh-CN,zh-CN-XiaochenNeural,Female,Warm,General
+zh-CN,zh-CN-XiaohanNeural,Female,Cheerful,"Novel, Cartoon"
+zh-CN,zh-CN-XiaomoNeural,Female,Emotional,"Novel, Cartoon"
+zh-CN,zh-CN-XiaoqiuNeural,Female,Lively,General
+zh-CN,zh-CN-XiaoruiNeural,Female,Angry,"Novel, Cartoon"
+zh-CN,zh-CN-XiaoshuangNeural,Female,Cute,"Cartoon, Novel"
+zh-CN,zh-CN-XiaoxuanNeural,Female,"Chat, Assistant","Novel, CustomerService"
+zh-CN,zh-CN-XiaoyanNeural,Female,Professional,"News, Novel"
+zh-CN,zh-CN-XiaoyouNeural,Female,Cheerful,"Cartoon, Novel"
+zh-CN,zh-CN-XiaozhenNeural,Female,Friendly,General
+zh-CN,zh-CN-YunhaoNeural,Male,Professional,"News, Novel"
+zh-CN,zh-CN-YunxiaoNeural,Male,Friendly,General
+zh-CN,zh-CN-YunyeNeural,Male,Serious,"Novel, Narration"
+zh-CN,zh-CN-YunzeNeural,Male,Calm,"Novel, Narration"
+zh-CN-liaoning,zh-CN-liaoning-XiaobeiNeural,Female,Humorous,Dialect
+zh-CN-shaanxi,zh-CN-shaanxi-XiaoniNeural,Female,Bright,Dialect
+zh-CN-sichuan,zh-CN-sichuan-YunxiNeural,Male,Lively,Dialect
+zh-CN-wuu,zh-CN-wuu-XiaotongNeural,Female,Friendly,Dialect
+zh-CN-wuu,zh-CN-wuu-YunzheNeural,Male,Professional,Dialect
+zh-CN-yue,zh-CN-yue-XiaoshanNeural,Female,Friendly,Dialect
+zh-CN-yue,zh-CN-yue-YunSongNeural,Male,Professional,Dialect
+zh-HK,zh-HK-HiuGaaiNeural,Female,"Friendly, Positive",General
+zh-HK,zh-HK-HiuMaanNeural,Female,"Friendly, Positive",General
+zh-HK,zh-HK-WanLungNeural,Male,"Friendly, Positive",General
+zh-TW,zh-TW-HsiaoChenNeural,Female,"Friendly, Positive",General
+zh-TW,zh-TW-HsiaoYuNeural,Female,"Friendly, Positive",General
+zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
+zh-TW,zh-TW-HanHanNeural,Female,Friendly,General
+"""
 # Voice settings
-FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
-SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
-SECOND_VOICE = "zh-CN-XiaoyiNeural"  # Second voice (main content)
+FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # First voice (introduction)
+SECOND_VOICE = "zh-CN-YunjianNeural"  # Second voice (main content)
+#SECOND_VOICE = "zh-CN-XiaoyiNeural"  # Second voice (main content)
 #FIRST_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
 #SECOND_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
 #SECOND_VOICE = "zh-HK-HiuMaanNeural"  # Second voice (main content)
-SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
-FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
-FIRST_VOICE = "zh-TW-HsiaoChenNeural"  # First voice (introduction)
+#SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
+#FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+#FIRST_VOICE = "zh-TW-HsiaoChenNeural"  # First voice (introduction)
 #SECOND_VOICE = "zh-TW-YunJheNeural"  # Second voice (main content)
-FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
-SECOND_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
+#FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
+#SECOND_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
 #FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
 #SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
-SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
-FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
-OUTPUT = "/Users/mhuo/Downloads/bread_1111_cantonese.mp3"
+#SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
+#FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+OUTPUT = "/Users/mhuo/Downloads/bread_1115.mp3"
 TEMP_DIR = "/Users/mhuo/Downloads/"  # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_bread.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_bread.mp3"

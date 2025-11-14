@@ -18,7 +18,7 @@ TEXT = convert_bible_reference(TEXT)
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]
 first_paragraphs = [paragraphs[0]] # First paragraph (introduction)
-second_paragraphs = ["\n\n".join(paragraphs[1:])] # All remaining paragraphs (main content)
+second_paragraphs  = ["\n\n".join(paragraphs[1:])] # All remaining paragraphs (main content)
 """
 Locale,ShortName,Gender,Model Type,Content Categories
 cmn-CN,cmn-CN-Standard-A,Female,Standard,General
@@ -45,8 +45,8 @@ yue-HK,yue-HK-Standard-C,Female,Standard,General
 yue-HK,yue-HK-Standard-D,Male,Standard,General
 """
 # Voice settings (Note: Set up Google Cloud credentials, e.g., export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json")
-FIRST_VOICE = "cmn-CN-Wavenet-B" # First voice (introduction, male, WaveNet)
-SECOND_VOICE = "cmn-CN-Wavenet-A" # Second voice (main content, female, WaveNet)
+FIRST_VOICE = "cmn-CN-Wavenet-A" # First voice (introduction, male, WaveNet)
+SECOND_VOICE = "cmn-CN-Wavenet-B" # Second voice (main content, female, WaveNet)
 #SECOND_VOICE = "cmn-CN-Neural2-A" # Second voice (main content, female, Neural2)
 #FIRST_VOICE = "cmn-CN-Standard-B" # First voice (introduction, male, Standard)
 #SECOND_VOICE = "cmn-CN-Standard-A" # Second voice (main content, female, Standard)
@@ -54,13 +54,13 @@ SECOND_VOICE = "cmn-CN-Wavenet-A" # Second voice (main content, female, WaveNet)
 #FIRST_VOICE = "yue-HK-Standard-B" # First voice (introduction, male, Cantonese)
 #SECOND_VOICE = "zh-TW-Wavenet-A" # Second voice (main content, female, Taiwan)
 #FIRST_VOICE = "zh-TW-Wavenet-B" # First voice (introduction, male, Taiwan)
-OUTPUT = "/Users/mhuo/Downloads/bread_1114.mp3"
+OUTPUT = "/Users/mhuo/Downloads/bread_1114_ji_tianjin.mp3"
 TEMP_DIR = "/Users/mhuo/Downloads/" # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_bread.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_bread.mp3"
 def generate_audio(text, voice, output_file):
     client = texttospeech.TextToSpeechClient()
-    input_text = texttospeech.SynthesisInput(text=text)
+    input_text = texttospeech.SynthesisInput(ssml=f"<speak><prosody rate=\"fast\" pitch=\"-2st\">{text}</prosody></speak>")
     language_code = "-".join(voice.split("-")[:2])
     voice_params = texttospeech.VoiceSelectionParams(
         language_code=language_code,

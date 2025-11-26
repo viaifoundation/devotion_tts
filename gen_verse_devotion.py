@@ -6,44 +6,52 @@ import os
 from bible_parser import convert_bible_reference
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
-赐各样安慰的神
+帮助近在咫尺
 
-“因我－耶和华是不改变的，所以你们雅各之子没有灭亡。
-(玛拉基书 3:6 和合本)
-我的弟兄们，你们落在百般试炼中，都要以为大喜乐；因为知道你们的信心经过试验，就生忍耐。但忍耐也当成功，使你们成全、完备，毫无缺欠。
-(雅各书 1:2-4 和合本)
+“因为上帝爱世人，甚至将祂独一的儿子赐给他们，叫一切信祂的人不致灭亡，反得永生。
+(约翰福音 3:16)
+我们既然有一位已经升入高天尊荣的大祭司，就是神的儿子耶稣，便当持定所承认的道。因我们的大祭司并非不能体恤我们的软弱。他也曾凡事受过试探，与我们一样，只是他没有犯罪。所以，我们只管坦然无惧地来到施恩的宝座前，为要得怜恤，蒙恩惠，作随时的帮助。
+(希伯来书 4:14-16)
 
-我虽然行过死荫的幽谷，
-也不怕遭害，
-因为你与我同在；
-你的杖，你的竿，都安慰我。
-(诗篇 23:4 和合本)
+天天背负我们重担的主，
+就是拯救我们的神，
+是应当称颂的！
+（细拉）
+(诗篇 68:19 和合本)
+要称颂主，
+称颂我们的救主上帝，
+祂天天背负我们的重担。
+（细拉）
+(诗篇 68:19 当代译本)
 
-赐各样安慰的神
 
-在古代以色列，牧羊人的杖和竿保护和引导羊群，甚至用来提醒羊群牧羊人就在现场。因此，大卫王（他小时候是牧羊人）用诗篇 23:4 中的比喻来传达这个真理：神是他的保护者和引导者。
+帮助近在咫尺
 
-大卫王多次面对死亡威胁，敌人一心想要杀死他。他也备受自己的罪恶问题和个人错误的困扰。但在这一切之中，他一再将注意力转向神的信实和神的保证。
+背负着重担过一生不是神创造我们的本意。
 
-他从哪里找到这些确据呢？
+感恩的是，我们不必如此过日子。
 
-大卫王应该有深入研习希伯来文经卷，妥拉──即圣经中的前五本书，又称摩西五经。
+“凡劳苦担重担的人可以到我这里来，我就使你们得安息。我心里柔和谦卑，你们当负我的轭，学我的样式；这样，你们心里就必得享安息。因为我的轭是容易的，我的担子是轻省的。”（马太福音 11:28-30）
 
-对希伯来人来说，妥拉不仅仅是关于神的故事，也是神的话语；那是神的权威、应许和指引。大卫的生活以及他的诗篇正是基于妥拉中的教导。大卫能写下神的属性，因为：
+当耶稣来到世上时，他把我们的重担担在了自己身上。尽管我们远离神，耶稣却为我们的罪孽承担了惩罚，承担了我们的苦难。正因为如此，我们就有了一位理解我们、怜悯我们的救主。
 
-一、他熟读神的话语。
-二、他根据神的话语来经历神的信实与恩惠。
+这位救主在我们的混乱中与我们相遇，并邀请我们在他里面找到安息。这位救主是与我们同在的神。
 
-我们也可以有这样的体验──甚至更多。我们有旧约中古代先知所启示的神的话语；耶稣在世时的话语；耶稣通过新约的使徒和作者所启示的话语。换句话说，我们可以拥有大卫所拥有的：
+“天天背负我们重担的主， 就是拯救我们的神， 是应当称颂的！”（诗篇 68:19）
 
-一、我们可以熟读神的话语。
-二、我们可以根据神的话语来体验神的信实与恩惠。
+大卫王在耶稣到来的数百年之前写下了这首诗篇。在那个时候，神已向人们表明他的品格是不变的，而且他是值得信靠的。
 
-读一读耶稣对门徒所说的话：
+神在地球被洪水淹没时守护挪亚（创世记 8:1）；神与亚伯拉罕立约，以祝福、保护和繁衍他的后裔（创世记 17:4-7）；神在以色列人流浪旷野时照顾他们（申命记2:7）；神在大卫逃避仇人的追杀时安慰他。
 
-“我将这些事告诉你们，是要叫你们在我里面有平安。在世上，你们有苦难；但你们可以放心，我已经胜了世界。”（约翰福音 16:33）
+神从未停止作为真正的神。他是我们在需要时近在咫尺的帮助；他是我们源源不断的力量源泉；他是我们的安慰者和供应者。大卫在诗篇 68 章中所赞美的神就是我们的神。他是那一位不停地照顾我们的神；在我们的混乱中弯腰迎接我们并修补我们的破碎。
 
-像大卫一样，我们没有什么可害怕的，因为神近在咫尺──他是我们的安慰。熟习圣经能帮助我们有把握地相信，神现在和将来都会信实地为爱他的人提供保护和指引；他也会与他们同在。所以，今天就下定决心将神的话深深印在心里。
+他天天背负我们的重担。
+
+我们仍然会要忍受苦难吗？会的。但我们永远不必独自经历它们。世界的救主已经临近了。神与我们同在。
+
+祷告
+神啊，你配得我的一切称颂！我软弱时，你支撑我；我不堪重负时，你扶持我。你知道我所有的重担。感谢你从不让我独自承受苦难；感谢你让我把这一切交托给你。奉耶稣的名祷告，阿们。
+
 """
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
@@ -52,7 +60,8 @@ paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]
 first_paragraphs = [paragraphs[0]] # First paragraph (introduction)
 second_paragraphs = [paragraphs[1]] # Second paragraph
 third_paragraphs = [paragraphs[2]] # Third paragraph
-fourth_paragraphs = ["\n\n".join(paragraphs[3:])] # All remaining paragraphs
+fourth_paragraphs = ["\n\n".join(paragraphs[3:-1])] # Paragraphs between 3rd and last
+fifth_paragraphs = [paragraphs[-1]] # Last paragraph
 """
 Locale,ShortName,Gender,Voice Personalities,Content Categories
 zh-CN,zh-CN-XiaoxiaoNeural,Female,Warm,"News, Novel"
@@ -74,9 +83,10 @@ zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
 FIRST_VOICE = "zh-CN-YunxiNeural" # First voice (introduction)
 SECOND_VOICE = "zh-CN-XiaoyiNeural" # Second voice (second paragraph)
 THIRD_VOICE = "zh-CN-YunyangNeural" # Third voice (third paragraph)
-FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (remaining paragraphs)
+FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (paragraphs between 3rd and last)
+FIFTH_VOICE = "zh-CN-YunjianNeural" # Fifth voice (last paragraph)
 #THIRD_VOICE = "zh-CN-XiaoxiaoNeural" # Second voice (second paragraph)
-OUTPUT = "/Users/mhuo/Downloads/verse_1123.mp3"
+OUTPUT = "/Users/mhuo/Downloads/verse_1126.mp3"
 TEMP_DIR = "/Users/mhuo/Downloads/" # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_verse.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_verse.mp3"
@@ -148,8 +158,25 @@ async def main():
         fourth_audio += segment
         if i < len(fourth_segments) - 1: # Add silence between segments, not after last
             fourth_audio += silence
-    # Combine first, second, third and fourth with a pause between sections
-    combined_audio = first_audio + silence + second_audio + silence + third_audio + silence + fourth_audio
+
+    # Generate and collect fifth voice audio segments (for last paragraph)
+    fifth_segments = []
+    for i, para in enumerate(fifth_paragraphs):
+        temp_file = f"{TEMP_DIR}temp_fifth_verse_{i}.mp3"
+        await generate_audio(para, FIFTH_VOICE, temp_file)
+        print(f"✅ Generated fifth voice chunk {i}: {temp_file}")
+        segment = AudioSegment.from_mp3(temp_file)
+        fifth_segments.append(segment)
+        os.remove(temp_file) # Clean up immediately
+
+    # Concatenate fifth segments with short silence between
+    fifth_audio = AudioSegment.empty()
+    for i, segment in enumerate(fifth_segments):
+        fifth_audio += segment
+        if i < len(fifth_segments) - 1: # Add silence between segments, not after last
+            fifth_audio += silence
+    # Combine all five with a pause between sections
+    combined_audio = first_audio + silence + second_audio + silence + third_audio + silence + fourth_audio + silence + fifth_audio
     combined_audio.export(OUTPUT, format="mp3")
     print(f"✅ Combined audio saved: {OUTPUT}")
 if __name__ == "__main__":

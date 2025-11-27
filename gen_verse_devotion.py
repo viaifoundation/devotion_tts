@@ -4,57 +4,55 @@ import edge_tts
 from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
+from date_parser import convert_dates_in_text
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
-帮助近在咫尺
+记念神的作为的属灵习惯
+2025年11月27日
 
-“因为上帝爱世人，甚至将祂独一的儿子赐给他们，叫一切信祂的人不致灭亡，反得永生。
-(约翰福音 3:16)
-我们既然有一位已经升入高天尊荣的大祭司，就是神的儿子耶稣，便当持定所承认的道。因我们的大祭司并非不能体恤我们的软弱。他也曾凡事受过试探，与我们一样，只是他没有犯罪。所以，我们只管坦然无惧地来到施恩的宝座前，为要得怜恤，蒙恩惠，作随时的帮助。
-(希伯来书 4:14-16)
+道成了肉身，住在我们中间，充充满满地有恩典有真理。我们也见过他的荣光，正是父独生子的荣光。
+(约翰福音 1:14)
+所以，有了机会就当向众人行善，向信徒一家的人更当这样。
+(加拉太书 6:10)
 
-天天背负我们重担的主，
-就是拯救我们的神，
-是应当称颂的！
-（细拉）
-(诗篇 68:19 和合本)
-要称颂主，
-称颂我们的救主上帝，
-祂天天背负我们的重担。
-（细拉）
-(诗篇 68:19 当代译本)
+我要一心称谢耶和华；
+我要传扬你一切奇妙的作为。
+我要因你欢喜快乐；
+至高者啊，我要歌颂你的名！
+(诗篇 9:1-2)
+耶和华啊，我要全心赞美你，
+传扬你一切奇妙的作为。
+我要因你欢喜快乐，
+至高者啊，我要歌颂你的名。
+(诗篇 9:1-2 当代译本)
 
+记念神的作为的属灵习惯
 
-帮助近在咫尺
+纵观旧约圣经，神将以色列人从许多不同的情况中拯救出来。他施行神迹，将他们带出外邦，甚至在荒野中为他们提供水和食物。
 
-背负着重担过一生不是神创造我们的本意。
+然而，以色列民逐渐变得悖逆和远离神及神的律法。他们最终背弃了神，部分原因是他们忘记了神。
 
-感恩的是，我们不必如此过日子。
+他们忘记了神为他们大施拯救、忘记了神在他们当中行各样神迹，也忘记了神是良善的、临在的、爱他们的神。
 
-“凡劳苦担重担的人可以到我这里来，我就使你们得安息。我心里柔和谦卑，你们当负我的轭，学我的样式；这样，你们心里就必得享安息。因为我的轭是容易的，我的担子是轻省的。”（马太福音 11:28-30）
+还好圣经中也有些人物展示了记念神过去作为的属灵习惯。当艰难来临，或者环境暗淡的时候，他们会花时间记念神以前是如何对待他们的。
 
-当耶稣来到世上时，他把我们的重担担在了自己身上。尽管我们远离神，耶稣却为我们的罪孽承担了惩罚，承担了我们的苦难。正因为如此，我们就有了一位理解我们、怜悯我们的救主。
+诗篇第9章的作者就是其中之一。诗人以两件事作为开端。首先，他称谢神，表达对神的感激之情。
 
-这位救主在我们的混乱中与我们相遇，并邀请我们在他里面找到安息。这位救主是与我们同在的神。
+其次，作者讲述了神奇妙的作为。回顾过去的这些事可以帮助以色列人记住神对他们的信实和良善，即使处于艰辛时期。
 
-“天天背负我们重担的主， 就是拯救我们的神， 是应当称颂的！”（诗篇 68:19）
+我们也应当如此。
 
-大卫王在耶稣到来的数百年之前写下了这首诗篇。在那个时候，神已向人们表明他的品格是不变的，而且他是值得信靠的。
+圣经多次吩咐我们要记住神所做的一切，因为这会激发我们对他将来要做的事情的盼望。
 
-神在地球被洪水淹没时守护挪亚（创世记 8:1）；神与亚伯拉罕立约，以祝福、保护和繁衍他的后裔（创世记 17:4-7）；神在以色列人流浪旷野时照顾他们（申命记2:7）；神在大卫逃避仇人的追杀时安慰他。
+因此，今天请花一些时间来记念神为你所做的一切。想想你生命中的某个时期，当时是如何体验了神的良善和慈爱。告诉他你多么感恩他在你生命中赐下的良善和爱。开始让那些关于神的爱的记忆塑造你对未来的盼望。
 
-神从未停止作为真正的神。他是我们在需要时近在咫尺的帮助；他是我们源源不断的力量源泉；他是我们的安慰者和供应者。大卫在诗篇 68 章中所赞美的神就是我们的神。他是那一位不停地照顾我们的神；在我们的混乱中弯腰迎接我们并修补我们的破碎。
-
-他天天背负我们的重担。
-
-我们仍然会要忍受苦难吗？会的。但我们永远不必独自经历它们。世界的救主已经临近了。神与我们同在。
 
 祷告
-神啊，你配得我的一切称颂！我软弱时，你支撑我；我不堪重负时，你扶持我。你知道我所有的重担。感谢你从不让我独自承受苦难；感谢你让我把这一切交托给你。奉耶稣的名祷告，阿们。
-
+神啊，有时我的处境很具挑战性，但我也知道自己已享有太多应当感恩的事。感谢你赐给我生命，并给我机会跟你建立关系。感谢你总是眷顾我，即使是在人生最艰难的时刻。主啊，我爱你。奉耶稣的名，阿们。
 """
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
+TEXT = convert_dates_in_text(TEXT)
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]
 first_paragraphs = [paragraphs[0]] # First paragraph (introduction)
@@ -84,9 +82,9 @@ FIRST_VOICE = "zh-CN-YunxiNeural" # First voice (introduction)
 SECOND_VOICE = "zh-CN-XiaoyiNeural" # Second voice (second paragraph)
 THIRD_VOICE = "zh-CN-YunyangNeural" # Third voice (third paragraph)
 FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (paragraphs between 3rd and last)
-FIFTH_VOICE = "zh-CN-YunjianNeural" # Fifth voice (last paragraph)
+FIFTH_VOICE = "zh-CN-YunxiaNeural" # Fifth voice (last paragraph)
 #THIRD_VOICE = "zh-CN-XiaoxiaoNeural" # Second voice (second paragraph)
-OUTPUT = "/Users/mhuo/Downloads/verse_1126.mp3"
+OUTPUT = "/Users/mhuo/Downloads/verse_1127.mp3"
 TEMP_DIR = "/Users/mhuo/Downloads/" # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_verse.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_verse.mp3"

@@ -1,0 +1,3 @@
+dashscope  # Official Alibaba SDK (1.25.2) – for real Qwen3-TTS
+pydub>=0.25.1  # Audio stitching to MP3
+numpy>=1.26.0  # Audio array handling

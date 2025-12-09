@@ -1,4 +1,16 @@
+# Core Dependencies
+pydub
+requests
+
+# Edge TTS
+edge-tts
+
+# Google / Gemini
 google-cloud-texttospeech
 google-generativeai
-pydub
-edge-tts
+
+# Alibaba / Qwen / CosyVoice
+# dashscope # For Qwen API (if pypi package available)
+# modelscope # For CosyVoice
+# torch # For CosyVoice
+# torchaudio # For CosyVoice

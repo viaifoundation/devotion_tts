@@ -10,6 +10,9 @@ from pydub import AudioSegment
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 from text_cleaner import remove_space_before_god
+import daily_devotional_filenames_v2
+import re
+from datetime import datetime
 
 # Ensure Google Cloud credentials are set
 # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/path/to/key.json" 
@@ -17,7 +20,7 @@ from text_cleaner import remove_space_before_god
 if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
     print("⚠️ WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Ensure you have authenticated via gcloud or set the env var.")
 
-OUTPUT_PATH = "/Users/mhuo/Downloads/verse_gemini.mp3"
+
 
 TEXT = """
 你的内心是什么样？ 12/8/2025
@@ -66,6 +69,23 @@ TEXT = """
 主耶稣，感谢你无条件地爱着我。感谢你来到世上拯救我们。我想以你爱我的方式来爱你。我知道这并不容易，我也知道这将使我付出一些代价，但我要你在我的生命中占据首要的位置。因此，请告诉我如何保守我的心，也教我如何变得更像你。
 阿们。
 """
+
+# Generate filename dynamically
+# 1. Extract Date
+date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", TEXT.split('\n')[0])
+if date_match:
+    m, d, y = date_match.groups()
+    date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+else:
+    date_str = datetime.today().strftime("%Y-%m-%d")
+
+# 2. Extract Verse (First parenthesis content)
+verse_match = re.search(r"\((.*?)\)", TEXT)
+verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
+
+filename = daily_devotional_filenames_v2.generate_filename(verse_ref, date_str).replace(".mp3", "_gemini.mp3")
+OUTPUT_PATH = f"/Users/mhuo/Downloads/{filename}"
+print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)

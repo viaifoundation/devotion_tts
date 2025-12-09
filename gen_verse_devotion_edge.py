@@ -6,6 +6,9 @@ import os
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 from text_cleaner import remove_space_before_god
+import daily_devotional_filenames_v2
+import re
+from datetime import datetime
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
 你的内心是什么样？ 12/8/2025
@@ -89,7 +92,22 @@ THIRD_VOICE = "zh-CN-YunyangNeural" # Third voice (third paragraph)
 FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (paragraphs between 3rd and last)
 FIFTH_VOICE = "zh-CN-YunxiaNeural" # Fifth voice (last paragraph)
 #THIRD_VOICE = "zh-CN-XiaoxiaoNeural" # Second voice (second paragraph)
-OUTPUT = "/Users/mhuo/Downloads/verse_12082025.mp3"
+# Generate filename dynamically
+# 1. Extract Date
+date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", TEXT.split('\n')[0])
+if date_match:
+    m, d, y = date_match.groups()
+    date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+else:
+    date_str = datetime.today().strftime("%Y-%m-%d")
+
+# 2. Extract Verse (First parenthesis content)
+verse_match = re.search(r"\((.*?)\)", TEXT)
+verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
+
+filename = daily_devotional_filenames_v2.generate_filename(verse_ref, date_str).replace(".mp3", "_edge.mp3")
+OUTPUT = f"/Users/mhuo/Downloads/{filename}"
+print(f"Target Output: {OUTPUT}")
 TEMP_DIR = "/Users/mhuo/Downloads/" # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_verse.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_verse.mp3"

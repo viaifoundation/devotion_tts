@@ -1,68 +1,71 @@
 # Devotion Audio TTS
 
-This project generates text-to-speech (TTS) audio for Chinese Bible devotionals using multiple providers: **Microsoft Edge TTS**, **Google Cloud TTS (Gemini)**, and **Alibaba Cloud Qwen**.
+A unified toolset for generating Chinese Bible devotional audio using state-of-the-art TTS providers: **Microsoft Edge TTS**, **Google Gemini/Cloud TTS**, **Alibaba Qwen TTS**, and **CosyVoice**.
 
-## Project Structure
+## Overview
 
-### Edge TTS (Default)
-- `gen_devotion_audio_edge.py`: Generates devotional audio (intro + main).
-- `gen_bread_audio_edge.py`: Generates bread devotional audio.
-- `gen_verse_devotion_edge.py`: Generates verse-focused audio.
-- `requirements-edge.txt`: Dependencies for Edge TTS.
+This project provides Python scripts to generate high-quality audio for:
+- Daily Devotionals
+- Verse of the Day (VOTD)
+- "Bread" Audio (Daily portion)
 
-### Other Providers
-- **Gemini (Google)**: See [README-gemini.md](README-gemini.md).
-- **Qwen (Alibaba)**: See [README-qwen.md](README-qwen.md).
+It supports automatic filename generation based on the Bible verse and date found in the text.
 
-### Shared Utilities
-- `bible_parser.py`: Converts Bible references (e.g., "罗马书 1:17" to "罗马书 1 章 17 節").
-- `date_parser.py`: Parses dates.
-- `text_cleaner.py`: Cleans text.
+## Supported Providers
 
-## Python Environments
+| Provider | Script Prefix | Key Features | Setup |
+| :--- | :--- | :--- | :--- |
+| **Edge TTS** | `gen_*_edge.py` | **Free**, High Quality, No API Key | `pip install edge-tts` |
+| **Google Gemini** | `gen_*_gemini.py` | Professional, Google Cloud | `gcloud auth application-default login` |
+| **Alibaba Qwen** | `gen_*_qwen.py` | Concise, Neural | `DASHSCOPE_API_KEY` env var |
+| **CosyVoice** | `gen_*_cosy.py` | Offline/Local capable (300M model) | `torch`, `modelscope` |
 
-This project uses `pyenv` for environment management.
+## Quick Start
 
-### Edge TTS Environments
-- **Recommended**: `edge-tts-env` (Python 3.12.12)
-  ```bash
-  pyenv activate edge-tts-env
-  pip install -r requirements-edge.txt
-  ```
-- **Previous**: `tts-venv` (Python 3.14.0t) – *Legacy environment used previously.*
+### 1. Installation
 
-### Gemini TTS Environment
-- `gemini-tts-env` (Python 3.12.12)
-  ```bash
-  pyenv activate gemini-tts-env
-  pip install -r requirements-gemini.txt
-  ```
+Clone the repo and install dependencies:
 
-### Qwen TTS Environment
-- `qwen-tts-mlx` (Python 3.12.12)
+```bash
+git clone https://github.com/viaifoundation/devotion_audio_tts.git
+cd devotion_audio_tts
+pip install -r requirements.txt
+```
 
-## Usage (Edge TTS)
+### 2. Generate Verse of the Day (VOTD)
 
-1. **Activate Environment**:
-   ```bash
-   pyenv activate edge-tts-env
-   ```
+Choose your preferred provider script (e.g., Edge TTS):
 
-2. **Update Text**:
-   Edit the `TEXT` variable in `gen_devotion_audio_edge.py`, `gen_bread_audio_edge.py`, or `gen_verse_devotion_edge.py`.
+1.  Open `gen_verse_devotion_edge.py`
+2.  Update the `TEXT` variable with your devotional content.
+3.  Run the script:
 
-3. **Run Script**:
-   ```bash
-   python gen_devotion_audio_edge.py
-   ```
+```bash
+python gen_verse_devotion_edge.py
+```
 
-   Output audio will be saved to `~/Downloads/`.
+The audio will be generated in your `~/Downloads` folder with a filename like:
+`VOTD_John-3-16_2025-12-09_edge.mp3`
 
-## Dependencies (Edge TTS)
-- `edge-tts`: Microsoft Edge TTS API.
-- `pydub`: Audio processing.
-- `ffmpeg`: Required by pydub (`brew install ffmpeg`).
+### 3. Usage for Other Scripts
+
+- **Daily Devotion**: `gen_devotion_audio_edge.py`
+- **Bread Audio**: `gen_bread_audio_edge.py`
+
+## Project Utilities
+
+- `daily_devotional_filenames_v2.py`: Handles dynamic parsing of dates and verses to generate consistent filenames.
+- `bible_parser.py`: Normalizes Chinese Bible references for better TTS pronunciation (e.g., "3:16" -> "3章16节").
+- `text_cleaner.py`: Formats text, adding ensuring spacing around "God" (神).
+
+## Requirements
+
+Global requirements are listed in `requirements.txt`. Specific providers may have additional needs:
+- **Edge**: `requirements-edge.txt`
+- **Gemini**: `requirements-gemini.txt`
+- **Qwen**: `requirements-qwen.txt`
+- **CosyVoice**: `requirements-cosy.txt`
 
 ## License
-MIT License
 
+MIT License

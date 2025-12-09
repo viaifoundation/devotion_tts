@@ -12,12 +12,15 @@ from pydub import AudioSegment
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 from text_cleaner import remove_space_before_god
+import daily_devotional_filenames_v2
+import re
+from datetime import datetime
 
 dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
 if not dashscope.api_key:
     raise ValueError("Please set DASHSCOPE_API_KEY in ~/.secrets")
 
-OUTPUT_PATH = "/Users/mhuo/Downloads/VOTD_Jeremiah-33-14_2025-12-09.mp3"
+
 
 
 
@@ -60,6 +63,23 @@ TEXT = """
 奉耶稣的名，
 阿们 。
 """
+
+# Generate filename dynamically
+# 1. Extract Date
+date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", TEXT.split('\n')[0])
+if date_match:
+    m, d, y = date_match.groups()
+    date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+else:
+    date_str = datetime.today().strftime("%Y-%m-%d")
+
+# 2. Extract Verse (First parenthesis content)
+verse_match = re.search(r"\((.*?)\)", TEXT)
+verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
+
+filename = daily_devotional_filenames_v2.generate_filename(verse_ref, date_str)
+OUTPUT_PATH = f"/Users/mhuo/Downloads/{filename}"
+print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)

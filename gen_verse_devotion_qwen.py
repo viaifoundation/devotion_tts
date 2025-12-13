@@ -96,12 +96,12 @@ else:
     verse_match = re.search(r"\((.*?)\)", TEXT)
     verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
 
-filename = filename_parser.generate_filename(verse_ref, date_str)
+filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_qwen.mp3")
 OUTPUT_PATH = f"/Users/mhuo/Downloads/{filename}"
 print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)
-tEXT = convert_dates_in_text(TEXT)
+TEXT = convert_dates_in_text(TEXT)
 TEXT = remove_space_before_god(TEXT)
 
 paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]

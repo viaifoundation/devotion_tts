@@ -24,70 +24,80 @@ It supports automatic filename generation based on the Bible verse and date foun
 
 It is highly recommended to use `pyenv` to manage Python versions and virtual environments to avoid conflicts.
 
-### 1. Prerequisites (Install Pyenv & FFmpeg)
+### A. macOS Setup Guide
 
-**macOS** (via Homebrew):
+1.  **Install Prerequisites (Pyenv & FFmpeg)**:
+    ```bash
+    brew update
+    brew install pyenv pyenv-virtualenv ffmpeg
+    ```
+    *Follow the instructions printed in your terminal to add pyenv to your shell profile (e.g., `~/.zshrc` or `~/.bash_profile`).*
+
+2.  **Install Python 3.12.12**:
+    ```bash
+    pyenv install 3.12.12
+    ```
+
+3.  **Create & Activate Virtual Environment**:
+    ```bash
+    # Create virtual env named "tts-qwen-env"
+    pyenv virtualenv 3.12.12 tts-qwen-env
+    
+    # Activate it
+    pyenv activate tts-qwen-env
+    
+    # (Optional) Auto-activate when entering folder
+    pyenv local tts-qwen-env
+    ```
+
+4.  **Confirm Activation**:
+    You should see `(tts-qwen-env)` in your prompt.
+
+### B. Linux Setup Guide
+
+1.  **Install Prerequisites**:
+    ```bash
+    # Install build dependencies & ffmpeg
+    sudo apt-get update; sudo apt-get install make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ffmpeg
+    ```
+
+2.  **Install Pyenv**:
+    ```bash
+    curl https://pyenv.run | bash
+    ```
+    *Follow the on-screen instructions to add pyenv to your shell configuration.*
+
+3.  **Install Python & Create Environment**:
+    ```bash
+    # Install Python 3.12.12
+    pyenv install 3.12.12
+    
+    # Create virtual env
+    pyenv virtualenv 3.12.12 tts-qwen-env
+    
+    # Activate
+    pyenv activate tts-qwen-env
+    ```
+
+### C. Helpful Commands
+
 ```bash
-brew update
-brew install pyenv pyenv-virtualenv ffmpeg
-```
-*After installation, follow the instructions printed in your terminal to add pyenv to your shell profile (e.g., `~/.zshrc` or `~/.bash_profile`).*
-
-**Linux** (Ubuntu/Debian example):
-```bash
-# Install build dependencies
-sudo apt-get update; sudo apt-get install make build-essential libssl-dev zlib1g-dev \
-libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ffmpeg
-
-# Install pyenv
-curl https://pyenv.run | bash
-```
-*Follow the on-screen instructions to add pyenv to your shell configuration.*
-
-### 2. Step-by-Step Guide
-
-Refer to the commands below to set up the environment for this project (using Python 3.12.12).
-
-```bash
-# 1. Install Python 3.12.12 (this exact patch version)
-pyenv install 3.12.12
-
-# 2. Create a virtual environment named "tts-qwen-env" using Python 3.12.12
-pyenv virtualenv 3.12.12 tts-qwen-env
-
-# 3. Activate the virtual environment
-pyenv activate tts-qwen-env
-
-# (You’ll see the prompt change to something like: (tts-qwen-env) % )
-
-# 4. When you’re done working, deactivate it
+# Deactivate virtual env
 pyenv deactivate
-```
 
-### 3. Helpful Commands
-
-```bash
-# Optional but recommended: set the virtualenv to be automatically activated
-# when you cd into your project directory (e.g. ~/projects/tts-qwen)
-# Create/set local version for the project folder:
-cd ~/path/to/your/project
-pyenv local tts-qwen-env
-# Now every time you cd into this folder, it will auto-activate
-
-# List all pyenv-managed Python versions
+# List all versions
 pyenv versions
 
-# List all virtual environments
+# List virtual envs
 pyenv virtualenvs
 
-# Delete the virtualenv if you ever need to (be careful!)
+# Delete virtual env
 pyenv uninstall tts-qwen-env
 
-# Check which Python/pip you’re currently using (should point inside the venv when activated)
+# Check current python path
 which python
-which pip
-python --version
 ```
 
 ## Quick Start

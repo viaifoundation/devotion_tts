@@ -215,11 +215,57 @@ def speak(text: str, voice: str, style_prompt: str = None) -> AudioSegment:
          except TypeError:
              print(f"⚠️ Warning: 'prompt' not supported in SynthesisInput for this client version. Ignoring prompt: {style_prompt}")
 
-    
-    response = client.synthesize_speech(request=request)
-    
-    # Load into pydub
-    return AudioSegment.from_mp3(io.BytesIO(response.audio_content))
+    try:
+        response = client.synthesize_speech(request=request)
+        return AudioSegment.from_mp3(io.BytesIO(response.audio_content))
+    except Exception as e:
+        # Check for safety filter error (400 InvalidArgument)
+        if "sensitive or harmful content" in str(e) or "400" in str(e):
+            print(f"⚠️ Safety filter triggered for voice {voice}. Retrying strategies...")
+            
+            # Strategy 1: Remove style prompt if present
+            if style_prompt:
+                print("   ↳ Strategy 1: Removing style prompt...")
+                try:
+                    # Clear prompt from input
+                    request.input = texttospeech.SynthesisInput(text=text)
+                    response = client.synthesize_speech(request=request)
+                    print("   ✅ Strategy 1 success.")
+                    return AudioSegment.from_mp3(io.BytesIO(response.audio_content))
+                except Exception as e2:
+                    print(f"   ❌ Strategy 1 failed: {e2}")
+
+            # Strategy 2: Fallback to standard Wavenet voice (High quality, widely available)
+            print("   ↳ Strategy 2: Fallback to standard Wavenet voice...")
+            try:
+                # Use Wavenet voices for Chinese (Neural2 is not fully supported for cmn-CN yet)
+                # cmn-CN-Wavenet-A (Female), cmn-CN-Wavenet-B (Male), cmn-CN-Wavenet-C (Male), cmn-CN-Wavenet-D (Female)
+                
+                # Simple mapping
+                fallback_voice = "cmn-CN-Wavenet-C" # Male default (replaces Charon/Fenrir/Puck)
+                if voice in ["Kore", "Aoede"]:
+                    fallback_voice = "cmn-CN-Wavenet-A" # Female default (replaces Kore/Aoede)
+                
+                fallback_params = texttospeech.VoiceSelectionParams(
+                    language_code=LANGUAGE_CODE,
+                    name=fallback_voice
+                    # No model_name needed for standard voices
+                )
+                
+                # Reset request with new voice and simple input (no prompt)
+                request.voice = fallback_params
+                request.input = texttospeech.SynthesisInput(text=text)
+                
+                response = client.synthesize_speech(request=request)
+                print(f"   ✅ Strategy 2 success (Used {fallback_voice}).")
+                return AudioSegment.from_mp3(io.BytesIO(response.audio_content))
+                
+            except Exception as e3:
+                print(f"   ❌ Strategy 2 failed: {e3}")
+                raise e # Give up if even standard voice fails
+        
+        # Re-raise other errors
+        raise e
 
 # Group paragraphs into 5 logical sections
 # 1. Intro (Title/Date)

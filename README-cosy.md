@@ -79,7 +79,30 @@ cd ~/github/devotion_audio_tts
 pip install -r requirements-cosy.txt
 pip install -r ../CosyVoice/requirements.txt
 ```
-*Note: For NVIDIA NGX/Spark workflows, ensure your container/environment maps the GPU correctly (`--gpus all`).*
+
+**NVIDIA DGX / NGX Spark (Data Center / Appliance):**
+If running on a DGX appliance or Spark cluster node:
+1.  **CUDA**: Likely pre-installed (e.g., CUDA 12.x or 13.x). Use `nvidia-smi` to check.
+2.  **Environment**:
+    ```bash
+    # Ensure you are on a GPU node
+    nvidia-smi  # Should list A100/H100 GPUs
+    
+    # Create Environment (standard python venv or conda)
+    python3 -m venv tts-env
+    source tts-env/bin/activate
+    
+    # Install dependencies (same as Linux above)
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+    pip install -r requirements-cosy.txt
+    pip install -r ../CosyVoice/requirements.txt
+    ```
+3.  **Running**:
+    ```bash
+    # If multiple GPUs, select one (e.g., GPU 0)
+    export CUDA_VISIBLE_DEVICES=0
+    python gen_verse_devotion_cosy.py
+    ```
 
 ### 3. Troubleshooting Installation
 

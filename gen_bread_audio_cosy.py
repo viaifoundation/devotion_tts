@@ -5,6 +5,12 @@ import torch
 import numpy as np
 import sys
 import os
+import warnings
+
+# Silence noisy libraries
+warnings.filterwarnings("ignore", category=FutureWarning, module="diffusers")
+warnings.filterwarnings("ignore", category=UserWarning, module="lightning")
+
 from pydub import AudioSegment
 
 # Setup path to find CosyVoice (sibling directory)

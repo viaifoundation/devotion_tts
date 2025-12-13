@@ -6,7 +6,13 @@ import numpy as np
 import re
 import sys
 import os
+import warnings
 from datetime import datetime
+
+# Silence noisy libraries
+warnings.filterwarnings("ignore", category=FutureWarning, module="diffusers")
+warnings.filterwarnings("ignore", category=UserWarning, module="lightning")
+
 from pydub import AudioSegment
 
 # Setup path to find CosyVoice (sibling directory)

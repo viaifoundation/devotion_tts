@@ -3,6 +3,8 @@
 
 modelscope>=1.18.0          # Core framework
 funasr>=1.0.0               # Speech frontend
+HyperPyYAML>=1.2.0          # Required for CosyVoice configuration
+peft                        # Adapters (removes diffusers warning)
 addict                      # Required by modelscope
 datasets<4.0.0              # Avoid import errors
 torch>=2.0.0                # MPS acceleration

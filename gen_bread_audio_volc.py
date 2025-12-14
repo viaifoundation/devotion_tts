@@ -62,8 +62,8 @@ def speak(text: str, voice: str = "zh_female_vv_uranus_bigtts") -> AudioSegment:
         print(f"❌ Request Failed: {e}")
         return AudioSegment.silent(duration=500)
 
-DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, "bread_volc.mp3")
+OUTPUT_DIR = os.getcwd()
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, "bread_volc.mp3")
 
 TEXT = """
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>

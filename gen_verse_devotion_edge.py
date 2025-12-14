@@ -66,8 +66,8 @@ verse_match = re.search(r"\((.*?)\)", TEXT)
 verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
 
 filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_edge.mp3")
-DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, filename)
+OUTPUT_DIR = os.getcwd()
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
@@ -106,10 +106,10 @@ FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (paragraphs between 3rd and
 FIFTH_VOICE = "zh-CN-YunxiaNeural" # Fifth voice (last paragraph)
 #THIRD_VOICE = "zh-CN-XiaoxiaoNeural" # Second voice (second paragraph)
 
-TEMP_DIR = DOWNLOADS_DIR + os.sep # For temp files
-TEMP_FIRST = os.path.join(DOWNLOADS_DIR, "temp_first_verse.mp3")
-TEMP_SECOND = os.path.join(DOWNLOADS_DIR, "temp_second_verse.mp3")
-TEMP_THIRD = os.path.join(DOWNLOADS_DIR, "temp_third_verse.mp3")
+TEMP_DIR = OUTPUT_DIR + os.sep # For temp files
+TEMP_FIRST = os.path.join(OUTPUT_DIR, "temp_first_verse.mp3")
+TEMP_SECOND = os.path.join(OUTPUT_DIR, "temp_second_verse.mp3")
+TEMP_THIRD = os.path.join(OUTPUT_DIR, "temp_third_verse.mp3")
 
 # Alias for backward compatibility with main()
 OUTPUT = OUTPUT_PATH

@@ -85,8 +85,8 @@ else:
     verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
 
 filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_qwen.mp3")
-DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, filename)
+OUTPUT_DIR = os.getcwd()
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)

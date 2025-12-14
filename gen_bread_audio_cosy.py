@@ -50,8 +50,8 @@ except Exception as e:
     print("Ensure you have 'modelscope' installed and dependencies met.")
     sys.exit(1)
 
-DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
-OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, "bread_cosy.mp3")
+OUTPUT_DIR = os.getcwd()
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, "bread_cosy.mp3")
 
 TEXT = """
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>

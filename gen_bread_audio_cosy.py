@@ -44,7 +44,9 @@ from text_cleaner import remove_space_before_god
 # Load model (uses cached files – no download)
 print("Loading CosyVoice-300M-Instruct (local offline)...")
 try:
-    cosyvoice = CosyVoice('iic/CosyVoice-300M-Instruct')
+    use_fp16 = torch.cuda.is_available()
+    print(f"Loading CosyVoice-300M-Instruct... [CUDA={use_fp16}, FP16={use_fp16}]")
+    cosyvoice = CosyVoice('iic/CosyVoice-300M-Instruct', fp16=use_fp16)
 except Exception as e:
     print(f"❌ Error loading model: {e}")
     print("Ensure you have 'modelscope' installed and dependencies met.")

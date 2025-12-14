@@ -100,7 +100,39 @@ If running on a DGX appliance or Spark cluster node:
 3.  **Running**:
     ```bash
     # If multiple GPUs, select one (e.g., GPU 0)
-    export CUDA_VISIBLE_DEVICES=0
+**NVIDIA DGX Spark Manual Run (Interactive):**
+Faster approach using the pre-built NVIDIA image directly. Ensure your repos are at `~/github/CosyVoice` and `~/github/devotion_audio_tts`.
+
+1.  **Launch Container**:
+    Mounts your code into `/workspace` and caches models to your host `~/.cache` so you don't re-download them.
+    ```bash
+    docker run --gpus all -it --rm \
+      -v ~/github:/workspace/github \
+      -v ~/.cache/modelscope:/root/.cache/modelscope \
+      -w /workspace/github/devotion_audio_tts \
+      nvcr.io/nvidia/pytorch:24.01-py3
+    ```
+
+2.  **Setup Environment (Inside Container)**:
+    Only needed the first time you start the container.
+    ```bash
+    # 1. Install System Deps
+    apt-get update && apt-get install -y ffmpeg
+
+    # grep -v "torch" requirements-cosy.txt | pip install -r /dev/stdin
+    # 2.A Install CosyVoice repo deps (Fixing onnxruntime for ARM64)
+    # onnxruntime-gpu is not on PyPI for aarch64, but onnxruntime (CPU) works fine for frontend
+    sed 's/onnxruntime-gpu/onnxruntime/g' ../CosyVoice/requirements.txt | grep -v "torch" | pip install -r /dev/stdin
+
+    # 2.B Install Devotion TTS deps
+    grep -v "torch" requirements-cosy.txt | pip install -r /dev/stdin
+    
+    # 3. Setup Paths
+    export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
+    ```
+
+3.  **Run**:
+    ```bash
     python gen_verse_devotion_cosy.py
     ```
 

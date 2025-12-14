@@ -111,7 +111,8 @@ verse_match = re.search(r"\((.*?)\)", TEXT)
 verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
 
 filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_cosy.mp3")
-OUTPUT_PATH = f"/Users/mhuo/Downloads/{filename}"
+DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
+OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)

@@ -116,10 +116,11 @@ FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
 SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
 #SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
 #FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
-OUTPUT = "/Users/mhuo/Downloads/bread_1203.mp3"
-TEMP_DIR = "/Users/mhuo/Downloads/"  # For temp files
-TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_bread.mp3"
-TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_bread.mp3"
+DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
+OUTPUT = os.path.join(DOWNLOADS_DIR, "bread_edge.mp3")
+TEMP_DIR = DOWNLOADS_DIR + os.sep  # For temp files
+TEMP_FIRST = os.path.join(DOWNLOADS_DIR, "temp_first_bread.mp3")
+TEMP_SECOND = os.path.join(DOWNLOADS_DIR, "temp_second_bread.mp3")
 
 async def generate_audio(text, voice, output_file):
     communicate = edge_tts.Communicate(text=text, voice=voice)

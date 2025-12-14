@@ -13,7 +13,8 @@ dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
 if not dashscope.api_key:
     raise ValueError("Please set DASHSCOPE_API_KEY in ~/.secrets")
 
-OUTPUT_PATH = "/Users/mhuo/Downloads/bread_qwen.mp3"
+DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
+OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, "bread_qwen.mp3")
 
 TEXT = """
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>

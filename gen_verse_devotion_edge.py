@@ -66,8 +66,9 @@ verse_match = re.search(r"\((.*?)\)", TEXT)
 verse_ref = verse_match.group(1).strip() if verse_match else "Unknown-Verse"
 
 filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_edge.mp3")
-OUTPUT = f"/Users/mhuo/Downloads/{filename}"
-print(f"Target Output: {OUTPUT}")
+DOWNLOADS_DIR = os.path.join(os.path.expanduser("~"), "Downloads")
+OUTPUT_PATH = os.path.join(DOWNLOADS_DIR, filename)
+print(f"Target Output: {OUTPUT_PATH}")
 
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
@@ -105,10 +106,13 @@ FOURTH_VOICE = "zh-CN-XiaoxiaoNeural" # Fourth voice (paragraphs between 3rd and
 FIFTH_VOICE = "zh-CN-YunxiaNeural" # Fifth voice (last paragraph)
 #THIRD_VOICE = "zh-CN-XiaoxiaoNeural" # Second voice (second paragraph)
 
-TEMP_DIR = "/Users/mhuo/Downloads/" # For temp files
-TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_verse.mp3"
-TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_verse.mp3"
-TEMP_THIRD = "/Users/mhuo/Downloads/temp_third_verse.mp3"
+TEMP_DIR = DOWNLOADS_DIR + os.sep # For temp files
+TEMP_FIRST = os.path.join(DOWNLOADS_DIR, "temp_first_verse.mp3")
+TEMP_SECOND = os.path.join(DOWNLOADS_DIR, "temp_second_verse.mp3")
+TEMP_THIRD = os.path.join(DOWNLOADS_DIR, "temp_third_verse.mp3")
+
+# Alias for backward compatibility with main()
+OUTPUT = OUTPUT_PATH
 async def generate_audio(text, voice, output_file):
     print(f"DEBUG: Generating audio for text: '{text[:50]}...' (len={len(text)})")
     communicate = edge_tts.Communicate(text=text, voice=voice)

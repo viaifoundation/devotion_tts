@@ -1,0 +1,13 @@
+torch
+accelerate
+transformers
+diffusers
+tqdm
+numpy
+scipy
+librosa
+ml-collections
+absl-py
+av
+numba
+llvmlite

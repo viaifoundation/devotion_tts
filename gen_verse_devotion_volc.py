@@ -44,6 +44,7 @@ def check_auth():
 
 def speak(text: str, voice: str) -> AudioSegment:
     """Synthesize text using Volcengine HTTP API"""
+    print(f"DEBUG: Text to read: {text[:100]}...")
     if not text.strip():
         return AudioSegment.empty()
 

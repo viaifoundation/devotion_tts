@@ -128,48 +128,77 @@ SINGLE_CHAPTER_BOOKS = {
 def extract_verse_from_text(text: str) -> str:
     """
     Extracts the first valid Chinese Bible verse reference from text.
-    Strictly matches known book names defined in CHINESE_TO_ENGLISH mapping.
+    Uses robust candidate finding + dictionary validation.
     
     Supports:
     1. Standard: Book Chapter:Verse(-Range)? (e.g., 罗马书 10:14-17)
     2. Single-Chapter: Book Verse(-Range)? (e.g., 犹大书 24-25 -> 犹大书 1:24-25)
     """
-    # Sort keys by length descending
-    book_names = sorted(CHINESE_TO_ENGLISH.keys(), key=len, reverse=True)
-    book_pattern = "|".join(map(re.escape, book_names))
     
-    # Pattern 1: Standard (Book Chap:Verse...)
-    # Matches: 罗马书 10:14, 罗马书 10:14-17
-    # Dash pattern: hyphen, en dash, em dash, double em dash
-    dash_re = r"(?:-|—|——|–)"
+    # Clean text of invisible chars/parens for easier matching? 
+    # Actually, Regex is powerful enough.
     
-    # regex_std matches: (Book) (Chapter) : (Verse[-Verse])
-    # Note: We use dash_re for the range part
-    regex_std = rf"({book_pattern})\s*(\d+)[:：](\d+(?:{dash_re}\d+)?)"
-    match_std = re.search(regex_std, text)
+    dash_re = r"[-—–]+"
     
-    if match_std:
-        raw = match_std.group(0)
-        # Normalize all dash types to standard hyphen
-        raw = re.sub(dash_re, '-', raw)
-        return raw.replace('：', ':')
-
-    # Pattern 2: Single Chapter Books (Book Verse...)
-    # Only match if the book is in SINGLE_CHAPTER_BOOKS logic
-    # Filter book_names to only single chapter ones
-    single_books = [b for b in book_names if b in SINGLE_CHAPTER_BOOKS]
-    if single_books:
-        single_pattern = "|".join(map(re.escape, single_books))
-        regex_single = rf"({single_pattern})\s*(\d+(?:{dash_re}\d+)?)"
-        match_single = re.search(regex_single, text)
+    # Pattern 1: Standard (Book Candidate + Chap + : + Verse)
+    # Be relaxed on Book Candidate: [\u4e00-\u9fa5a-zA-Z0-9]{1,15}
+    # But ensure we don't capture "参考申命记" as the book name.
+    # We want to capture '申命记' inside '...'.
+    # Since we validate against the dict, we can iterate over ALL matches of pattern.
+    
+    # Regex: (PossibleBook)\s*(\d+)\s*[:：]\s*(\d+(?:[-—–]+\d+)?)
+    regex_std = re.compile(rf"([\u4e00-\u9fa5a-zA-Z0-9]*[\u4e00-\u9fa5a-zA-Z])\s*(\d+)\s*[:：]\s*(\d+(?:{dash_re}\d+)?)")
+    
+    for m in regex_std.finditer(text):
+        book_candidate = m.group(1)
+        chapter = m.group(2)
+        verse_part = m.group(3)
         
-        if match_single:
-            book = match_single.group(1)
-            verse_part = match_single.group(2)
-            # Normalize dashes in verse part
+        # Check if book_candidate ENDS with a valid book name
+        # e.g. "参考申命记" -> ends with "申命记"
+        # We need to find the longest suffix that IS a valid book.
+        
+        valid_book = None
+        # Try full candidate first
+        if book_candidate in CHINESE_TO_ENGLISH:
+            valid_book = book_candidate
+        else:
+            # Try suffixes from longest to shortest
+            # Optimization: Max book length is ~10 chars.
+            for i in range(len(book_candidate)):
+                suffix = book_candidate[i:]
+                if suffix in CHINESE_TO_ENGLISH:
+                    valid_book = suffix
+                    break
+        
+        if valid_book:
+            # Found one!
+            # Normalize dashes
             verse_part = re.sub(dash_re, '-', verse_part)
-            # Normalize to Book 1:Verse format so other tools parse it correctly
-            return f"{book} 1:{verse_part}"
+            return f"{valid_book} {chapter}:{verse_part}"
+
+    # Pattern 2: Single Chapter
+    # Only if Book is in SINGLE_CHAPTER_BOOKS
+    regex_single = re.compile(rf"([\u4e00-\u9fa5a-zA-Z0-9]*[\u4e00-\u9fa5a-zA-Z])\s*(\d+(?:{dash_re}\d+)?)(?![0-9:：])")
+    
+    for m in regex_single.finditer(text):
+        book_candidate = m.group(1)
+        verse_part = m.group(2)
+        
+        valid_book = None
+        if book_candidate in CHINESE_TO_ENGLISH and book_candidate in SINGLE_CHAPTER_BOOKS:
+             valid_book = book_candidate
+        else:
+            # Suffix check
+            for i in range(len(book_candidate)):
+                 suffix = book_candidate[i:]
+                 if suffix in CHINESE_TO_ENGLISH and suffix in SINGLE_CHAPTER_BOOKS:
+                     valid_book = suffix
+                     break
+        
+        if valid_book:
+             verse_part = re.sub(dash_re, '-', verse_part)
+             return f"{valid_book} 1:{verse_part}"
 
     return None
 

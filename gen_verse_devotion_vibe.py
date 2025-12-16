@@ -202,6 +202,7 @@ paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
 # VibeVoice Synthesis Function
 def speak(text: str, voice_name: str) -> AudioSegment:
+    print(f"DEBUG: Text to read: {text[:100]}...")
     print(f"   Synthesizing ({len(text)} chars) with {voice_name}...")
     
     voice_path = voice_mapper.get_voice_path(voice_name)

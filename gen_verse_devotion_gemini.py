@@ -188,6 +188,7 @@ def chunk_text(text: str, max_len: int = 400) -> list[str]:
     return chunks
 
 def speak(text: str, voice: str, style_prompt: str = None) -> AudioSegment:
+    print(f"DEBUG: Text to read: {text[:100]}...")
     client = get_tts_client()
     synthesis_input = texttospeech.SynthesisInput(text=text)
     

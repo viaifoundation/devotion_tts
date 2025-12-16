@@ -1,7 +1,6 @@
 # requirements-volc.txt
 # Volcengine (ByteDance/Doubao) TTS dependencies
 
-volcengine-python-sdk>=1.0.100  # Official SDK
+volcengine-python-sdk>=1.0.100  # Official SDK (optional)
 pydub>=0.25.1                   # Audio processing
 requests>=2.25.1                # HTTP requests for streaming/API
-websockets>=10.0                # WebSocket client for V3 API

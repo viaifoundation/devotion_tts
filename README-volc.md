@@ -28,12 +28,9 @@ You need two environment variables:
 ### How to get credentials:
 1.  Log in to [Volcengine Console](https://console.volcengine.com/speech/service).
 2.  Go to **Speech Synthesis** > **Service Management**.
-    *   Find your **AppID**.
-    *   Ensure **Seed-TTS** (or relevant V3 resource) is enabled.
 3.  Go to **Speech Synthesis** > **Token Management**.
     *   Create a token with correct permissions.
-4.  **Resource ID**: The scripts default to `seed-tts-2.0`. If you use a different resource, update the `RESOURCE_ID` variable in the scripts.
-5.  **Voice IDs**: Check [this doc](https://www.volcengine.com/docs/6561/1257544?lang=en) for Seed-TTS voice IDs (e.g., `zh_female_cancan_mars_bigtts`).
+4.  **Note**: These scripts use the **HTTP V1 API** for maximum compatibility.
 
 ### Setup
 ```bash
@@ -43,11 +40,6 @@ export VOLC_TOKEN="your_access_token"
 
 ### 3. Installation
 ```bash
-# Create environment
-pyenv virtualenv 3.12.12 tts-volc-env
-pyenv activate tts-volc-env
-
-# Install
 pip install -r requirements-volc.txt
 ```
 (Requires `websockets` and `volcengine-python-sdk`)

@@ -1,5 +1,6 @@
 # gen_bread_audio_volc.py
-# Volcengine (ByteDance/Doubao) TTS – Daily Bread Audio (Seed-TTS V3)
+# Volcengine (ByteDance/Doubao) TTS – Daily Bread Audio
+# Uses HTTP V1 API for maximum compatibility.
 # Requires VOLC_APPID and VOLC_TOKEN
 
 import io
@@ -7,14 +8,9 @@ import os
 import sys
 import re
 import uuid
-import json
-import asyncio
-import gzip
-import struct
-import websockets
-from websockets.client import connect  # Explicit import
+import base64
+import requests
 from pydub import AudioSegment
-from datetime import datetime
 
 from bible_parser import convert_bible_reference
 from text_cleaner import clean_text
@@ -22,48 +18,18 @@ from text_cleaner import clean_text
 # Configuration
 APPID = os.getenv("VOLC_APPID", "")
 TOKEN = os.getenv("VOLC_TOKEN", "")
-RESOURCE_ID = "seed-tts-2.0"  
 CLUSTER = "volcano_tts"
 
-WS_URL = "wss://openspeech.bytedance.com/api/v3/tts/bidirection"
+HOST = "openspeech.bytedance.com"
+API_URL = f"https://{HOST}/api/v1/tts"
 
-# --- Protocol Bits ---
-PROTOCOL_VERSION = 0b0001
-HEADER_SIZE = 0b0001
-MSG_TYPE_FULL_CLIENT_REQUEST = 0b0001
-MSG_TYPE_AUDIO_ONLY_RESPONSE = 0b1011
-MSG_TYPE_FULL_SERVER_RESPONSE = 0b1001
-MSG_TYPE_ERROR = 0b1111
-MSG_TYPE_SPECIFIC_FLAGS_None = 0b0000
-SERIALIZATION_METHOD_JSON = 0b0001
-COMPRESSION_METHOD_GZIP = 0b0001
-
-def pack_header(msg_type):
-    # Byte 0: Version (4) | Header Size (4)
-    b0 = (PROTOCOL_VERSION << 4) | HEADER_SIZE
-    # Byte 1: Msg Type (4) | Flags (4) 
-    b1 = (msg_type << 4) | MSG_TYPE_SPECIFIC_FLAGS_None
-    # Byte 2: Serialization (4) | Compression (4)
-    b2 = (SERIALIZATION_METHOD_JSON << 4) | COMPRESSION_METHOD_GZIP
-    # Byte 3: Reserved
-    b3 = 0x00
-    return struct.pack("!BBBB", b0, b1, b2, b3)
-
-def unpack_header(data):
-    if len(data) < 4:
-        return None
-    b0, b1, b2, b3 = struct.unpack("!BBBB", data[:4])
-    msg_type = (b1 >> 4) & 0x0F
-    return msg_type
-
-async def speak_async(text: str, voice: str) -> AudioSegment:
+def speak(text: str, voice: str = "zh_female_vv_uranus_bigtts") -> AudioSegment:
     if not text.strip():
         return AudioSegment.empty()
 
     headers = {
-        "X-Api-App-Id": APPID,
-        "X-Api-Access-Key": TOKEN, # Token goes here
-        "X-Api-Resource-Id": RESOURCE_ID,
+        "Authorization": f"Bearer;{TOKEN}",
+        "Content-Type": "application/json"
     }
 
     request_json = {
@@ -86,78 +52,34 @@ async def speak_async(text: str, voice: str) -> AudioSegment:
             "reqid": str(uuid.uuid4()),
             "text": text,
             "text_type": "plain",
-            "operation": "submit"
+            "operation": "query",
+            "with_frontend": 1,
+            "frontend_type": "unitTson"
         }
     }
-    
-    payload_json = json.dumps(request_json).encode("utf-8")
-    payload_compressed = gzip.compress(payload_json)
-    
-    header = pack_header(MSG_TYPE_FULL_CLIENT_REQUEST)
-    full_msg = header + struct.pack("!I", len(payload_compressed)) + payload_compressed
 
-    audio_buffer = io.BytesIO()
-    
     try:
-        async with connect(WS_URL, extra_headers=headers) as ws:
-            await ws.send(full_msg)
-            
-            while True:
-                resp = await ws.recv()
-                msg_type = unpack_header(resp)
-                
-                if msg_type == MSG_TYPE_AUDIO_ONLY_RESPONSE: 
-                    payload_len = struct.unpack("!I", resp[4:8])[0]
-                    payload = resp[8:8+payload_len]
-                    
-                    b2 = resp[2]
-                    compression = b2 & 0x0F
-                    if compression == COMPRESSION_METHOD_GZIP:
-                        payload = gzip.decompress(payload)
-                        
-                    audio_buffer.write(payload)
-                    
-                elif msg_type == MSG_TYPE_FULL_SERVER_RESPONSE: 
-                    payload_len = struct.unpack("!I", resp[4:8])[0]
-                    payload = resp[8:8+payload_len]
-                    
-                    b2 = resp[2]
-                    if (b2 & 0x0F) == COMPRESSION_METHOD_GZIP:
-                        payload = gzip.decompress(payload)
-                        
-                    payload_str = payload.decode("utf-8")
-                    try:
-                        resp_json = json.loads(payload_str)
-                        if "sequence" in resp_json and resp_json["sequence"] < 0:
-                            break
-                    except:
-                        pass
-                
-                elif msg_type == MSG_TYPE_ERROR: 
-                    print("❌ V3 Error Message Received")
-                    try:
-                        payload_len = struct.unpack("!I", resp[4:8])[0]
-                        payload = resp[8:8+payload_len]
-                        b2 = resp[2]
-                        if (b2 & 0x0F) == COMPRESSION_METHOD_GZIP:
-                            payload = gzip.decompress(payload)
-                        print(f"Error Details: {payload.decode('utf-8')}")
-                    except:
-                        pass
-                    break
-                    
+        resp = requests.post(API_URL, json=request_json, headers=headers)
+        if resp.status_code == 200:
+            resp_data = resp.json()
+            if "data" in resp_data and resp_data["data"]:
+                audio_bytes = base64.b64decode(resp_data["data"])
+                return AudioSegment.from_mp3(io.BytesIO(audio_bytes))
+            else:
+                print(f"⚠️ API Error: {resp.text}")
+                return AudioSegment.silent(duration=500)
+        else:
+            print(f"❌ HTTP Error {resp.status_code}: {resp.text}")
+            return AudioSegment.silent(duration=500)
     except Exception as e:
-        print(f"❌ WebSocket Error: {e}")
+        print(f"❌ Request Failed: {e}")
         return AudioSegment.silent(duration=500)
 
-    audio_buffer.seek(0)
-    try:
-        return AudioSegment.from_mp3(audio_buffer)
-    except:
-        return AudioSegment.silent(duration=500)
-
-def speak(text: str, voice: str) -> AudioSegment:
-    return asyncio.run(speak_async(text, voice))
+def check_auth():
+    if not APPID or not TOKEN:
+        print("❌ Error: Missing VOLC_APPID or VOLC_TOKEN.")
+        return False
+    return True
 
 # Configuration Check
 if not APPID or not TOKEN:

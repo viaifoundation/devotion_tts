@@ -8,6 +8,7 @@ This project provides Python scripts to generate high-quality audio for:
 - Daily Devotionals
 - Verse of the Day (VOTD)
 - "Bread" Audio (Daily portion)
+- **Prayer Audio**
 
 It supports automatic filename generation based on the Bible verse and date found in the text.
 
@@ -111,7 +112,15 @@ Clone the repo and install dependencies:
 ```bash
 git clone https://github.com/viaifoundation/devotion_tts.git
 cd devotion_tts
+# Install core dependencies (includes Edge TTS & Google)
 pip install -r requirements.txt
+
+# OR install provider-specific requirements as needed:
+# pip install -r requirements-qwen.txt
+# pip install -r requirements-cosy.txt
+# pip install -r requirements-volc.txt
+# pip install -r requirements-vibe.txt
+
 ```
 
 ### 2. Generate Verse of the Day (VOTD)
@@ -133,6 +142,7 @@ The audio will be generated in your `~/Downloads` folder with a filename like:
 
 - **Daily Devotion**: `gen_devotion_audio_edge.py`
 - **Bread Audio**: `gen_bread_audio_edge.py`
+- **Prayer Audio**: `gen_prayer_edge.py`
 
 ## Project Utilities
 

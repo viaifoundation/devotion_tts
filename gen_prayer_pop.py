@@ -84,9 +84,9 @@ if verse_ref:
     raw_filename = filename_parser.generate_filename(verse_ref, date_str)
     if raw_filename.startswith("VOTD_"):
         raw_filename = raw_filename[5:]
-    filename = f"prayer_{raw_filename.replace('.mp3', '')}_pop.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{raw_filename.replace('.mp3', '')}_pop.mp3"
 else:
-    filename = f"prayer_{date_str}_pop.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{date_str}_pop.mp3"
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
@@ -148,5 +148,9 @@ if ENABLE_BGM:
 else:
     print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
 
-final_mix.export(OUTPUT_PATH, format="mp3", bitrate="192k")
+# Metadata extraction
+PRODUCER = "VI AI Foundation"
+TITLE = TEXT.strip().split('\n')[0]
+
+final_mix.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
 print(f"✅ Saved: {OUTPUT_PATH}")

@@ -268,5 +268,9 @@ for i, para in enumerate(paragraphs):
     if i < len(paragraphs) - 1:
         final_mix += silence
 
-final_mix.export(OUTPUT_PATH, format="mp3", bitrate="192k")
+# Metadata extraction
+PRODUCER = "VI AI Foundation"
+TITLE = TEXT.strip().split('\n')[0]
+
+final_mix.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
 print(f"✅ Saved: {OUTPUT_PATH}")

@@ -200,5 +200,9 @@ for i, seg in enumerate(final_segments):
     if i < len(final_segments) - 1:
         final += silence_between_sections
 
-final.export(OUTPUT_PATH, format="mp3", bitrate="192k")
+# Metadata extraction
+PRODUCER = "VI AI Foundation"
+TITLE = TEXT.strip().split('\n')[0]
+
+final.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
 print(f"Success! Saved → {OUTPUT_PATH}")

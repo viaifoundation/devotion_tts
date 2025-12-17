@@ -184,7 +184,11 @@ async def main():
         if i < len(final_segments) - 1:
             final += silence_sections
 
-    final.export(OUTPUT, format="mp3")
+    # Metadata extraction
+    PRODUCER = "VI AI Foundation"
+    TITLE = TEXT.strip().split('\n')[0]
+
+    final.export(OUTPUT, format="mp3", tags={'title': TITLE, 'artist': PRODUCER})
     print(f"✅ Combined audio saved: {OUTPUT}")
 
 if __name__ == "__main__":

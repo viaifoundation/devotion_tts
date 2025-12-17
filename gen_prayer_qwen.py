@@ -65,9 +65,9 @@ if verse_ref:
     # Strip "VOTD_" if present
     if raw_filename.startswith("VOTD_"):
         raw_filename = raw_filename[5:]
-    filename = f"prayer_{raw_filename.replace('.mp3', '')}_qwen.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{raw_filename.replace('.mp3', '')}_qwen.mp3"
 else:
-    filename = f"prayer_{date_str}_qwen.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{date_str}_qwen.mp3"
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -125,5 +125,9 @@ for i, para in enumerate(paragraphs):
     else:
         print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
 
-    final_audio.export(OUTPUT_PATH, format="mp3", bitrate="192k")
-print(f"✅ Saved: {OUTPUT_PATH}")
+    # Metadata extraction
+    PRODUCER = "VI AI Foundation"
+    TITLE = TEXT.strip().split('\n')[0]
+
+    final_audio.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
+    print(f"✅ Saved: {OUTPUT_PATH}")

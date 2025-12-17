@@ -89,14 +89,21 @@ OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 # Generate filename dynamically
-# Try to find date in text like "12月15日" or "12/15"
+# 1. Try to find date in text like "12月15日" or "12/15"
 date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
 if date_match:
     m, d = date_match.groups()
     current_year = datetime.now().year
     date_str = f"{current_year}{int(m):02d}{int(d):02d}"
 else:
-    date_str = datetime.today().strftime("%Y%m%d")
+    # 2. Fallback to script modification time
+    try:
+        mod_timestamp = os.path.getmtime(__file__)
+        date_str = datetime.fromtimestamp(mod_timestamp).strftime("%Y%m%d")
+        print(f"⚠️ Date not found in text. Using script modification date: {date_str}")
+    except:
+        # 3. Fallback to today
+        date_str = datetime.today().strftime("%Y%m%d")
 
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_cosy.mp3")
 
@@ -136,5 +143,10 @@ seg_main = speak(main, "中文男")
 
 final = seg_intro + AudioSegment.silent(duration=600) + seg_main
 final = final.set_frame_rate(24000)
-final.export(OUTPUT_PATH, format="mp3", bitrate="192k")
+
+# Metadata extraction
+PRODUCER = "VI AI Foundation"
+TITLE = TEXT.strip().split('\n')[0]
+
+final.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
 print(f"Success! Saved → {OUTPUT_PATH}")

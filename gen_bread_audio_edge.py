@@ -165,7 +165,7 @@ from datetime import datetime
 import re
 
 # Generate filename dynamically
-# Try to find date in text like "12月15日" or "12/15"
+# 1. Try to find date in text like "12月15日" or "12/15"
 date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
 if date_match:
     m, d = date_match.groups()
@@ -173,10 +173,19 @@ if date_match:
     # Handle year boundary if needed (e.g. text is for next year), but simple current year is safe for now
     date_str = f"{current_year}{int(m):02d}{int(d):02d}"
 else:
-    # Fallback to today
-    date_str = datetime.today().strftime("%Y%m%d")
+    # 2. Fallback to script modification time
+    try:
+        # Use the modification time of this script as the date
+        mod_timestamp = os.path.getmtime(__file__)
+        date_str = datetime.fromtimestamp(mod_timestamp).strftime("%Y%m%d")
+        print(f"⚠️ Date not found in text. Using script modification date: {date_str}")
+    except Exception as e:
+        # 3. Fallback to today
+        date_str = datetime.today().strftime("%Y%m%d")
+        print(f"⚠️ Date not found in file stats. Using today's date: {date_str}")
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_edge.mp3")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_edge.mp3")
@@ -238,7 +247,11 @@ async def main():
             intro_delay_ms=BGM_INTRO_DELAY
         )
 
-    combined_audio.export(OUTPUT_PATH, format="mp3")
+    # Metadata extraction
+    PRODUCER = "VI AI Foundation"
+    TITLE = TEXT.strip().split('\n')[0]
+
+    combined_audio.export(OUTPUT_PATH, format="mp3", tags={'title': TITLE, 'artist': PRODUCER})
     print(f"✅ Combined audio saved: {OUTPUT_PATH}")
 
 if __name__ == "__main__":

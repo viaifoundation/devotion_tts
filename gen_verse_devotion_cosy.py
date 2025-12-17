@@ -216,5 +216,9 @@ for i, seg in enumerate(final_segments):
 
 # Convert to 24k for consistency with others if desired, or keep 22k
 final = final.set_frame_rate(24000)
-final.export(OUTPUT_PATH, format="mp3", bitrate="192k")
+# Metadata extraction
+PRODUCER = "VI AI Foundation"
+TITLE = TEXT.strip().split('\n')[0]
+
+final.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
 print(f"Success! Saved → {OUTPUT_PATH}")

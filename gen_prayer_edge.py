@@ -23,10 +23,53 @@ BGM_INTRO_DELAY = 4000 # Default ms
 
 
 TEXT = """
-“犹大地的伯利恒啊， 你在犹大诸城中并不是最小的； 因为将来有一位君王要从你那里出来， 牧养我以色列民。」”
-‭‭马太福音‬ ‭2‬:‭6‬ ‭CUNPSS-神‬‬
+天路音樂 「鄉音情」12月17日禱告
 
-神亲爱的主耶稣基督，我们在纪念你诞生的日子向你感恩，因你的诞生给我们带来了永活的泉源，更为我们带来了永生的盼望，主啊，我们为把你旨意传遍世界，乡音更好的为主的福音做了美好榜样，主啊，你的道路高过任何人的道路，乡音就是奉主的名走主你引领的道路，带领更多的人信主，为主做了美好的见证，主，求你为今年的乡音预备各样的资源，并𧶽不同地区同工们合一答配的心，把主的福音传到地极，我们这样的祷告，是奉主基督的名。阿们！
+親愛的天父上帝，
+我們滿懷感恩與敬畏來到祢面前，
+感謝祢一路的帶領與看顧。
+
+主啊，我們首先要向祢獻上感恩——
+感謝祢的恩典與信實，
+灣區「鄉音」場地 Redemption Church 已正式完成簽約！
+這不是人的能力，乃是祢親自為我們開路。
+一切榮耀、頌讚都歸給坐在寶座上的主。
+
+主啊，我們也為接下來的道路向祢呼求：
+懇切為 聖地牙哥 UCSD – The Epstein Family Amphitheater 的租借與簽約過程禱告。
+求祢親自介入，
+在每一個溝通、每一個流程、每一個決定中掌權，
+除去一切攔阻與不確定，
+使一切細節都按祢的旨意、平安順利地完成。
+願福音的門，按祢的時間，在校園中被敞開。
+
+主啊，我們將南北加州四場「鄉音」事工一同交託在祢手中——
+求祢祝福宣傳推廣的展開，
+使該聽見的人能聽見，該來到的人能被吸引；
+也求祢親自供應贊助與籌款的一切需要，
+因為祢是豐盛的主，從不誤事。
+
+我們也為節目的籌備與執行製作流程禱告，
+求祢賜下從天而來的智慧、秩序與專業，
+使每一個環節彼此配搭、同心合一，
+不為表演，乃為榮耀祢的名。
+
+主啊，也懇切為所有同工及他們的家人禱告，
+求祢保守身體健康、心力剛強，
+在忙碌與壓力中仍得著從祢而來的平安與喜樂。
+讓我們在愛中同工，在合一中前行。
+
+天父，我們深信：
+若不是耶和華建造房屋，建造的人就枉然勞力。
+願我們在主裡同心合意，
+一同見證祢奇妙、榮耀的作為。
+
+以上禱告，
+是奉靠我主耶穌基督得勝的名求，
+阿們。
+
+以馬內利 🤍
+
 """
 
 # Generate filename dynamically
@@ -55,9 +98,9 @@ if verse_ref:
     # Strip "VOTD_" if present
     if raw_filename.startswith("VOTD_"):
         raw_filename = raw_filename[5:]
-    filename = f"prayer_{raw_filename.replace('.mp3', '')}_edge.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{raw_filename.replace('.mp3', '')}_edge.mp3"
 else:
-    filename = f"prayer_{date_str}_edge.mp3"
+    filename = f"SOH_Sound_of_Home_Prayer_{date_str}_edge.mp3"
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
@@ -125,7 +168,7 @@ async def main():
     else:
         print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
 
-    final_audio.export(OUTPUT_PATH, format="mp3")
+    final_audio.export(OUTPUT_PATH, format="mp3", tags={'title': TITLE, 'artist': PRODUCER})
     print(f"✅ Saved: {OUTPUT_PATH}")
 
 if __name__ == "__main__":
@@ -158,5 +201,9 @@ if __name__ == "__main__":
     TTS_RATE = args.rate
     BGM_VOLUME = args.bgm_volume
     BGM_INTRO_DELAY = args.bgm_intro
-        
+    
+    # Metadata extraction
+    PRODUCER = "VI AI Foundation"
+    TITLE = TEXT.strip().split('\n')[0]
+
     asyncio.run(main())

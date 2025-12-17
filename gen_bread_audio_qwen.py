@@ -7,7 +7,9 @@ from pydub import AudioSegment
 import re
 
 from bible_parser import convert_bible_reference
+from bible_parser import convert_bible_reference
 from text_cleaner import clean_text
+from datetime import datetime
 
 TEXT = """
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>
@@ -40,7 +42,17 @@ if not dashscope.api_key:
     raise ValueError("Please set DASHSCOPE_API_KEY in ~/.secrets")
 
 OUTPUT_DIR = os.getcwd()
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, "bread_qwen.mp3")
+# Generate filename dynamically
+# Try to find date in text like "12月15日" or "12/15"
+date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
+if date_match:
+    m, d = date_match.groups()
+    current_year = datetime.now().year
+    date_str = f"{current_year}{int(m):02d}{int(d):02d}"
+else:
+    date_str = datetime.today().strftime("%Y%m%d")
+
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_qwen.mp3")
 
 
 

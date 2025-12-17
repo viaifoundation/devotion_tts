@@ -9,6 +9,9 @@ from text_cleaner import clean_text
 import filename_parser
 import re
 from datetime import datetime
+
+TTS_RATE = "+10%"  # Speed up by 10%
+
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
 学习凡事谦虚 (以弗所书 4:2) 12/17/2025
@@ -122,7 +125,7 @@ OUTPUT = OUTPUT_PATH
 async def generate_audio(text, voice, output_file):
     print(f"DEBUG: Text to read: {text[:100]}...")
     # print(f"DEBUG: Generating audio for text: '{text[:50]}...' (len={len(text)})")
-    communicate = edge_tts.Communicate(text=text, voice=voice)
+    communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
     await communicate.save(output_file)
 async def main():
     # Group paragraphs

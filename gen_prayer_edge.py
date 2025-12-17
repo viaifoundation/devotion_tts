@@ -9,6 +9,18 @@ from text_cleaner import clean_text
 import filename_parser
 import re
 from datetime import datetime
+import audio_mixer
+
+import argparse
+import sys
+
+VERSION = "1.0.0"
+ENABLE_BGM = False
+BGM_FILE = "AmazingGrace.MP3"
+TTS_RATE = "+10%"  # Default Speed
+BGM_VOLUME = -12   # Default dB
+BGM_INTRO_DELAY = 4000 # Default ms
+
 
 TEXT = """
 “犹大地的伯利恒啊， 你在犹大诸城中并不是最小的； 因为将来有一位君王要从你那里出来， 牧养我以色列民。」”
@@ -75,7 +87,7 @@ TEMP_DIR = OUTPUT_DIR + os.sep
 
 async def generate_audio(text, voice, output_file):
     print(f"DEBUG: Text to read: {text[:100]}...")
-    communicate = edge_tts.Communicate(text=text, voice=voice)
+    communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
     await communicate.save(output_file)
 
 async def main():
@@ -100,8 +112,51 @@ async def main():
             if os.path.exists(temp_file):
                 os.remove(temp_file)
 
+
+    # Add Background Music (Optional)
+    if ENABLE_BGM:
+        print(f"🎵 Mixing Background Music (Vol={BGM_VOLUME}dB, Intro={BGM_INTRO_DELAY}ms)...")
+        final_audio = audio_mixer.mix_bgm(
+            final_audio, 
+            specific_filename=BGM_FILE,
+            volume_db=BGM_VOLUME,
+            intro_delay_ms=BGM_INTRO_DELAY
+        )
+    else:
+        print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
+
     final_audio.export(OUTPUT_PATH, format="mp3")
     print(f"✅ Saved: {OUTPUT_PATH}")
 
 if __name__ == "__main__":
+    # Custom handling for -? (which argparse doesn't support natively as a flag often)
+    if "-?" in sys.argv:
+        print(f"Usage: python {sys.argv[0]} [--bgm] [--rate RATE] [--bgm-volume VOL] [--bgm-intro MS] [--help] [--version]")
+        print("\nOptions:")
+        print("  -h, --help           Show this help message and exit")
+        print("  -?,                  Show this help message and exit")
+        print("  --bgm                Enable background music")
+        print("  --rate RATE          TTS Speech rate (default: +10%)")
+        print("  --bgm-volume VOL     BGM volume adjustment in dB (default: -12)")
+        print("  --bgm-intro MS       BGM intro delay in ms (default: 4000)")
+        print("  --version, -v        Show program version")
+        sys.exit(0)
+
+    parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS")
+    parser.add_argument("--bgm", action="store_true", help="Enable background music")
+    parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (e.g. +10%%)")
+    parser.add_argument("--bgm-volume", type=int, default=-12, help="BGM volume adjustment in dB")
+    parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
+    
+    args = parser.parse_args()
+    
+    # Update global config based on CLI
+    if args.bgm:
+        ENABLE_BGM = True
+    
+    TTS_RATE = args.rate
+    BGM_VOLUME = args.bgm_volume
+    BGM_INTRO_DELAY = args.bgm_intro
+        
     asyncio.run(main())

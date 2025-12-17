@@ -35,6 +35,10 @@ from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 from text_cleaner import clean_text
 import filename_parser
+import audio_mixer
+
+ENABLE_BGM = False
+BGM_FILE = "AmazingGrace.MP3"
 
 TEXT = """
 “犹大地的伯利恒啊， 你在犹大诸城中并不是最小的； 因为将来有一位君王要从你那里出来， 牧养我以色列民。」”
@@ -136,5 +140,13 @@ for i, para in enumerate(paragraphs):
 
 # Upsample to 24k for consistency
 final_mix = final_mix.set_frame_rate(24000)
+
+# Add Background Music (Optional)
+if ENABLE_BGM:
+    print("🎵 Mixing Background Music...")
+    final_mix = audio_mixer.mix_bgm(final_mix, specific_filename=BGM_FILE)
+else:
+    print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
+
 final_mix.export(OUTPUT_PATH, format="mp3", bitrate="192k")
 print(f"✅ Saved: {OUTPUT_PATH}")

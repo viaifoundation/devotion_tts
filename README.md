@@ -1,6 +1,6 @@
-# Devotion Audio TTS
+# Devotion TTS
 
-A unified toolset for generating Chinese Bible devotional audio using state-of-the-art TTS providers: **Microsoft Edge TTS**, **Google Gemini/Cloud TTS**, **Alibaba Qwen TTS**, and **CosyVoice**.
+
 
 ## Overview
 

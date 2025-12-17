@@ -66,7 +66,7 @@ If you prefer Docker:
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
   -v ~/.cache/modelscope:/root/.cache/modelscope \
-  -w /workspace/github/devotion_audio_tts \
+  -w /workspace/github/devotion_tts \
   nvcr.io/nvidia/pytorch:24.01-py3  # Works for x86 too
 ```
 *Follow the "Manual Run" steps in README-spark.md inside the container, but skip the 'sed' command for onnxruntime-gpu (since x86 wheels exist).*

@@ -31,7 +31,7 @@ These scripts run **locally** on your machine.
 Since `CosyVoice` is not a pip package, you must clone it as a "sibling" repository.
 ```
 ~/github/
-  ├── devotion_audio_tts/  (This repo)
+  ├── devotion_tts/  (This repo)
   └── CosyVoice/           (Clone this)
 ```
 
@@ -49,7 +49,7 @@ git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
 
 **macOS:**
 ```bash
-cd ~/github/devotion_audio_tts
+cd ~/github/devotion_tts
 
 # Create/Activate environment
 pyenv virtualenv 3.12.12 tts-venv-cosy
@@ -75,7 +75,7 @@ pyenv activate tts-venv-cosy
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # 4. Install Project Requirements
-cd ~/github/devotion_audio_tts
+cd ~/github/devotion_tts
 pip install -r requirements-cosy.txt
 pip install -r ../CosyVoice/requirements.txt
 ```
@@ -101,7 +101,7 @@ If running on a DGX appliance or Spark cluster node:
     ```bash
     # If multiple GPUs, select one (e.g., GPU 0)
 **NVIDIA DGX Spark Manual Run (Interactive):**
-Faster approach using the pre-built NVIDIA image directly. Ensure your repos are at `~/github/CosyVoice` and `~/github/devotion_audio_tts`.
+Faster approach using the pre-built NVIDIA image directly. Ensure your repos are at `~/github/CosyVoice` and `~/github/devotion_tts`.
 
 1.  **Launch Container**:
     Mounts your code into `/workspace` and caches models to your host `~/.cache` so you don't re-download them.

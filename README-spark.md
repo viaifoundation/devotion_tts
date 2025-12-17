@@ -45,7 +45,7 @@ Run this from your Spark terminal:
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
   -v ~/.cache/modelscope:/root/.cache/modelscope \
-  -w /workspace/github/devotion_audio_tts \
+  -w /workspace/github/devotion_tts \
   nvcr.io/nvidia/pytorch:24.01-py3
 ```
 

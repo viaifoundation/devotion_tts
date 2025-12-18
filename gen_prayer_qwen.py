@@ -13,6 +13,21 @@ import re
 from datetime import datetime
 import audio_mixer
 
+import argparse
+
+# CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--help]")
+    print("Options:")
+    print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
+    print("  --help, -h           Show this help")
+    sys.exit(0)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
+
 ENABLE_BGM = False
 BGM_FILE = "AmazingGrace.MP3"
 
@@ -42,6 +57,7 @@ if not dashscope.api_key:
 
 # Generate filename dynamically
 # 1. Extract Date
+TEXT = clean_text(TEXT)
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", TEXT)
 if date_match:
     m, d, y = date_match.groups()
@@ -60,12 +76,8 @@ else:
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
 if verse_ref:
-    # Remove VOTD prefix if filename_parser adds it (it often does "VOTD_...")
-    raw_filename = filename_parser.generate_filename(verse_ref, date_str)
-    # Strip "VOTD_" if present
-    if raw_filename.startswith("VOTD_"):
-        raw_filename = raw_filename[5:]
-    filename = f"SOH_Sound_of_Home_Prayer_{raw_filename.replace('.mp3', '')}_qwen.mp3"
+    extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+    filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix, base_name="Prayer").replace(".mp3", "_qwen.mp3")
 else:
     filename = f"SOH_Sound_of_Home_Prayer_{date_str}_qwen.mp3"
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")

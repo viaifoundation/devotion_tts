@@ -43,6 +43,21 @@ from bible_parser import convert_bible_reference
 from bible_parser import convert_bible_reference
 from text_cleaner import clean_text
 from datetime import datetime
+import argparse
+
+# CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--help]")
+    print("Options:")
+    print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
+    print("  --help, -h           Show this help")
+    print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
+    sys.exit(0)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
 
 TEXT = """
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>
@@ -74,6 +89,7 @@ if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 # Generate filename dynamically
 # 1. Try to find date in text like "12月15日" or "12/15"
+TEXT = clean_text(TEXT)
 date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
 if date_match:
     m, d = date_match.groups()
@@ -89,7 +105,16 @@ else:
         # 3. Fallback to today
         date_str = datetime.today().strftime("%Y%m%d")
 
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_spark.mp3")
+import filename_parser
+extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+
+basename = f"Bread_{date_str}_spark.mp3"
+if extracted_prefix:
+    filename = f"{extracted_prefix}_{basename}"
+else:
+    filename = basename
+
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 
 
 

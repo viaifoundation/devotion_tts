@@ -38,7 +38,7 @@ def convert_bible_reference(text):
     # Note: Put hyphen at end of [] to avoid range ambiguity.
     # regex for verses: [\d—–,-]+
     
-    pat_col = re.compile(rf"([\u4e00-\u9fa5a-zA-Z0-9]+)\s*(\d+)\s*[:：]\s*([\d—–,-]+)")
+    pat_col = re.compile(rf"([\u4e00-\u9fa5a-zA-Z0-9]+?)\s*(\d+)\s*[:：]\s*([\d—–,-]+)")
     
     def repl_col(m):
         book_candidate = m.group(1)

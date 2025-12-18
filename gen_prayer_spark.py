@@ -37,6 +37,21 @@ from text_cleaner import clean_text
 import filename_parser
 import audio_mixer
 
+import argparse
+
+# CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--help]")
+    print("Options:")
+    print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
+    print("  --help, -h           Show this help")
+    sys.exit(0)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
+
 ENABLE_BGM = False
 BGM_FILE = "AmazingGrace.MP3"
 
@@ -64,6 +79,7 @@ except Exception as e:
 
 
 # Generate filename dynamically
+TEXT = clean_text(TEXT)
 first_line = TEXT.strip().split('\n')[0]
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", TEXT)
 if date_match:
@@ -81,10 +97,8 @@ else:
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
 if verse_ref:
-    raw_filename = filename_parser.generate_filename(verse_ref, date_str)
-    if raw_filename.startswith("VOTD_"):
-        raw_filename = raw_filename[5:]
-    filename = f"SOH_Sound_of_Home_Prayer_{raw_filename.replace('.mp3', '')}_spark.mp3"
+    extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+    filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix, base_name="Prayer").replace(".mp3", "_spark.mp3")
 else:
     filename = f"SOH_Sound_of_Home_Prayer_{date_str}_spark.mp3"
 
@@ -137,6 +151,8 @@ for i, para in enumerate(paragraphs):
         if i < len(paragraphs) - 1:
             final_mix += silence
     except Exception as e:
+        print("\nOptions:")
+        print("  (Note: You can add 'FilenamePrefix: <Prefix>' in the input TEXT to customize output filename)")
         print(f"❌ Error generating para {i}: {e}")
 
 final_mix = final_mix.set_frame_rate(24000)

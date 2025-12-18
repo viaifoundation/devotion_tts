@@ -17,6 +17,22 @@ from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 from text_cleaner import clean_text
 import filename_parser
+import argparse
+import sys
+
+# CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--help]")
+    print("Options:")
+    print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
+    print("  --help, -h           Show this help")
+    print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
+    sys.exit(0)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
 
 
 TEXT = """
@@ -144,6 +160,7 @@ if __name__ == "__main__":
 
     # Generate filename dynamically
     # 1. Extract Date
+    TEXT = clean_text(TEXT)
     first_line = TEXT.strip().split('\n')[0]
     date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
     if date_match:
@@ -162,7 +179,8 @@ if __name__ == "__main__":
     verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
     if verse_ref:
-        filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_volc.mp3")
+        extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+        filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix).replace(".mp3", "_volc.mp3")
     else:
         filename = f"{date_str}_volc.mp3"
     OUTPUT_DIR = os.path.join(os.getcwd(), "output")

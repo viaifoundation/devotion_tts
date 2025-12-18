@@ -16,6 +16,22 @@ import filename_parser
 import re
 from datetime import datetime
 
+import argparse
+
+# CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--help]")
+    print("Options:")
+    print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
+    print("  --help, -h           Show this help")
+    print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
+    sys.exit(0)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
+
 TEXT = """
 学习凡事谦虚 (以弗所书 4:2) 12/17/2025
 
@@ -62,6 +78,7 @@ if not dashscope.api_key:
 
 # Generate filename dynamically
 # 1. Extract Date
+TEXT = clean_text(TEXT)
 first_line = TEXT.strip().split('\n')[0]
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
 if date_match:
@@ -80,7 +97,8 @@ else:
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
 if verse_ref:
-    filename = filename_parser.generate_filename(verse_ref, date_str).replace(".mp3", "_qwen.mp3")
+    extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+    filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix).replace(".mp3", "_qwen.mp3")
 else:
     filename = f"{date_str}_qwen.mp3"
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")

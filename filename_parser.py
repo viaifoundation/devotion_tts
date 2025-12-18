@@ -75,24 +75,39 @@ CHINESE_TO_ENGLISH = {
     # Traditional Chinese (zh-tw) – most are the same, but a few differ
     "創世記": "Genesis", "出埃及記": "Exodus", "利未記": "Leviticus",
     "民數記": "Numbers", "申命記": "Deuteronomy",
-    "約書亞記": "Joshua", "士師記": "Judges", "路得記": "Ruth",
+    "約書亞記": "Joshua", "書": "Joshua", "士師記": "Judges", "路得記": "Ruth",
     "撒母耳記上": "1Samuel", "撒母耳記下": "2Samuel",
     "列王紀上": "1Kings", "列王紀下": "2Kings",
     "歷代志上": "1Chronicles", "歷代志下": "2Chronicles",
     "以斯拉記": "Ezra", "尼希米記": "Nehemiah", "以斯帖記": "Esther",
-    "約伯記": "Job", "詩篇": "Psalm", "箴言": "Proverbs",
-    "傳道書": "Ecclesiastes", "雅歌": "SongOfSongs",
-    "以賽亞書": "Isaiah", "耶利米書": "Jeremiah", "耶利米哀歌": "Lamentations",
-    "以西結書": "Ezekiel", "但以理書": "Daniel",
+    "約伯記": "Job", "詩篇": "Psalm", "詩": "Psalm", "箴言": "Proverbs",
+    "傳道書": "Ecclesiastes", "傳": "Ecclesiastes", "雅歌": "SongOfSongs",
+    "以賽亞書": "Isaiah", "賽": "Isaiah", "耶利米書": "Jeremiah", "耶利米哀歌": "Lamentations",
+    "以西結書": "Ezekiel", "結": "Ezekiel", "但以理書": "Daniel",
+    "俄巴底亞書": "Obadiah", "約拿書": "Jonah", "彌迦書": "Micah", "彌": "Micah",
+    "那鴻書": "Nahum", "鴻": "Nahum", "哈巴谷書": "Habakkuk", "西番雅書": "Zephaniah",
+    "哈該書": "Haggai", "該": "Haggai", "撒迦利亞書": "Zechariah", "亞": "Zechariah",
+    "瑪拉基書": "Malachi", "瑪": "Malachi",
     "馬太福音": "Matthew", "馬可福音": "Mark", "路加福音": "Luke",
-    "約翰福音": "John", "使徒行傳": "Acts", "羅馬書": "Romans", 
+    "約翰福音": "John", "約": "John", "使徒行傳": "Acts", "羅馬書": "Romans", "羅": "Romans",
+    "哥林多前書": "1Corinthians", "哥林多後書": "2Corinthians", "林後": "2Cor",
+    "加拉太書": "Galatians", "以弗所書": "Ephesians", "腓立比書": "Philippians",
+    "歌羅西書": "Colossians", "帖撒羅尼迦前書": "1Thessalonians",
+    "帖撒羅尼迦後書": "2Thessalonians", "帖後": "2Thess",
+    "提摩太前書": "1Timothy", "提摩太後書": "2Timothy", "提後": "2Tim",
+    "提多書": "Titus", "腓利門書": "Philemon", "門": "Philemon",
+    "希伯來書": "Hebrews", "來": "Hebrews", "雅各書": "James",
+    "彼得前書": "1Peter", "彼得後書": "2Peter", "彼後": "2Pet",
+    "約翰一書": "1John", "約一": "1John", "約翰二書": "2John", "約二": "2John",
+    "約翰三書": "3John", "約三": "3John", "猶大書": "Jude", "猶": "Jude",
+    "啟示錄": "Revelation", "啟": "Revelation", "創": "Genesis"
 }
 
 def translate_chinese_book(book_name: str) -> str:
     """Return English book name if input is Chinese, otherwise return original."""
     return CHINESE_TO_ENGLISH.get(book_name.strip(), book_name)
 
-def generate_filename(verse: str, date: str = None) -> str:
+def generate_filename(verse: str, date: str = None, prefix: str = None, base_name: str = "VOTD") -> str:
     if date is None:
         date_obj = datetime.today()
     else:
@@ -112,7 +127,39 @@ def generate_filename(verse: str, date: str = None) -> str:
     reference = f"{english_book}-{chapter_verse.replace(':', '-')}"
 
     date_str = date_obj.strftime("%Y-%m-%d")
-    return f"VOTD_{reference}_{date_str}.mp3"
+    
+    basename = f"{base_name}_{reference}_{date_str}.mp3"
+    
+    # If a prefix is provided (and not empty), prepend it
+    if prefix:
+         return f"{prefix}_{basename}"
+    return basename
+
+def extract_filename_prefix(text: str) -> str:
+    """
+    Scan text for a specific prefix parameter like '鄉音情SOH_Sound_of_Home'.
+    Currently, the rule is to search for a specific known identifier or a pattern.
+    Based on request: "if we have that param in text as '鄉音情SOH_Sound_of_Home'"
+    
+    Let's implement a generic search for "FilenamePrefix: <value>" OR 
+    if the text contains the specific string "鄉音情SOH_Sound_of_Home", return it?
+    
+    Actually, user said: "if we have that param in text as '鄉音情SOH_Sound_of_Home' the filename should have a prefix with the string".
+    It implies if the string exists in the text, use it as prefix.
+    """
+    # Specific known prefixes to scan for
+    KNOWN_PREFIXES = ["鄉音情SOH_Sound_of_Home"]
+    
+    for prefix in KNOWN_PREFIXES:
+        if prefix in text:
+            return prefix
+            
+    # Generic parameter parsing: "FilenamePrefix: MyPrefix"
+    match = re.search(r"FilenamePrefix:\s*([^\n\r]+)", text)
+    if match:
+        return match.group(1).strip()
+        
+    return None
 
 import re
 

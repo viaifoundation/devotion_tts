@@ -166,6 +166,7 @@ import re
 
 # Generate filename dynamically
 # 1. Try to find date in text like "12月15日" or "12/15"
+TEXT = clean_text(TEXT)
 date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
 if date_match:
     m, d = date_match.groups()
@@ -183,9 +184,18 @@ else:
         # 3. Fallback to today
         date_str = datetime.today().strftime("%Y%m%d")
         print(f"⚠️ Date not found in file stats. Using today's date: {date_str}")
+        
+import filename_parser
+extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+
+basename = f"Bread_{date_str}_edge.mp3"
+if extracted_prefix:
+    filename = f"{extracted_prefix}_{basename}"
+else:
+    filename = basename
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_edge.mp3")
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"bread_{date_str}_edge.mp3")
@@ -273,9 +283,12 @@ if __name__ == "__main__":
     parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (e.g. +10%%)")
     parser.add_argument("--bgm-volume", type=int, default=-12, help="BGM volume adjustment in dB")
     parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
+    parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     
     args = parser.parse_args()
+    
+    CLI_PREFIX = args.prefix
     
     # Update global config based on CLI
     if args.bgm:

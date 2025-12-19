@@ -1,0 +1,62 @@
+# Base image for NVIDIA DGX Spark (ARM64/Blackwell)
+FROM nvcr.io/nvidia/pytorch:24.01-py3
+
+# Set working directory
+WORKDIR /workspace/github/devotion_tts
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Arguments to allow caching mount points if needed, though we mount volumes at runtime
+# We assume the user mounts:
+# -v ~/github/CosyVoice:/workspace/github/CosyVoice
+# -v ~/github/devotion_tts:/workspace/github/devotion_tts
+
+# Install CosyVoice dependencies
+# NOTE: CosyVoice requirements override. 
+# We need to handle onnxruntime for ARM64. 'onnxruntime-gpu' is not available on PyPI for aarch64 easily via pip 
+# in this container without extra work, but 'onnxruntime' (CPU) works for the frontend text processing.
+# The actual heavy lifting is done by Torch which IS GPU-accelerated in this base image.
+# We also use a trick to install requirements from the mounted volume if it existed during build, 
+# but since we are building a generic image, we will pre-install common deps.
+# However, to be safe and use current requirements, we can copy them in.
+
+# Copy requirements from the context (User needs to run build from devotion_tts root)
+COPY requirements-cosy.txt /tmp/requirements-cosy.txt
+# We assume CosyVoice is a sibling, so we can't easily COPY it unless we change build context.
+# Instead, we will rely on the run script to install dependencies dynamically or 
+# we instruct the user to copy/context properly. 
+# BETTER APPROACH for "Task": Create a robust environment in the Dockerfile.
+
+# Let's install the known dependencies for CosyVoice that are static.
+RUN pip install --no-cache-dir \
+    modelscope \
+    hyperpyyaml \
+    conformer \
+    diffusers \
+    gdown \
+    librosa \
+    matplotlib \
+    numpy \
+    onnx \
+    onnxruntime \
+    openai-whisper \
+    protobuf \
+    pydantic \
+    rich \
+    soundfile \
+    tensorboard \
+    torch-complex \
+    wget
+
+# Install devotion_tts specific deps
+RUN pip install -r /tmp/requirements-cosy.txt
+
+# Set PYTHONPATH to include CosyVoice directories (assuming standard mount path)
+ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
+
+# Default command
+CMD ["/bin/bash"]

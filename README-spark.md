@@ -20,35 +20,23 @@ nvidia-smi  # Should show GB10 GPU and CUDA version
 ## Workflow A: CosyVoice (Tts)
 *Best for: High-quality zero-shot Chinese TTS.*
 
-### 1. Docker Run
-Run this interactive container:
+### 1. Run (Easy Mode)
+We provide a helper script to build and run the environment automatically.
 
 ```bash
-docker run --gpus all -it --rm \
-  -v ~/github:/workspace/github \
-  -v ~/.cache/modelscope:/root/.cache/modelscope \
-  -w /workspace/github/devotion_tts \
-  nvcr.io/nvidia/pytorch:24.01-py3
+./scripts/run_spark_cosy.sh
 ```
 
-### 2. Setup (Inside Container)
+*This script will:*
+1. Build the ARM64-optimized Docker image (`devotion-cosy-spark`).
+2. Mount your `~/github/CosyVoice` and `~/github/devotion_tts` directories.
+3. Drop you into an interactive shell inside the container.
+
+### 2. Generate
+Inside the container, run:
+
 ```bash
-# Install ffmpeg
-apt-get update && apt-get install -y ffmpeg
-
-# Install Backend Deps (Fixing onnxruntime for ARM64)
-sed 's/onnxruntime-gpu/onnxruntime/g' ../CosyVoice/requirements.txt | grep -v "torch" | pip install -r /dev/stdin
-
-# Install Project Deps
-grep -v "torch" requirements-cosy.txt | pip install -r /dev/stdin
-
-# Set Path
-export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
-```
-
-### 3. Generate
-```bash
-python gen_verse_devotion_spark.py
+python gen_verse_devotion_cosy.py
 ```
 
 ---

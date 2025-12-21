@@ -24,7 +24,7 @@ if "-?" in sys.argv:
     print("  --speed SPEED        Speech rate adjustment (e.g. +10%, -5%)")
     print("  --bgm                Enable background music (Default: False)")
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -12)")
+    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --help, -h           Show this help")
     sys.exit(0)
@@ -34,7 +34,7 @@ parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e
 parser.add_argument("--speed", type=str, default=None, help="Speech rate adjustment (e.g. +10%%)")
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
-parser.add_argument("--bgm-volume", type=int, default=-12, help="BGM volume adjustment in dB (Default: -12)")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
 
 args, unknown = parser.parse_known_args()
@@ -53,38 +53,54 @@ if args.speed:
 
 # Cleaned Chinese devotional text (replace with actual text)
 TEXT = """
-超越常规的信心 (路加福音 1:45) 12/20/2025
+神在写的故事 (路加福音 1:46-48) 12/21/2025
 
-天使对妇女说：“不要害怕！我知道你们是寻找那钉十字架的耶稣。他不在这里，照他所说的，已经复活了。你们来看安放主的地方。快去告诉他的门徒，说他从死里复活了，并且在你们以先往加利利去，在那里你们要见他。看哪，我已经告诉你们了。”
-(马太福音 28:5-7 和合本)
-快去告诉他的门徒：‘他已经从死人中复活了。他会比你们先到加利利去，你们在那里必看见他。’现在我已经告诉你们了。”
-(马太福音 28:7 新译本)
-我告诉你们，一个罪人悔改，在天上也要这样为他欢喜，较比为九十九个不用悔改的义人欢喜更大。”
-(路加福音 15:7 和合本)
-我告诉你们，因为一个罪人悔改，天上也要这样为他欢乐，比为九十九个不用悔改的义人欢乐更大。
-(路加福音 15:7 新译本)
-妇女们就急忙离开坟墓，又害怕，又大大地欢喜，跑去要报给他的门徒。
-(马太福音 28:8)
+我因耶和华大大欢喜；
+我的心靠　神快乐。
+因他以拯救为衣给我穿上，
+以公义为袍给我披上，
+好像新郎戴上华冠，
+又像新妇佩戴妆饰。
+田地怎样使百谷发芽，
+园子怎样使所种的发生，
+主耶和华必照样
+使公义和赞美在万民中发出。
+(以赛亚书 61:10-11)
+并且耶和华救赎的民必归回，
+歌唱来到锡安；
+永乐必归到他们的头上；
+他们必得着欢喜快乐，
+忧愁叹息尽都逃避。
+(以赛亚书 35:10)
 
-伊利莎白一听马利亚问安，所怀的胎就在腹里跳动。伊利莎白且被圣灵充满，高声喊着说：“你在妇女中是有福的！你所怀的胎也是有福的！我主的母到我这里来，这是从哪里得的呢？因为你问安的声音一入我耳，我腹里的胎就欢喜跳动。这相信的女子是有福的！因为主对她所说的话都要应验。”
-(路加福音 1:41-45 和合本)
-这相信主传给她的话必要成就的女子是有福的。”
-(路加福音 1:45 新译本)
-那相信主所说的话必定实现的女子有福了！”
-(路加福音 1:45 当代译本)
+马利亚说：
+我心尊主为大；
+我灵以　神我的救主为乐；
+因为他顾念他使女的卑微；
+从今以后，
+万代要称我有福。
+(路加福音 1:46-48)
 
-超越常规的信心
+神在写的故事
 
-当天使宣布马利亚将怀上神的儿子时，她还是一个在拿撒勒小城里过着宁静生活的少女（路加福音 1:31）。一般人要是听到这样的消息，本能的反应可能是恐惧、震惊或敬畏。然而，马利亚的反应却是相信——相信天使告诉她的是事实。她对天使说：“我是主的使女，情愿照你的话成就在我身上。”（路加福音 1:38）。 
+马利亚成为母亲的历程相当独特；一个未婚的处女怀着神的儿子。马利亚肯定感到孤独或孤立，但她在神要写的故事中并不孤单。
 
-马利亚的表姐伊利莎白目睹了她如此坚定不移的信心，在圣灵的感动下高声祝福马利亚和认可她的信心：“这相信的女子是有福的！因为主对她所说的话都要应验。”
+几十年来，马利亚的亲戚伊利莎白和她的丈夫撒迦利亚一直都在向神祷告祈求一个孩子。多年后，神应允了他们的祷告。当一位天使告诉马利亚她将生下世界的救主耶稣后，马利亚就急忙去找伊利莎白。当时伊利莎白已经奇迹地怀孕几个月了。
 
-在这些简单的话语中，我们受到提醒要将我们的信心锚定在坚定不移的真理上，那就是神会按照他的话语信实地履行他的应许。伊利莎白的宣告——“这相信的女子是有福的”——不仅仅是一个观察，也是一种当下的肯定。重点不仅在于这些应许必将实现，还在于因相信和仰赖神的计划而带来的祝福。它促使我们审视自己的信心之旅。我们是否像马利亚一样，选择顺服并仰赖于神的应许？
+伊利莎白一听到马利亚在抵达时的问候，肚子里的婴儿就跳了起来。伊利莎白充满了圣灵，“高声喊着说：‘你在妇女中是有福的！你所怀的胎也是有福的！”（路加福音 1:42）
 
-今天，你在祷告中寻求主之际，要对意外的祝福表示感激。祈求洞察力来识别神的手在做工，即使你的处境看来似乎完全相反。
+别忘了马利亚也刚刚发现自己怀孕了。她感到不知所措、害怕或苦恼是可以理解的。更不用说她当时都还没有嫁给约瑟。然而，看看她回答中的信靠和信心：
 
-祷告
-神啊，尽管我心存疑虑和恐惧，我还是要来到你面前。无论你把我引向何方，我选择相信并仰赖你的大能和应许。求你增强并祝福我的信心。让我充满洞察力和感恩之心。奉耶稣的名，阿们。
+“马利亚说：我心尊主为大；我灵以神我的救主为乐；”（路加福音 1:46-47）
+
+马利亚和伊利莎白一起度过三个月的时间，共同称颂神的作为。想象一下她们之间肯定有讨论过的话题：预言的应验；神的国的未来；两个儿子未来的人生道路。
+
+马利亚选择为神正在写的故事而欢欣鼓舞；那是一个信靠和称颂神的工的故事。
+
+今天，马利亚的故事如何鼓励你要信靠神？你对神在你生命中写的故事有什么回应？花点时间思考你今天可以怎样荣耀主并且以他为乐。
+
+禱告
+神啊，你值得我毫无保留的信靠。我要像马利亚一样信靠你，完全不受计划变化的影响，无论发生什么都能以你为乐！感谢你派了一位救主来给我生命、盼望和一个未来。我知道我可以信靠你！奉耶稣的名，阿们。
 """
 
 # Generate filename dynamically
@@ -113,6 +129,10 @@ if verse_ref:
     filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix).replace(".mp3", "_edge.mp3")
 else:
     filename = f"{date_str}_edge.mp3"
+
+if ENABLE_BGM and BGM_FILE:
+    bgm_base = os.path.splitext(os.path.basename(BGM_FILE))[0]
+    filename = filename.replace(".mp3", f"_bgm_{bgm_base}.mp3")
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)

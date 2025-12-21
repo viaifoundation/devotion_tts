@@ -18,7 +18,7 @@ VERSION = "1.0.0"
 ENABLE_BGM = False
 BGM_FILE = "AmazingGrace.MP3"
 TTS_RATE = "+10%"  # Default Speed
-BGM_VOLUME = -12   # Default dB
+BGM_VOLUME = -20   # Default dB
 BGM_INTRO_DELAY = 4000 # Default ms
 
 # ——————————————————————————————————————————————————————————————————————————
@@ -39,7 +39,7 @@ if "-?" in sys.argv:
     print("  --bgm-track TRACK    Specific BGM filename in assets/bgm (Default: AmazingGrace.MP3)")
     print("  --rate RATE          TTS Speech rate (Default: +10%)")
     print("  --speed SPEED        Same as --rate (e.g. +10%, -5%)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -12)")
+    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --prefix PREFIX      Filename prefix (overrides 'FilenamePrefix' in text)")
     print("  --version, -v        Show program version")
@@ -50,7 +50,7 @@ parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TT
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (Default: +10%%)")
 parser.add_argument("--speed", type=str, default=None, help="Alias for --rate (e.g. +10%%)")
-parser.add_argument("--bgm-volume", type=int, default=-12, help="BGM volume adjustment in dB (Default: -12)")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e.g. MyPrefix)")
@@ -145,6 +145,10 @@ else:
         filename = f"{extracted_prefix}_Prayer_{date_str}_edge.mp3"
     else:
         filename = f"Prayer_{date_str}_edge.mp3"
+
+if ENABLE_BGM and BGM_FILE:
+    bgm_base = os.path.splitext(os.path.basename(BGM_FILE))[0]
+    filename = filename.replace(".mp3", f"_bgm_{bgm_base}.mp3")
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):

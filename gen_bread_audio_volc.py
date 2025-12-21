@@ -27,7 +27,7 @@ if "-?" in sys.argv:
     print("  --speed SPEED        Speech speed adjustment (e.g. +20, -10, or 1.2)")
     print("  --bgm                Enable background music (Default: False)")
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -12)")
+    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --help, -h           Show this help")
     print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
@@ -38,7 +38,7 @@ parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e
 parser.add_argument("--speed", type=str, default=None, help="Speech speed adjustment (e.g. +20)")
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
-parser.add_argument("--bgm-volume", type=int, default=-12, help="BGM volume adjustment in dB (Default: -12)")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
 
 args, unknown = parser.parse_known_args()
@@ -178,6 +178,10 @@ if extracted_prefix:
     filename = f"{extracted_prefix}_{basename}"
 else:
     filename = basename
+
+if ENABLE_BGM and BGM_FILE:
+    bgm_base = os.path.splitext(os.path.basename(BGM_FILE))[0]
+    filename = filename.replace(".mp3", f"_bgm_{bgm_base}.mp3")
 
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 

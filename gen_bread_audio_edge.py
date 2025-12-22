@@ -22,9 +22,10 @@ BGM_INTRO_DELAY = 4000 # Default ms
 
 # Custom handling for -? 
 if "-?" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--help] [--version]")
+    print(f"Usage: python {sys.argv[0]} [--input FILE] [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--help] [--version]")
     print("\nOptions:")
     print("  -h, --help           Show this help message and exit")
+    print("  --input FILE, -i     Text file to read input from")
     print("  -?,                  Show this help message and exit")
     print("  --bgm                Enable background music (Default: False)")
     print("  --bgm-track TRACK    Specific BGM filename in assets/bgm (Default: AmazingGrace.MP3)")
@@ -36,6 +37,7 @@ if "-?" in sys.argv:
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description="Generate Bread Audio with Edge TTS")
+parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (Default: +10%%)")
 parser.add_argument("--speed", type=str, default=None, help="Alias for --rate (e.g. +10%%)")
@@ -68,7 +70,23 @@ BGM_FILE = args.bgm_track
 
 
 # Cleaned Chinese devotional text (replace with actual text)
-TEXT = """
+# 1. Try --input argument
+if args.input:
+    print(f"Reading text from file: {args.input}")
+    with open(args.input, "r", encoding="utf-8") as f:
+        TEXT = f.read()
+
+# 2. Try Stdin (Piped)
+elif not sys.stdin.isatty():
+    print("Reading text from Stdin...")
+    TEXT = sys.stdin.read()
+
+# 3. Fallback
+else:
+    TEXT = """
+“　神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不至灭亡，反得永生。因为　神差他的儿子降世，不是要定世人的罪，乃是要叫世人因他得救。信他的人，不被定罪；不信的人，罪已经定了，因为他不信　神独生子的名。
+(约翰福音 3:16-18)
+"""
 靈晨靈糧12月16日Jerry长老：<“恩典25”第50总结篇：在恩典中定向奔跑 –25周年庆典的回望与前行>
 
 亲爱的弟兄姊妹：在12月14日的长执会当中，大家都非常感恩地回顾2025年教会25周年的庆典。我把与之相关的几个细节记录一下，用在11月22日庆典上《在恩典中定向奔跑》的思路重新组织一下，表达对这次恩典25周年的特别纪念。

@@ -31,9 +31,10 @@ if __name__ == "__main__":
 
 # Custom handling for -? 
 if "-?" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--prefix PREFIX] [--help] [--version]")
+    print(f"Usage: python {sys.argv[0]} [--input FILE] [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--prefix PREFIX] [--help] [--version]")
     print("\nOptions:")
     print("  -h, --help           Show this help message and exit")
+    print("  --input FILE, -i     Text file to read input from (default: stdin if piped)")
     print("  -?,                  Show this help message and exit")
     print("  --bgm                Enable background music (Default: False)")
     print("  --bgm-track TRACK    Specific BGM filename in assets/bgm (Default: AmazingGrace.MP3)")
@@ -47,6 +48,7 @@ if "-?" in sys.argv:
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS")
+parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (Default: +10%%)")
 parser.add_argument("--speed", type=str, default=None, help="Alias for --rate (e.g. +10%%)")
@@ -79,48 +81,22 @@ CLI_PREFIX = args.prefix
 
 
 
-TEXT = """
-天路音樂 「鄉音情」12月21日禱告
+# 1. Try --input argument
+if args.input:
+    print(f"Reading text from file: {args.input}")
+    with open(args.input, "r", encoding="utf-8") as f:
+        TEXT = f.read()
 
-亲爱的天父上帝，
-在这纪念救主耶稣基督降生的圣诞佳节，
-我们满心感恩来到祢的施恩宝座前，
-为「乡音」事工中所有忠心摆上的筹备同工，
-以及他们宝贵的家人向祢献上感谢。
+# 2. Try Stdin (Piped)
+elif not sys.stdin.isatty():
+    print("Reading text from Stdin...")
+    TEXT = sys.stdin.read()
 
-主啊，祢看见他们在繁忙、压力与牺牲中的忠心，
-也看见他们为福音、为合一所付出的每一滴汗水。
-求祢亲自纪念他们一切看得见与看不见的辛劳，
-以祢的恩典与平安亲自报答他们。
-
-我们奉主耶稣的名祷告，
-求祢用宝血遮盖每一位同工和他们的家人，
-保守身体健康、心灵平安、家庭和睦，
-在疲惫中得力，在挑战中得智慧，
-在软弱时被祢的爱再次托住。
-
-主啊，求祢设立属灵的保护墙，
-阻挡并捆绑一切来自魔鬼的攻击、搅扰、分裂与灰心，
-不容仇敌在任何层面有可乘之机。
-宣告「乡音」的一切筹备工作都在祢的权柄与带领之下，
-凡所计划的尽都顺利，凡所行的都蒙祢喜悦。
-
-愿圣灵继续引导每一个细节，
-使团队同心合意、沟通顺畅、时间与资源充足，
-让筹备工作在平安与喜乐中完成，
-使更多生命因「乡音」得着安慰、盼望与更新。
-
-最后，主啊，
-愿基督降生的真光，照亮每一位同工和他们的家庭，
-使平安、喜乐与盼望充满这个圣诞节。
-
-圣诞快乐！愿主的爱常与大家同在。 
-
-我们如此祷告、仰望、交托，
-奉我主耶稣基督得胜的名祈求，
-
-阿们。
-
+# 3. Fallback
+else:
+    TEXT = """
+“　神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不至灭亡，反得永生。因为　神差他的儿子降世，不是要定世人的罪，乃是要叫世人因他得救。信他的人，不被定罪；不信的人，罪已经定了，因为他不信　神独生子的名。
+(约翰福音 3:16-18)
 """
 
 # Generate filename dynamically

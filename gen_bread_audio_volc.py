@@ -21,8 +21,9 @@ import audio_mixer
 
 # CLI Args
 if "-?" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--prefix PREFIX] [--speed SPEED] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--help]")
+    print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--speed SPEED] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--help]")
     print ("\nOptions:")
+    print("  --input FILE, -i     Text file to read input from")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
     print("  --speed SPEED        Speech speed adjustment (e.g. +20, -10, or 1.2)")
     print("  --bgm                Enable background music (Default: False)")
@@ -34,6 +35,7 @@ if "-?" in sys.argv:
     sys.exit(0)
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e.g. MyPrefix)")
 parser.add_argument("--speed", type=str, default=None, help="Speech speed adjustment (e.g. +20)")
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
@@ -63,7 +65,23 @@ if args.speed:
         print(f"⚠️ Invalid speed format '{args.speed}', using default 1.0")
         SPEED_RATIO = 1.0
 
-TEXT = """
+# 1. Try --input argument
+if args.input:
+    print(f"Reading text from file: {args.input}")
+    with open(args.input, "r", encoding="utf-8") as f:
+        TEXT = f.read()
+
+# 2. Try Stdin (Piped)
+elif not sys.stdin.isatty():
+    print("Reading text from Stdin...")
+    TEXT = sys.stdin.read()
+
+# 3. Fallback
+else:
+    TEXT = """
+“　神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不至灭亡，反得永生。因为　神差他的儿子降世，不是要定世人的罪，乃是要叫世人因他得救。信他的人，不被定罪；不信的人，罪已经定了，因为他不信　神独生子的名。
+(约翰福音 3:16-18)
+"""
 灵晨灵粮12月3日罗丽芳姊妹：<“恩典25”第48篇：打通信主的“任督二脉”>
 我是典型的从中国来的 “无神论“ 的理科生，国内读了本科硕士，从未接触过宗教，然后来美国读博士学位。
 其实我从 2005 年左右就开始接触基督徒了，在东部大学城攻读博士学位的第二年，有一位从中部搬来的白人牧师，经常邀请留学生周末去他家吃饭。为什么他们可以那样无私的为我们付出呢？这是一个我完全理解不了的世界，也没大兴趣去了解，甚至对传教反感。

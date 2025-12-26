@@ -52,6 +52,7 @@ RUN pip install --no-cache-dir \
     torch-complex \
     wget \
     && pip install torchaudio --no-deps --index-url https://download.pytorch.org/whl/cu124 \
+    && pip install nvidia-cuda-runtime-cu12 \
     && sed -i 's/_check_cuda_version()/# _check_cuda_version()/g' /usr/local/lib/python3.*/dist-packages/torchaudio/_extension/__init__.py
 
 # Install devotion_tts specific deps
@@ -60,7 +61,7 @@ RUN pip install -r /tmp/requirements-cosy-spark.txt
 # Set PYTHONPATH to include CosyVoice directories (assuming standard mount path)
 # Set PYTHONPATH and LD_LIBRARY_PATH
 ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/lib"
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib/python3.12/dist-packages/nvidia/cuda_runtime/lib"
 
 # Default command
 CMD ["/bin/bash"]

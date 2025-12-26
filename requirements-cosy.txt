@@ -7,9 +7,9 @@ HyperPyYAML>=1.2.0          # Required for CosyVoice configuration
 peft                        # Adapters (removes diffusers warning)
 addict                      # Required by modelscope
 datasets<4.0.0              # Avoid import errors
-torch>=2.0.0                # MPS acceleration
-torchaudio>=2.0.0           # Audio I/O
-torchvision>=0.15.0         # Required by transformers for image utils (avoids mismatch)
+# torch>=2.0.0              # Use container-provided PyTorch
+# torchaudio>=2.0.0         # Use container-provided Torchaudio
+# torchvision>=0.15.0       # Use container-provided Torchvision
 pydub>=0.25.1               # Audio concatenation & MP3 export
 numpy>=1.26.0               # Array processing
 Pillow>=10.0.0              # Fixes "No module named 'PIL'"
@@ -24,3 +24,4 @@ accelerate                  # Required for loading models efficiently
 sentencepiece               # Required for tokenizer
 scipy                       # Common audio dependency
 lightning                   # Required for CosyVoice flow matching
+pyworld                     # Required for CosyVoice dataset processing

@@ -58,7 +58,9 @@ RUN pip install --no-cache-dir \
 RUN pip install -r /tmp/requirements-cosy-spark.txt
 
 # Set PYTHONPATH to include CosyVoice directories (assuming standard mount path)
+# Set PYTHONPATH and LD_LIBRARY_PATH
 ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/lib"
 
 # Default command
 CMD ["/bin/bash"]

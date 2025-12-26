@@ -1,5 +1,5 @@
 # Base image for NVIDIA DGX Spark (ARM64/Blackwell)
-FROM nvcr.io/nvidia/pytorch:24.10-py3
+FROM nvcr.io/nvidia/pytorch:25.11-py3
 
 # Set working directory
 WORKDIR /workspace/github/devotion_tts
@@ -51,8 +51,8 @@ RUN pip install --no-cache-dir \
     tensorboard \
     torch-complex \
     wget \
-    && pip install torchaudio==2.5.0 --no-deps --index-url https://download.pytorch.org/whl/cu124 \
-    && sed -i 's/_check_cuda_version()/# _check_cuda_version()/g' /usr/local/lib/python3.10/dist-packages/torchaudio/_extension/__init__.py
+    && pip install torchaudio --no-deps --index-url https://download.pytorch.org/whl/cu124 \
+    && sed -i 's/_check_cuda_version()/# _check_cuda_version()/g' /usr/local/lib/python3.*/dist-packages/torchaudio/_extension/__init__.py
 
 # Install devotion_tts specific deps
 RUN pip install -r /tmp/requirements-cosy-spark.txt

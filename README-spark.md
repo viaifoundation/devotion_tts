@@ -6,7 +6,7 @@ This guide details how to run AI audio workflows on the **NVIDIA DGX Spark** dev
 
 The DGX Spark uses the **ARM64 (aarch64)** CPU architecture combined with NVIDIA GPUs.
 *   **Standard x86 images fail**: You must use **ARM64-optimized containers**.
-*   **Solution**: We use `nvcr.io/nvidia/pytorch:24.01-py3` which has pre-compiled PyTorch/CUDA for ARM64.
+*   **Solution**: We use `nvcr.io/nvidia/pytorch:24.10-py3` which has pre-compiled PyTorch/CUDA for ARM64 and supports GB10.
 
 ## 2. Hardware Verification
 Run these on your host machine to verify:
@@ -76,7 +76,7 @@ docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
   -v ~/GPT-SoVITS-Models:/workspace/models \
   -w /workspace/github/GPT-SoVITS \
-  nvcr.io/nvidia/pytorch:24.01-py3
+  nvcr.io/nvidia/pytorch:24.10-py3
 ```
 
 ### 2. Setup (Inside Container)

@@ -12,7 +12,7 @@ datasets<4.0.0              # Avoid import errors
 # torchaudio                # Use container-provided Torchaudio (Clean rebuild should have it)
 # torchvision               # Use container-provided Torchvision
 pydub>=0.25.1               # Audio concatenation & MP3 export
-numpy>=1.26.0               # Array processing
+numpy<2.0.0               # Array processing (Pin to <2 to avoid binary incompatibility with Torch)
 Pillow>=10.0.0              # Fixes "No module named 'PIL'"
 PyYAML                      # Config parsing
 tqdm                        # Progress bars

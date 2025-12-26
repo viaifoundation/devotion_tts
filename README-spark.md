@@ -61,6 +61,18 @@ python gen_verse_devotion_cosy.py
 > ./scripts/run_spark_cosy.sh --build
 > ```
 
+### 4. Verification
+To verify that the container sees your GPU and PyTorch is correctly configured:
+
+```bash
+# 1. Check GPU Hardware
+nvidia-smi
+
+# 2. Check PyTorch CUDA access
+python -c "import torch; print(f'CUDA Available: {torch.cuda.is_available()}')"
+# Should output: CUDA Available: True
+```
+
 ---
 
 ## Workflow B: GPT-SoVITS (Voice Cloning)

@@ -51,7 +51,8 @@ RUN pip install --no-cache-dir \
     tensorboard \
     torch-complex \
     wget \
-    && pip install torchaudio==2.5.0 --no-deps --index-url https://download.pytorch.org/whl/cu124
+    && pip install torchaudio==2.5.0 --no-deps --index-url https://download.pytorch.org/whl/cu124 \
+    && sed -i 's/_check_cuda_version()/# _check_cuda_version()/g' /usr/local/lib/python3.10/dist-packages/torchaudio/_extension/__init__.py
 
 # Install devotion_tts specific deps
 RUN pip install -r /tmp/requirements-cosy-spark.txt

@@ -17,3 +17,6 @@ tqdm                        # Progress bars
 requests                    # Model download
 simplejson                  # Faster JSON (used by modelscope)
 sortedcontainers           # Fixes current error (required by modelscope jsonplus)
+inflect                    # Required by CosyVoice text normalization
+transformers>=4.40.0        # Required for Qwen2ForCausalLM
+accelerate                  # Required for loading models efficiently

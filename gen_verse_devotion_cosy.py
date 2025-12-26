@@ -49,7 +49,7 @@ import argparse
 
 # CLI Args
 if "-?" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--help]")
+    print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--debug LEVEL] [--help]")
     print ("\nOptions:")
     print("  --input FILE, -i     Text file to read input from")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
@@ -57,6 +57,7 @@ if "-?" in sys.argv:
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --debug LEVEL        Debug output level: 0=minimal, 1=progress, 2=full (Default: 0)")
     print("  --help, -h           Show this help")
     print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
     sys.exit(0)
@@ -68,6 +69,7 @@ parser.add_argument("--bgm", action="store_true", help="Enable background music 
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
+parser.add_argument("--debug", "-d", type=int, default=0, choices=[0, 1, 2], help="Debug level: 0=minimal, 1=progress, 2=full (Default: 0)")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -75,6 +77,7 @@ ENABLE_BGM = args.bgm
 BGM_FILE = args.bgm_track
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
+DEBUG_LEVEL = args.debug
 
 # 1. Try --input argument
 if args.input:
@@ -152,10 +155,11 @@ TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)
 TEXT = clean_text(TEXT)
 
-# Debug: Show the final text that will be processed
-print("\n=== TEXT AFTER CONVERSION (DEBUG) ===")
-print(TEXT)
-print("=== END DEBUG ===")
+# Debug Level 2: Show the final text that will be processed
+if DEBUG_LEVEL >= 2:
+    print("\n=== TEXT AFTER CONVERSION (DEBUG) ===")
+    print(TEXT)
+    print("=== END DEBUG ===")
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
@@ -165,8 +169,10 @@ VOICES = ["中文女", "中文男", "英文女", "中文女", "中文男"]
 
 def speak(text: str, voice: str) -> AudioSegment:
     """Convert text to audio using CosyVoice."""
-    print(f"DEBUG: Text to read: {text[:100]}...")
-    print(f"   Synthesizing ({len(text)} chars) with {voice}...")
+    if DEBUG_LEVEL >= 2:
+        print(f"DEBUG: Text to read: {text[:100]}...")
+    if DEBUG_LEVEL >= 1:
+        print(f"   Synthesizing ({len(text)} chars) with {voice}...")
     
     output_gen = cosyvoice.inference_sft(text, voice)
     final_audio = AudioSegment.empty()
@@ -188,14 +194,16 @@ def speak(text: str, voice: str) -> AudioSegment:
     return final_audio
 
 # Process paragraphs directly (no complex section grouping)
-print(f"Processing {len(paragraphs)} paragraphs...")
+if DEBUG_LEVEL >= 1:
+    print(f"Processing {len(paragraphs)} paragraphs...")
 
 final = AudioSegment.empty()
 silence_between = AudioSegment.silent(duration=700, frame_rate=22050)
 
 for i, para in enumerate(paragraphs):
     voice = VOICES[i % len(VOICES)]
-    print(f"  > Paragraph {i+1}/{len(paragraphs)} - {voice} ({len(para)} chars)")
+    if DEBUG_LEVEL >= 1:
+        print(f"  > Paragraph {i+1}/{len(paragraphs)} - {voice} ({len(para)} chars)")
     
     segment = speak(para, voice)
     final += segment

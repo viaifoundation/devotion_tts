@@ -19,14 +19,23 @@ RUN git clone https://github.com/RVC-Boss/GPT-SoVITS.git /workspace/GPT-SoVITS
 # Set PYTHONPATH to include GPT-SoVITS
 ENV PYTHONPATH="${PYTHONPATH}:/workspace/GPT-SoVITS"
 
-# Copy requirements
-# We will use a custom requirements file to ensure compatibility with the container
-COPY requirements-gptsovits-spark.txt /workspace/requirements-gptsovits-spark.txt
+# Install Python dependencies from the repo
+# We follow the standard setup steps but handle potential conflicts
+WORKDIR /workspace/GPT-SoVITS
 
-# Install Python dependencies
-# Use --no-deps for packages that might conflict with system-installed torch
+# 1. Install core requirements
+# Note: The base image already has PyTorch/CUDA, so we hope requirements.txt is compatible
+# If it tries to downgrade Torch, we might need a constraints file or --no-deps for torch
 RUN pip install --upgrade pip && \
-    pip install -r /workspace/requirements-gptsovits-spark.txt
+    pip install -r requirements.txt
 
-# Set default command
+# 2. Install extra requirements (as requested)
+# Used for some advanced features
+RUN pip install -r extra-req.txt --no-deps
+
+# 3. Install our project specific requirements (if any additional needed)
+COPY requirements-gptsovits-spark.txt /workspace/requirements-gptsovits-spark.txt
+RUN pip install -r /workspace/requirements-gptsovits-spark.txt
+
+# Set default command to bash (ready for 'python webui.py')
 CMD ["/bin/bash"]

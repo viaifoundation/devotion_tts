@@ -51,7 +51,7 @@ RUN pip install --no-cache-dir \
     tensorboard \
     torch-complex \
     wget \
-    && pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps
+    && USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
 
 # Install devotion_tts specific deps
 RUN pip install -r /tmp/requirements-cosy-spark.txt

@@ -150,6 +150,11 @@ TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)
 TEXT = clean_text(TEXT)
 
+# Debug: Show the final text that will be processed
+print("\n=== TEXT AFTER CONVERSION (DEBUG) ===")
+print(TEXT)
+print("=== END DEBUG ===")
+
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
 # Built-in CosyVoice voices

@@ -9,6 +9,7 @@ addict                      # Required by modelscope
 datasets<4.0.0              # Avoid import errors
 torch>=2.0.0                # MPS acceleration
 torchaudio>=2.0.0           # Audio I/O
+torchvision>=0.15.0         # Required by transformers for image utils (avoids mismatch)
 pydub>=0.25.1               # Audio concatenation & MP3 export
 numpy>=1.26.0               # Array processing
 Pillow>=10.0.0              # Fixes "No module named 'PIL'"

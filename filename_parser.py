@@ -250,6 +250,54 @@ def extract_verse_from_text(text: str) -> str:
     return None
 
 
+def generate_filename_v2(title: str, date: str = None, prefix: str = None, ext: str = ".mp3") -> str:
+    """
+    Generate standardized filename V2:
+    Pattern: [PREFIX_][Title]_[Date][_bgm].mp3
+    
+    Args:
+        title (str): First line of text (Chinese/English).
+        date (str): YYYY-MM-DD (Defaults to today).
+        prefix (str): Optional prefix (e.g. 'VOTD'). If None, omitted.
+        ext (str): Extension (default .mp3).
+    """
+    if date is None:
+        date_str = datetime.today().strftime("%Y-%m-%d")
+    else:
+        date_str = date
+
+    # Standardize date to YYYYMMDD for filename (remove hyphens)
+    # Assumes date_str is YYYY-MM-DD or similar
+    date_compact = date_str.replace("-", "").replace("/", "")
+
+    # Sanitize Title: Keep Chinese, Alphanumeric. Remove logic specific punctuation.
+    # We want a readable filename but safe for FS.
+    # Allow spaces? Usually better to replace with underscore or remove.
+    # User requested: "underscore plus title... underscore plus date"
+    
+    # 1. Remove special chars except spaces/alphanum/chinese
+    safe_title = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\s]', '', title)
+    # 2. Collapse spaces/underscores
+    safe_title = re.sub(r'[\s_]+', '_', safe_title).strip('_')
+    # 3. Truncate if too long? filesystem limit ~255. 50 chars is safe.
+    safe_title = safe_title[:50]
+
+    parts = []
+    if prefix:
+        parts.append(prefix)
+    
+    parts.append(safe_title)
+    parts.append(date_compact)
+    
+    base_name = "_".join(parts)
+    
+    # Extension handling (ensure it starts with dot)
+    if not ext.startswith("."):
+        ext = "." + ext
+        
+    return f"{base_name}{ext}"
+
+
 
 # ———————————————————————
 # Demo

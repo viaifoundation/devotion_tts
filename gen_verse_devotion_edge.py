@@ -90,19 +90,22 @@ else:
     else:
         date_str = datetime.today().strftime("%Y-%m-%d")
 
-# 2. Extract Verse
-# Handle both English () and Chinese （） parentheses, and both : and ： colons
+# 2. Extract Verse Reference (for metadata only)
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
-if verse_ref:
-    extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
-    filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix).replace(".mp3", "_edge.mp3")
-else:
-    filename = f"{date_str}_edge.mp3"
+# 3. Generate Filename (Standardized V2)
+extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+filename = filename_parser.generate_filename_v2(
+    title=first_line, 
+    date=date_str, 
+    prefix=extracted_prefix,
+    ext=".mp3"
+).replace(".mp3", "_edge.mp3")
 
-if ENABLE_BGM and BGM_FILE:
-    bgm_base = os.path.splitext(os.path.basename(BGM_FILE))[0]
-    filename = filename.replace(".mp3", f"_bgm_{bgm_base}.mp3")
+if ENABLE_BGM:
+    filename = filename.replace(".mp3", "_bgm.mp3")
+
+
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -227,8 +230,16 @@ async def main():
     # Metadata extraction
     PRODUCER = "VI AI Foundation"
     TITLE = TEXT.strip().split('\n')[0]
+    ALBUM = "Devotion"
+    bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
+    COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
 
-    final.export(OUTPUT, format="mp3", tags={'title': TITLE, 'artist': PRODUCER})
+    final.export(OUTPUT, format="mp3", tags={
+        'title': TITLE, 
+        'artist': PRODUCER,
+        'album': ALBUM,
+        'comments': COMMENTS
+    })
     print(f"✅ Combined audio saved: {OUTPUT}")
 
 if __name__ == "__main__":

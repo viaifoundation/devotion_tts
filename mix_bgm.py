@@ -36,8 +36,12 @@ if not os.path.exists(INPUT_FILE):
 OUTPUT_FILE = args.output
 if not OUTPUT_FILE:
     base, ext = os.path.splitext(INPUT_FILE)
-    bgm_base = os.path.splitext(os.path.basename(args.bgm_track))[0]
-    OUTPUT_FILE = f"{base}_bgm_{bgm_base}{ext}"
+    # Standardized: Just add _bgm, don't include track name
+    if "_bgm" not in base:
+        OUTPUT_FILE = f"{base}_bgm{ext}"
+    else:
+        # Avoid potential duplicate _bgm_bgm
+        OUTPUT_FILE = f"{base}_mixed{ext}"
 
 print(f"Input: {INPUT_FILE}")
 print(f"BGM: {args.bgm_track} (Vol: {args.bgm_volume}dB, Intro: {args.bgm_intro}ms, Tail: {args.bgm_tail}ms)")

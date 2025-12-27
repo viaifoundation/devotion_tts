@@ -103,15 +103,17 @@ else:
     else:
         date_str = datetime.today().strftime("%Y-%m-%d")
 
-# 2. Extract Verse
-# Handle both English () and Chinese （） parentheses, and both : and ： colons
+# 2. Extract Verse Reference (for metadata only)
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
-if verse_ref:
-    extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
-    filename = filename_parser.generate_filename(verse_ref, date_str, extracted_prefix).replace(".mp3", "_pop.mp3")
-else:
-    filename = f"{date_str}_pop.mp3"
+# 3. Generate Filename (Standardized V2)
+extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+filename = filename_parser.generate_filename_v2(
+    title=first_line, 
+    date=date_str, 
+    prefix=extracted_prefix,
+    ext=".mp3"
+).replace(".mp3", "_pop.mp3")
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -207,9 +209,25 @@ for i, seg in enumerate(final_segments):
 
 # Convert to 24k for consistency with others if desired, or keep 22k
 final = final.set_frame_rate(24000)
+# Add Background Music (Logic not seen in provided snippet, adding check here or skipping? 
+# Wait, this file was copy-pasted from cosy initially but might not have BGM logic fully.
+# The user's request: "change all_gen verse scripts".
+# This file ends without explicit BGM mixing logic in the output I saw, but let's assume if BGM is supported it should be here.
+# Looking at line 53, there is NO BGM arg parsing in my previous VIEW.
+# Ah, I should add BGM support if missing? "Update Pop scripts ... with --input" was task.
+# BGM was a separate task.
+# I will just update metadata for now and standard filename.
+
 # Metadata extraction
 PRODUCER = "VI AI Foundation"
 TITLE = TEXT.strip().split('\n')[0]
+ALBUM = "Devotion"
+COMMENTS = f"Verse: {verse_ref}"
 
-final.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={'title': TITLE, 'artist': PRODUCER})
+final.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={
+    'title': TITLE, 
+    'artist': PRODUCER,
+    'album': ALBUM,
+    'comments': COMMENTS
+})
 print(f"Success! Saved → {OUTPUT_PATH}")

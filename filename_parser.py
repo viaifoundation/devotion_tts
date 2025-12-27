@@ -272,9 +272,33 @@ def generate_filename_v2(title: str, date: str = None, prefix: str = None, ext: 
 
     # Sanitize Title: Keep Chinese, Alphanumeric. Remove logic specific punctuation.
     # We want a readable filename but safe for FS.
-    # Allow spaces? Usually better to replace with underscore or remove.
-    # User requested: "underscore plus title... underscore plus date"
+
+    # 0. Pre-Sanitization: Remove Date and Bible Verse patterns from the title content itself
+    #    to prevent duplication (since we append Date separately).
     
+    # Remove dates: YYYY-MM-DD, MM/DD/YYYY, YYYY/MM/DD, DD/MM/YYYY
+    # Regex: \d{4}[-/]\d{1,2}[-/]\d{1,2}  OR  \d{1,2}[-/]\d{1,2}[-/]\d{4}
+    title = re.sub(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', '', title)
+    title = re.sub(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b', '', title)
+    
+    # Remove Bible Verses: (BookName) (Chapter):(Verse)
+    # Using the Verse Extraction regex logic or similiar.
+    # Construct a regex for all book names? 
+    # To be safe and fast, just identifying the "Book Name then Numbers" pattern.
+    # We have CHINESE_TO_ENGLISH; we can check for those keys.
+    # A bit expensive to iterate all, but robust.
+    
+    # Sort keys by length (desc) to match longest first
+    all_books = sorted(CHINESE_TO_ENGLISH.keys(), key=len, reverse=True)
+    books_pattern = "|".join(map(re.escape, all_books))
+    # Pattern: (Book)(Spaces?)(Digits)(...Digits/Colon/Dash)
+    # Be careful not to match random words. Only look for Book followed by digits?
+    # e.g. "罗马书 10:9"
+    # Regex: (BookName)\s*\d+
+    
+    verse_strip_re = re.compile(rf"({books_pattern})\s*\d+([:：]\d+)?([-—–]\d+)?")
+    title = verse_strip_re.sub('', title)
+
     # 1. Remove special chars except spaces/alphanum/chinese
     safe_title = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\s]', '', title)
     # 2. Collapse spaces/underscores

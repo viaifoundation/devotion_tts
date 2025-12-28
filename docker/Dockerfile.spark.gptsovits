@@ -14,9 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install torchaudio from source (essential for NVIDIA torch 2.10+)
 # We clone and build to ensure ABI compatibility
+# CRITICAL: --no-build-isolation is required so distutils sees the system 'torch' package
 WORKDIR /workspace/torchaudio_build
 RUN git clone --depth 1 https://github.com/pytorch/audio.git . && \
-    pip install . --no-deps && \
+    pip install . --no-deps --no-build-isolation && \
     cd .. && rm -rf torchaudio_build
 
 # Set working directory

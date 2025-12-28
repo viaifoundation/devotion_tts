@@ -20,12 +20,25 @@ from date_parser import convert_dates_in_text
 # Assuming standard container path
 GPT_SOVITS_ROOT = "/workspace/GPT-SoVITS"
 
+def find_and_add_module(root_dir, module_name):
+    """Dynamically find a module file and add its parent directory to sys.path."""
+    # module_name should be like "ERes2NetV2" (without .py)
+    target_file = f"{module_name}.py"
+    for root, dirs, files in os.walk(root_dir):
+        if target_file in files:
+            if root not in sys.path:
+                print(f"🔧 Found {target_file} in {root}, adding to sys.path")
+                sys.path.append(root)
+            return True
+    return False
+
 if os.path.exists(GPT_SOVITS_ROOT):
     sys.path.append(GPT_SOVITS_ROOT)
     sys.path.append(os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS"))
-    # Specific paths for known missing modules (e.g. ERes2NetV2 in g2pw)
-    # We avoid recursive addition to prevent namespace collisions (like 'models')
-    sys.path.append(os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "text", "g2pw"))
+    
+    # Dynamic fix for missing modules
+    find_and_add_module(GPT_SOVITS_ROOT, "ERes2NetV2")
+    find_and_add_module(GPT_SOVITS_ROOT, "vits_decoder") # Another common one usually
 else:
     print(f"⚠️ Warning: GPT_SOVITS_ROOT not found at {GPT_SOVITS_ROOT}")
 

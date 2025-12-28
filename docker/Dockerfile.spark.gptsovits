@@ -3,11 +3,21 @@
 FROM nvcr.io/nvidia/pytorch:25.11-py3
 
 # Install system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsox-dev \
     git \
+    cmake \
+    ninja-build \
     && rm -rf /var/lib/apt/lists/*
+
+# Install torchaudio from source (essential for NVIDIA torch 2.10+)
+# We clone and build to ensure ABI compatibility
+WORKDIR /workspace/torchaudio_build
+RUN git clone --depth 1 https://github.com/pytorch/audio.git . && \
+    pip install . --no-deps && \
+    cd .. && rm -rf torchaudio_build
 
 # Set working directory
 WORKDIR /workspace

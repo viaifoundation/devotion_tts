@@ -74,15 +74,13 @@ def scan_models(root_dir):
         if not os.path.exists(d): continue
         for root, _, files in os.walk(d):
             for f in files:
-                if f.endswith(".pth") and "s2" not in f: # s2 is usually SoVITS in older naming, but standard is .pth for SoVITS weights?
-                    # Wait, usually: 
-                    # SoVITS = .pth (s2)
-                    # GPT = .ckpt (s1)
-                    # Let's check standard names.
-                    # Standard v1: s2G*.pth (SoVITS), s1bert*.ckpt (GPT)
-                    if "s2G" in f or "SoVITS" in f:
+                if f.endswith(".pth"):
+                    # Typically SoVITS weights (e.g. s2G488k.pth)
+                    if "s2" in f or "SoVITS" in f:
                         sovits_path = os.path.join(root, f)
-                    if "s1bert" in f or "GPT" in f or ".ckpt" in f:
+                elif f.endswith(".ckpt"):
+                    # Typically GPT weights (e.g. s1bert...ckpt)
+                    if "s1" in f or "GPT" in f or ".ckpt" in f:
                         gpt_path = os.path.join(root, f)
                         
     return sovits_path, gpt_path

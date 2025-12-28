@@ -12,13 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
-# Install torchaudio from source (essential for NVIDIA torch 2.10+)
-# We clone and build to ensure ABI compatibility
-# CRITICAL: --no-build-isolation is required so distutils sees the system 'torch' package
-WORKDIR /workspace/torchaudio_build
-RUN git clone --depth 1 https://github.com/pytorch/audio.git . && \
-    pip install . --no-deps --no-build-isolation && \
-    cd .. && rm -rf torchaudio_build
+# Install torchaudio from source with proven settings (matches CosyVoice setup)
+# We use v2.5.1 and disable CUDA build for torchaudio to ensure compilation success against system Torch
+RUN USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
 
 # Set working directory
 WORKDIR /workspace

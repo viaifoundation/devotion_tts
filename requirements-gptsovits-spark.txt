@@ -28,3 +28,4 @@ modelscope
 # Pydub for audio manipulation in our scripts
 pydub
 edge-tts
+pytorch_lightning

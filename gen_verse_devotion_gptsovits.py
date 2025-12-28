@@ -150,7 +150,23 @@ def main():
     # We will try direct init if possible, or construct config
     
     # Assuming V2 api pattern:
-    config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
+    # Use absolute path for config to avoid CWD issues
+    config_path = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "configs", "tts_infer.yaml")
+    
+    if not os.path.exists(config_path):
+        # Fallback: maybe it's in the root configs?
+        config_path = os.path.join(GPT_SOVITS_ROOT, "configs", "tts_infer.yaml")
+        if not os.path.exists(config_path):
+             print(f"⚠️ Warning: Could not find tts_infer.yaml at {config_path}")
+             # Some versions might default if None is passed
+    
+    try:
+        config = TTS_Config(config_path)
+    except Exception as e:
+        print(f"⚠️ Failed to init TTS_Config with {config_path}: {e}")
+        print("Attempting default init...")
+        config = TTS_Config("tts_infer.yaml")
+
     config.default_gpt_path = gpt_path
     config.default_sovits_path = sovits_path
     

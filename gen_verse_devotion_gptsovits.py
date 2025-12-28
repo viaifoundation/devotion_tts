@@ -161,9 +161,26 @@ def main():
     if not os.path.exists(args.ref_audio):
         print(f"⚠️ Reference audio not found at {args.ref_audio}")
         print("Using zero-shot (if supported) or failing.")
-        # Some models allow empty ref for random/preset? Usually requires something.
-        # We will proceed and see if it fails.
-    
+        processed_ref_audio = args.ref_audio # Pass through, will likely fail later
+    else:
+        # Preprocess Reference Audio: Convert to standard WAV (16-bit, 44100Hz) to avoid format issues
+        # This handles .m4a, .mp3, etc. automatically via pydub + ffmpeg
+        print(f"Processing reference audio: {args.ref_audio}")
+        try:
+            ref_seg = AudioSegment.from_file(args.ref_audio)
+            # Normalize to 44.1kHz, 16-bit, Mono (optional but safer for SOME models, though typically stereo is fine)
+            # GPT-SoVITS usually handles it, but clean wav is best.
+            # We'll save to a temp filename in the same dir or output dir
+            temp_ref_path = os.path.join(OUTPUT_DIR, "temp_ref_processed.wav")
+            ref_seg = ref_seg.set_frame_rate(44100).set_sample_width(2).set_channels(1)
+            ref_seg.export(temp_ref_path, format="wav")
+            processed_ref_audio = temp_ref_path
+            print(f"  Converted to safe WAV: {processed_ref_audio}")
+        except Exception as e:
+            print(f"⚠️ Failed to convert reference audio: {e}")
+            print("Trying to use original file...")
+            processed_ref_audio = args.ref_audio
+
     # Text Normalization
     TEXT = convert_bible_reference(TEXT)
     TEXT = convert_dates_in_text(TEXT)
@@ -177,7 +194,7 @@ def main():
     req = {
         "text": cleaned_input,
         "text_lang": "zh",
-        "ref_audio_path": args.ref_audio,
+        "ref_audio_path": processed_ref_audio,
         "prompt_text": args.ref_text,
         "prompt_lang": args.ref_lang,
         "top_k": 5,

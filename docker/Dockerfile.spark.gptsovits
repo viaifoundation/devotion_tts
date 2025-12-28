@@ -24,18 +24,32 @@ ENV PYTHONPATH="${PYTHONPATH}:/workspace/GPT-SoVITS"
 WORKDIR /workspace/GPT-SoVITS
 
 # 1. Install core requirements
-# Note: The base image already has PyTorch/CUDA, so we hope requirements.txt is compatible
-# If it tries to downgrade Torch, we might need a constraints file or --no-deps for torch
+# Note: The base image already has PyTorch/CUDA. We MUST prevent pip from overwriting them.
+# We aggressively remove torch and risky packages that might trigger an upgrade.
 RUN pip install --upgrade pip && \
+    sed -i '/torch/d' requirements.txt && \
+    sed -i '/torchvision/d' requirements.txt && \
+    sed -i '/torchaudio/d' requirements.txt && \
+    sed -i '/funasr/d' requirements.txt && \
+    sed -i '/modelscope/d' requirements.txt && \
     pip install -r requirements.txt
 
 # 2. Install extra requirements (as requested)
-# Used for some advanced features
-RUN pip install -r extra-req.txt --no-deps
+RUN sed -i '/torch/d' extra-req.txt && \
+    sed -i '/torchvision/d' extra-req.txt && \
+    sed -i '/torchaudio/d' extra-req.txt && \
+    pip install -r extra-req.txt --no-deps
 
-# 3. Install our project specific requirements (if any additional needed)
+# 3. Install risky packages MANUALLY with --no-deps to treat system torch as valid
+# funasr and modelscope are the main culprits for forcing torch updates
+RUN pip install funasr modelscope --no-deps
+
+# 4. Install our project specific requirements (if any additional needed)
 COPY requirements-gptsovits-spark.txt /workspace/requirements-gptsovits-spark.txt
-RUN pip install -r /workspace/requirements-gptsovits-spark.txt
+# Remove risky packages if they exist in our list too
+RUN sed -i '/funasr/d' /workspace/requirements-gptsovits-spark.txt && \
+    sed -i '/modelscope/d' /workspace/requirements-gptsovits-spark.txt && \
+    pip install -r /workspace/requirements-gptsovits-spark.txt
 
 # Set default command to bash (ready for 'python webui.py')
 CMD ["/bin/bash"]

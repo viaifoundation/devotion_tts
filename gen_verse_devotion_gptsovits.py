@@ -23,11 +23,9 @@ GPT_SOVITS_ROOT = "/workspace/GPT-SoVITS"
 if os.path.exists(GPT_SOVITS_ROOT):
     sys.path.append(GPT_SOVITS_ROOT)
     sys.path.append(os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS"))
-    # Recursively add subdirectories that might contain modules (e.g. text/g2pw)
-    # This is a brute-force fix for missing internal modules like ERes2NetV2
-    for root, dirs, files in os.walk(os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS")):
-        for d in dirs:
-            sys.path.append(os.path.join(root, d))
+    # Specific paths for known missing modules (e.g. ERes2NetV2 in g2pw)
+    # We avoid recursive addition to prevent namespace collisions (like 'models')
+    sys.path.append(os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "text", "g2pw"))
 else:
     print(f"⚠️ Warning: GPT_SOVITS_ROOT not found at {GPT_SOVITS_ROOT}")
 

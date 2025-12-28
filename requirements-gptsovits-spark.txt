@@ -29,3 +29,5 @@ modelscope
 pydub
 edge-tts
 pytorch_lightning
+eres2net
+yacs

@@ -184,28 +184,33 @@ def main():
     config.default_sovits_path = sovits_path
     
     # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
+    # But FIRST, convert our paths to absolute so they still work after chdir.
     original_cwd = os.getcwd()
+    ref_audio_abs = os.path.abspath(args.ref_audio) if args.ref_audio else None
+    output_dir_abs = os.path.abspath(OUTPUT_DIR)
+    output_path_abs = os.path.abspath(OUTPUT_PATH)
+    
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
     tts_pipeline = TTS(config)
     
     # 4. Inference
-    # Check Ref Audio
-    if not os.path.exists(args.ref_audio):
-        print(f"⚠️ Reference audio not found at {args.ref_audio}")
+    # Check Ref Audio (using absolute path now)
+    if not ref_audio_abs or not os.path.exists(ref_audio_abs):
+        print(f"⚠️ Reference audio not found at {ref_audio_abs}")
         print("Using zero-shot (if supported) or failing.")
-        processed_ref_audio = args.ref_audio # Pass through, will likely fail later
+        processed_ref_audio = ref_audio_abs # Pass through, will likely fail later
     else:
         # Preprocess Reference Audio: Convert to standard WAV (16-bit, 44100Hz) to avoid format issues
         # This handles .m4a, .mp3, etc. automatically via pydub + ffmpeg
-        print(f"Processing reference audio: {args.ref_audio}")
+        print(f"Processing reference audio: {ref_audio_abs}")
         try:
-            ref_seg = AudioSegment.from_file(args.ref_audio)
+            ref_seg = AudioSegment.from_file(ref_audio_abs)
             # Normalize to 44.1kHz, 16-bit, Mono (optional but safer for SOME models, though typically stereo is fine)
             # GPT-SoVITS usually handles it, but clean wav is best.
             # We'll save to a temp filename in the same dir or output dir
-            temp_ref_path = os.path.join(OUTPUT_DIR, "temp_ref_processed.wav")
+            temp_ref_path = os.path.join(output_dir_abs, "temp_ref_processed.wav")
             ref_seg = ref_seg.set_frame_rate(44100).set_sample_width(2).set_channels(1)
             ref_seg.export(temp_ref_path, format="wav")
             processed_ref_audio = temp_ref_path
@@ -213,7 +218,7 @@ def main():
         except Exception as e:
             print(f"⚠️ Failed to convert reference audio: {e}")
             print("Trying to use original file...")
-            processed_ref_audio = args.ref_audio
+            processed_ref_audio = ref_audio_abs
 
     # Text Normalization
     TEXT = convert_bible_reference(TEXT)
@@ -283,13 +288,13 @@ def main():
     ALBUM = "Devotion"
     COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info_str}"
     
-    final_audio.export(OUTPUT_PATH, format="mp3", bitrate="192k", tags={
+    final_audio.export(output_path_abs, format="mp3", bitrate="192k", tags={
         'title': TITLE,
         'artist': PRODUCER,
         'album': ALBUM,
         'comments': COMMENTS
     })
-    print(f"✅ Success! Saved → {OUTPUT_PATH}")
+    print(f"✅ Success! Saved → {output_path_abs}")
 
 if __name__ == "__main__":
     main()

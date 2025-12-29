@@ -91,10 +91,36 @@ def download_chinese_hubert():
     except Exception as e:
         print(f"❌ Failed to download HuBERT: {e}")
 
+def download_fast_langdetect():
+    """Create cache directory for fast_langdetect and download the model."""
+    print("\n--- Setting up fast_langdetect cache ---")
+    cache_dir = os.path.join(BASE_DIR, "fast_langdetect")
+    ensure_dir(cache_dir)
+    
+    # Download the model file
+    model_url = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin"
+    model_path = os.path.join(cache_dir, "lid.176.bin")
+    
+    if os.path.exists(model_path):
+        print(f"✅ fast_langdetect model already exists at {model_path}")
+        return
+    
+    print(f"Downloading fasttext language model...")
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(model_url, model_path)
+        print(f"✅ Downloaded to {model_path}")
+    except Exception as e:
+        print(f"❌ Failed to download: {e}")
+        print("You may need to manually download from:")
+        print(f"  {model_url}")
+        print(f"  and place it at: {model_path}")
+
 if __name__ == "__main__":
     print("Starting Custom Model Download...")
     download_gpt_sovits_base()
     download_gpt_sovits_v2()
     download_chinese_roberta()
     download_chinese_hubert()
+    download_fast_langdetect()
     print("\nAll downloads requested.")

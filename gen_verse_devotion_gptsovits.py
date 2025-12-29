@@ -96,8 +96,19 @@ def main():
     parser.add_argument("--bgm-track", type=str, default="AmazingGrace.mp3", help="BGM track filename")
     parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume (dB)")
     parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro (ms)")
+    parser.add_argument("--speed", type=str, default="1.0", help="Speed factor (e.g. 1.0, 1.2, +20%%, -10%%)")
     
     args = parser.parse_args()
+    
+    # Parse speed value (supports formats: 1.0, 1.2, +20%, -10%)
+    speed_str = args.speed.strip()
+    if speed_str.endswith('%'):
+        # Percentage format: +20% means 1.2x, -10% means 0.9x
+        pct = float(speed_str[:-1])
+        speed_factor = 1.0 + (pct / 100.0)
+    else:
+        speed_factor = float(speed_str)
+    speed_factor = max(0.5, min(2.0, speed_factor))  # Clamp to reasonable range
     
     if not TTS:
         print("❌ Core imports failed. Aborting.")
@@ -241,7 +252,7 @@ def main():
         "temperature": 1,
         "text_split_method": "cut5",
         "batch_size": 1,
-        "speed_factor": 1.0,
+        "speed_factor": speed_factor,
         "fragment_interval": 0.3,
         "seed": -1,
         "return_fragment": False,
@@ -249,7 +260,21 @@ def main():
         "repetition_penalty": 1.35
     }
     
-    audio_generator = tts_pipeline.run(req)
+    try:
+        audio_generator = tts_pipeline.run(req)
+    except OSError as e:
+        # Handle common errors like reference audio duration issues
+        error_msg = str(e)
+        if "3-10" in error_msg or "秒范围外" in error_msg:
+            print(f"\n❌ Error: Reference audio must be between 3-10 seconds long.")
+            print(f"   Your reference audio is outside this range.")
+            print(f"   Please provide a reference audio file that is 3-10 seconds.")
+        else:
+            print(f"\n❌ Error during synthesis: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ Unexpected error during synthesis: {e}")
+        sys.exit(1)
     
     final_audio = AudioSegment.empty()
     

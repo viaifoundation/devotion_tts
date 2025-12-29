@@ -35,6 +35,32 @@ def download_gpt_sovits_base():
         except Exception as e:
             print(f"❌ Failed to download {filename}: {e}")
 
+def download_gpt_sovits_v2():
+    """Download the v2 final pretrained models that TTS_Config expects by default."""
+    print("\n--- Downloading GPT-SoVITS V2 Final Models ---")
+    v2_dir = os.path.join(BASE_DIR, "gsv-v2final-pretrained")
+    ensure_dir(v2_dir)
+    
+    # These are the files TTS_Config falls back to by default
+    files = [
+        ("lj1995/GPT-SoVITS", "gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"),
+        ("lj1995/GPT-SoVITS", "gsv-v2final-pretrained/s2G2333k.pth"),
+    ]
+    
+    for repo_id, filename in files:
+        basename = os.path.basename(filename)
+        print(f"Downloading {basename}...")
+        try:
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                local_dir=BASE_DIR,
+                local_dir_use_symlinks=False
+            )
+            print(f"✅ {basename} downloaded.")
+        except Exception as e:
+            print(f"❌ Failed to download {basename}: {e}")
+
 def download_chinese_roberta():
     print("\n--- Downloading Chinese RoBERTa (hfl/chinese-roberta-wwm-ext-large) ---")
     target_dir = os.path.join(BASE_DIR, "chinese-roberta-wwm-ext-large")
@@ -68,6 +94,7 @@ def download_chinese_hubert():
 if __name__ == "__main__":
     print("Starting Custom Model Download...")
     download_gpt_sovits_base()
+    download_gpt_sovits_v2()
     download_chinese_roberta()
     download_chinese_hubert()
     print("\nAll downloads requested.")

@@ -116,6 +116,30 @@ def download_fast_langdetect():
         print(f"  {model_url}")
         print(f"  and place it at: {model_path}")
 
+def download_nltk_data():
+    """Download required NLTK data for English text processing."""
+    print("\n--- Downloading NLTK Data ---")
+    try:
+        import nltk
+        # These are required for English g2p in GPT-SoVITS
+        packages = [
+            'averaged_perceptron_tagger_eng',
+            'averaged_perceptron_tagger',
+            'cmudict',
+            'punkt',
+            'punkt_tab'
+        ]
+        for pkg in packages:
+            print(f"Downloading {pkg}...")
+            try:
+                nltk.download(pkg, quiet=True)
+                print(f"  ✅ {pkg}")
+            except Exception as e:
+                print(f"  ⚠️ {pkg}: {e}")
+        print("✅ NLTK data download complete.")
+    except ImportError:
+        print("⚠️ NLTK not installed, skipping data download.")
+
 if __name__ == "__main__":
     print("Starting Custom Model Download...")
     download_gpt_sovits_base()
@@ -123,4 +147,5 @@ if __name__ == "__main__":
     download_chinese_roberta()
     download_chinese_hubert()
     download_fast_langdetect()
+    download_nltk_data()
     print("\nAll downloads requested.")

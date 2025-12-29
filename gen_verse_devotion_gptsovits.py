@@ -183,6 +183,11 @@ def main():
     config.default_gpt_path = gpt_path
     config.default_sovits_path = sovits_path
     
+    # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
+    original_cwd = os.getcwd()
+    os.chdir(GPT_SOVITS_ROOT)
+    print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
+    
     tts_pipeline = TTS(config)
     
     # 4. Inference

@@ -219,18 +219,36 @@ def main():
     tts_config.t2s_weights_path = sovits_path
     tts_config.vits_weights_path = gpt_path
     
-    # Monkeypatch torch.load to fix KeyError: 'max_sec' in modern GPT-SoVITS models
-    # The TTS code expects config['data']['max_sec'], but V2 models might not have it.
+    # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
+    # But FIRST, convert our paths to absolute so they still work after chdir.
+    original_cwd = os.getcwd()
+    output_path_abs = os.path.abspath(output_path_abs) 
+    
+    os.chdir(GPT_SOVITS_ROOT)
+    print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
+
+    # Monkeypatch torch.load to fix (KeyError: 'max_sec' and 'hidden_dim') in modern GPT-SoVITS models
     original_torch_load = torch.load
     def patched_torch_load(*args, **kwargs):
         result = original_torch_load(*args, **kwargs)
-        # Check if this is the SoVITS checkpoint
         if isinstance(result, dict) and "config" in result:
              conf = result["config"]
+             # Patch 1: max_sec
              if isinstance(conf, dict) and "data" in conf:
                  if "max_sec" not in conf["data"]:
                      print("🔧 Patching missing 'max_sec' in model config...")
-                     conf["data"]["max_sec"] = conf["data"].get("max_sec", 100) # Default to 100s
+                     conf["data"]["max_sec"] = conf["data"].get("max_sec", 100)
+             
+             # Patch 2: hidden_dim (V2 compatibility)
+             if isinstance(conf, dict) and "model" in conf:
+                 model_conf = conf["model"]
+                 if "hidden_dim" not in model_conf:
+                      print("🔧 Patching missing 'hidden_dim' in model config...")
+                      # Try to infer from embedding_dim
+                      if "embedding_dim" in model_conf:
+                           model_conf["hidden_dim"] = model_conf["embedding_dim"]
+                      else:
+                           model_conf["hidden_dim"] = 512 # Fallback standard value
         return result
 
     torch.load = patched_torch_load
@@ -263,10 +281,9 @@ def main():
             print(f"❌ Failed to convert reference audio: {e}")
             sys.exit(1)
 
-    # Change CWD to GPT-SoVITS root for inference to work (it loads relative assets)
-    # But first, ensure output_path_abs is safe
-    original_cwd = os.getcwd()
-    os.chdir(GPT_SOVITS_ROOT)
+    # Change CWD back done later
+    # os.chdir(original_cwd) 
+
 
     # --- Generation Loop ---
     final_audio = AudioSegment.empty()

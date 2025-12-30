@@ -239,16 +239,28 @@ def main():
                      print("🔧 Patching missing 'max_sec' in model config...")
                      conf["data"]["max_sec"] = conf["data"].get("max_sec", 100)
              
-             # Patch 2: hidden_dim (V2 compatibility)
+             # Patch 2: hidden_dim and embedding_dim (V2 compatibility)
              if isinstance(conf, dict) and "model" in conf:
                  model_conf = conf["model"]
+                 
+                 # Basic default for V2 small/large models is usually 512
+                 default_dim = 512
+                 
+                 # Ensure 'embedding_dim' exists
+                 if "embedding_dim" not in model_conf:
+                      print("🔧 Patching missing 'embedding_dim' in model config...")
+                      if "hidden_dim" in model_conf:
+                           model_conf["embedding_dim"] = model_conf["hidden_dim"]
+                      else:
+                           model_conf["embedding_dim"] = default_dim
+
+                 # Ensure 'hidden_dim' exists
                  if "hidden_dim" not in model_conf:
                       print("🔧 Patching missing 'hidden_dim' in model config...")
-                      # Try to infer from embedding_dim
                       if "embedding_dim" in model_conf:
                            model_conf["hidden_dim"] = model_conf["embedding_dim"]
                       else:
-                           model_conf["hidden_dim"] = 512 # Fallback standard value
+                           model_conf["hidden_dim"] = default_dim
         return result
 
     torch.load = patched_torch_load

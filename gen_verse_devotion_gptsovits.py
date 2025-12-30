@@ -223,7 +223,25 @@ def main():
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
-    tts_pipeline = TTS(config)
+    # Monkeypatch torch.load to fix KeyError: 'max_sec' in modern GPT-SoVITS models
+    # The TTS code expects config['data']['max_sec'], but V2 models might not have it.
+    original_torch_load = torch.load
+    def patched_torch_load(*args, **kwargs):
+        result = original_torch_load(*args, **kwargs)
+        # Check if this is the SoVITS checkpoint
+        if isinstance(result, dict) and "config" in result:
+             conf = result["config"]
+             if isinstance(conf, dict) and "data" in conf:
+                 if "max_sec" not in conf["data"]:
+                     print("🔧 Patching missing 'max_sec' in model config...")
+                     conf["data"]["max_sec"] = conf["data"].get("max_sec", 100) # Default to 100s
+        return result
+
+    torch.load = patched_torch_load
+    try:
+        tts_pipeline = TTS(config)
+    finally:
+        torch.load = original_torch_load
     
     # 4. Inference
     # Check Ref Audio (using absolute path now)

@@ -26,8 +26,16 @@ Uses Google Cloud Text-to-Speech (Gemini voices) for high-quality multi-voice au
 
 Run the script:
 ```bash
-python gen_verse_devotion_gemini.py
+python gen_verse_devotion_gemini.py --speed 1.2
 ```
+
+### Arguments
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--input`, `-i` | Input text file | (stdin) |
+| `--prefix` | Filename prefix | None |
+| `--speed` | Speed factor (e.g. `1.1`, `+10%`) | `1.0` |
+| `--bgm` | Enable background music | False |
 
 Output will be saved to `~/Downloads/verse_gemini.mp3`.
 

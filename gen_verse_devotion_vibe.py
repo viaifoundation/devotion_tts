@@ -39,11 +39,25 @@ import filename_parser
 import argparse
 
 # CLI Args
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--help] [--speed SPEED]")
+    print ("\nOptions:")
+    print("  --input FILE, -i     Input text file")
+    print("  --prefix PREFIX      Filename prefix")
+    print("  --speed SPEED        Speed factor (Not supported yet)")
+    print("  --help, -h           Show this help")
+    sys.exit(0)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+parser.add_argument("--speed", type=str, default="1.0", help="Speed factor (Not supported yet)")
+
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
+
+if args.speed and args.speed != "1.0":
+    print("⚠️  Warning: --speed is not currently supported for VibeVoice. Ignoring.")
 
 # 1. Try --input argument
 if args.input:

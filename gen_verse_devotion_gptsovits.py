@@ -85,6 +85,25 @@ def scan_models(root_dir):
                         
     return sovits_path, gpt_path
 
+# CLI Help
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
+    print("\nOptions:")
+    print("  --input, -i FILE     Input text file")
+    print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
+    print("  --ref-audio PATH     Reference audio file (3-10 seconds, required for voice cloning)")
+    print("  --ref-text TEXT      Exact text content of the reference audio")
+    print("  --ref-lang LANG      Reference audio language: zh, en, ja (Default: zh)")
+    print("  --speed SPEED        Speed factor: 1.0, 1.2, +20%, -10% (Default: 1.0)")
+    print("  --bgm                Enable background music (Default: False)")
+    print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.mp3)")
+    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
+    print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --help, -h           Show this help")
+    print("\nExample:")
+    print("  python gen_verse_devotion_gptsovits.py -i input.txt --ref-audio ref.wav --ref-text \"你好\" --speed +10%")
+    sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Verse Audio with GPT-SoVITS")
     parser.add_argument("--input", "-i", type=str, help="Input text file")

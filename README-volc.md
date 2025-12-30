@@ -47,7 +47,12 @@ pip install -r requirements-volc.txt
 ## Usage
 
 ```bash
-python gen_verse_devotion_volc.py
+python gen_verse_devotion_volc.py --speed 1.2
+```
+
+### Arguments
+- `--speed`: Speed ratio (0.8 - 2.0). Default `1.0`.
+- `--bgm`: Enable background music.
 # or
 python gen_bread_audio_volc.py
 ```

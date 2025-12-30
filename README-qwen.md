@@ -16,8 +16,12 @@ pip install -r requirements-qwen.txt
 ```
 source ~/.pyenv/versions/3.12.12/envs/tts-venv-qwen/bin/activate
 python gen_bread_audio_qwen.py        # ~1.5 seconds
-python gen_verse_devotion_qwen.py     # ~2 seconds
+python gen_verse_devotion_qwen.py --speed 1.2
 ```
+
+### Arguments
+- `--speed`: Speed adjustment (e.g. `1.2` or `+20%`). Default `1.0`.
+- `--bgm`: Enable background music.
 Output → ~/Downloads/*.mp3
 
 First run downloads model (~1.8 GB), then cached forever).

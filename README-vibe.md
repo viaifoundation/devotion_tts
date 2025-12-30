@@ -28,7 +28,12 @@ The script `gen_verse_devotion_vibe.py` wraps VibeVoice for our workflow.
 
 ```bash
 python gen_verse_devotion_vibe.py
+python gen_verse_devotion_vibe.py --speed 1.0
 ```
+
+### Arguments
+- `--speed`: Speed factor. **Note:** Currently only a placeholder. Default `1.0`.
+- `--bgm`: Enable background music.
 
 ## Troubleshooting
 

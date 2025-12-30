@@ -20,8 +20,12 @@ Uses Microsoft Edge's online text-to-speech service (via `edge-tts` library) for
 Run the script:
 ```bash
 python gen_bread_audio_edge.py       # ~5-10 seconds
-python gen_verse_devotion_edge.py    # ~5-10 seconds
+python gen_verse_devotion_edge.py --speed +10%
 ```
+
+### Arguments
+- `--speed`: Speech rate adjustment (e.g. `+10%`, `-5%`, `1.1`). Default `+0%`.
+- `--bgm`: Enable background music.
 
 Output will be saved to `~/Downloads/*.mp3`.
 

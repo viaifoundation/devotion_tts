@@ -30,6 +30,7 @@ if "-?" in sys.argv:
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --speed SPEED        Speed factor (0.5-2.0, default 1.0)")
     print("  --help, -h           Show this help")
     print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
     sys.exit(0)
@@ -41,6 +42,7 @@ parser.add_argument("--bgm", action="store_true", help="Enable background music 
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
+parser.add_argument("--speed", type=str, default="1.0", help="Speed factor (0.5-2.0, default 1.0)")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -48,6 +50,28 @@ ENABLE_BGM = args.bgm
 BGM_FILE = args.bgm_track
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
+
+# Parse speed value and map to Qwen/Dashscope [-500, 500]
+def parse_speed_to_qwen_rate(speed_str):
+    if not speed_str: return 0
+    try:
+        val = 0.0
+        # Handle percentage "+10%"
+        if "%" in speed_str:
+            val = float(speed_str.replace("%", "")) / 100.0 # +10% -> 0.1
+        else:
+            val = float(speed_str) - 1.0 # 1.1 -> 0.1
+        
+        # Map 0.1 -> 50? No, let's assume 1.0 -> 0, 2.0 (+100%) -> 500, 0.5 (-50%) -> -500?
+        # If range is -500 to 500:
+        # Rate = val * 500? (+1.0 -> 500, -0.5 -> -250)
+        # This seems safe.
+        rate = int(val * 500)
+        return max(-500, min(500, rate))
+    except ValueError:
+        return 0
+
+QWEN_SPEECH_RATE = parse_speed_to_qwen_rate(args.speed)
 
 # 1. Try --input argument
 if args.input:
@@ -147,7 +171,8 @@ def speak(text: str, voice: str) -> AudioSegment:
         text=text,
         voice=voice,
         format="wav",
-        sample_rate=24000
+        sample_rate=24000,
+        speech_rate=QWEN_SPEECH_RATE
     )
     if resp.status_code != 200:
         raise Exception(f"API Error: {resp.message}")

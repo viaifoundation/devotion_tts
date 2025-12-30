@@ -132,8 +132,16 @@ Choose your preferred provider script (e.g., Edge TTS):
 3.  Run the script:
 
 ```bash
-python gen_verse_devotion_edge.py
+python gen_verse_devotion_edge.py --speed +10%
 ```
+
+### Arguments
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--input`, `-i` | Input text file | (stdin) |
+| `--prefix` | Filename prefix | None |
+| `--speed` | Speed factor (e.g. `+10%`, `1.1`) | `+0%` |
+| `--bgm` | Enable background music | False |
 
 The audio will be generated in your `~/Downloads` folder with a filename like:
 `VOTD_John-3-16_2025-12-09_edge.mp3`

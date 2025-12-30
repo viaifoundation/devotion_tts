@@ -37,8 +37,8 @@ parser.add_argument("--bgm", action="store_true", help="Enable background music 
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
-parser.add_argument("--rate", type=str, default="+0%", help="TTS Speech rate (e.g. +10%%)")
-parser.add_argument("--speed", type=str, dest="rate", help="Alias for --rate")
+parser.add_argument("--speed", type=str, default="+0%", help="TTS Speech rate (e.g. +10%%, 1.1)")
+# parser.add_argument("--rate") # Removed in favor of --speed
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -58,12 +58,12 @@ def parse_speed(speed_str):
             return 1.0 + (val / 100.0)
         # Handle direct float "1.1"
         return float(speed_str)
-    except Exception as e:
-        print(f"⚠️ Invalid speed format '{speed_str}', using default 1.0. Error: {e}")
+    except ValueError:
+        print(f"⚠️ Invalid speed format: {speed_str}. Using default 1.0.")
         return 1.0
 
-SPEAKING_RATE = parse_speed(args.rate)
-print(f"TTS Rate: {args.rate} -> {SPEAKING_RATE}x")
+TTS_SPEED = parse_speed(args.speed)
+print(f"TTS Rate: {args.speed} -> {TTS_SPEED}x")
 
 # ... [Text input logic] ... (Existing code)
 # 1. Try --input argument
@@ -184,7 +184,7 @@ def speak(text: str, voice: str, style_prompt: str = None) -> AudioSegment:
         try:
             synthesis_input = texttospeech.SynthesisInput(text=text)
             voice_params = texttospeech.VoiceSelectionParams(language_code=LANGUAGE_CODE, name=voice, model_name=MODEL_NAME)
-            audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, speaking_rate=SPEAKING_RATE)
+            audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, speaking_rate=TTS_SPEED)
             
             request = texttospeech.SynthesizeSpeechRequest(input=synthesis_input, voice=voice_params, audio_config=audio_config)
             

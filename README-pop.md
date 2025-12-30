@@ -35,7 +35,12 @@ pip install -r ../CosyVoice/requirements.txt
 ### 2. Generate
 ```bash
 python gen_verse_devotion_pop.py
+python gen_verse_devotion_pop.py --speed 1.0
 ```
+
+### Arguments
+- `--speed`: Speed adjustment placeholder (not supported yet).
+- `--bgm`: Enable background music.
 
 ---
 

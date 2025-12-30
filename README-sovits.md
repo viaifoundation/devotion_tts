@@ -1,6 +1,6 @@
 # Devotion Audio TTS – GPT-SoVITS Guide
 
-**GPT-SoVITS** is a state-of-the-art few-shot voice cloning engine capable of high-fidelity speech generation with minimal training data (5-10 seconds).
+**GPT-SoVITS** is a state-of-the-art few-shot voice cloning engine capable of high-fidelity speech generation with minimal training data (3-10 seconds).
 
 ## 🚀 Quick Start (Spark/Docker)
 
@@ -11,47 +11,46 @@ Run the wrapper script to build the image and enter the environment:
 ```
 
 ### 2. Setup Models
-Inside the container, run the one-time setup script to download required models (GPT-SoVITS Base, Chinese Roberta, etc.):
+Inside the container, run the one-time setup to download all required models:
 ```bash
-./setup_gptsovits.sh
+python download_models.py
 ```
-*Note: If you encounter errors, ensure you have pulled the latest code with `git pull` on the host.*
+
+This downloads:
+- GPT-SoVITS v2 pretrained models
+- Chinese RoBERTa & HuBERT
+- FastText language detection model
+- NLTK data for English processing
 
 ---
 
 ## 🎙️ Reference Audio Preparation
 
-GPT-SoVITS requires a **Reference Audio** (the voice to clone) and its corresponding **Reference Text** (what is being said).
+GPT-SoVITS requires a **Reference Audio** (3-10 seconds) and its corresponding **Reference Text**.
 
-### Option A: Generate a Starter Voice (Recommended)
-If you don't have a recording, use the helper script to generate a high-quality starter voice using Edge TTS:
+### Option A: Generate a Starter Voice
+Use the helper script to generate a high-quality starter voice using Edge TTS:
 ```bash
-# Generates assets/ref_audio/ref.wav
 python gen_ref_audio.py --voice zh-CN-YunxiNeural
 ```
+Output: `assets/ref_audio/ref.wav`
 
-### Option B: Record Your Own (Sample Texts)
-Record a 3-10 second clip (WAV/MP3) and save it to `assets/ref_audio/ref.wav`.
+### Option B: Record Your Own
+Record a 3-10 second clip and save it to `assets/ref_audio/`.
 
 **Sample Texts to Read:**
 
-1.  **Standard (Neutral)**
-    > "大家好，这是一个参考音频，用于语音克隆模型的输入。"
-    > *(Dàjiā hǎo, zhè shì yīgè cānkǎo yīnpín, yòng yú yǔyīn kèlóng móxíng de shūrù.)*
+| Style | Text |
+|-------|------|
+| Neutral | 大家好，这是一个参考音频，用于语音克隆模型的输入。 |
+| Biblical | 起初，神创造天地。地是空虚混沌，渊面黑暗。 |
+| Emotive | 然而，靠着爱我们的主，在这一切的事上已经得胜有余了。 |
 
-2.  **Biblical (Devotional)**
-    > "起初，神创造天地。地是空虚混沌，渊面黑暗。"
-    > *(Qǐchū, Shén chuàngzào tiāndì. Dì shì kōngxū hùndùn, yuānmiàn hēi'àn.)*
-
-3.  **Emotive (Warm)**
-    > "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"
-    > *(Rán'ér, kàozhe ài wǒmen de Zhǔ, zài zhè yīqiè de shì shàng yǐjīng déshèng yǒuyú le.)*
+> **Important:** Reference audio must be **3-10 seconds** long.
 
 ---
 
 ## 🎧 Generating Audio
-
-Run the generation script with your input file and reference settings:
 
 ```bash
 python gen_verse_devotion_gptsovits.py \
@@ -59,13 +58,38 @@ python gen_verse_devotion_gptsovits.py \
   --ref-audio assets/ref_audio/ref.wav \
   --ref-text "大家好，这是一个参考音频，用于语音克隆模型的输入。" \
   --ref-lang zh \
-  --bgm \
-  --bgm-track AmazingGrace.mp3
+  --speed 1.0 \
+  --bgm
 ```
 
 ### Arguments
-*   `--input`: Path to input text file.
-*   `--ref-audio`: Path to the 3-10s reference audio clip.
-*   `--ref-text`: Exact content of the reference audio.
-*   `--ref-lang`: Language of reference audio (`zh`, `en`, `ja`).
-*   `--bgm`: Enable background music mixing.
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--input`, `-i` | Input text file | (stdin) |
+| `--prefix` | Filename prefix | None |
+| `--ref-audio` | Reference audio file (3-10s) | `assets/ref_audio/ref.wav` |
+| `--ref-text` | Exact text of reference audio | Required |
+| `--ref-lang` | Reference language: `zh`, `en`, `ja` | `zh` |
+| `--speed` | Speed factor: `1.0`, `1.2`, `+20%`, `-10%` | `1.0` |
+| `--bgm` | Enable background music | False |
+| `--bgm-track` | BGM filename | `AmazingGrace.mp3` |
+| `--bgm-volume` | BGM volume (dB) | `-20` |
+| `--bgm-intro` | BGM intro delay (ms) | `4000` |
+
+### Speed Examples
+- `--speed 1.2` → 20% faster
+- `--speed +20%` → 20% faster
+- `--speed 0.8` → 20% slower
+- `--speed -10%` → 10% slower
+
+---
+
+## 🔧 Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| `Reference audio is outside the 3-10 second range` | Trim your reference audio to 3-10 seconds |
+| `No module named 'ERes2NetV2'` | Re-run container build: `./scripts/run_spark_gptsovits.sh` |
+| `fast-langdetect: Cache directory not found` | Run `python download_models.py` |
+| `averaged_perceptron_tagger_eng not found` | Run `python download_models.py` |

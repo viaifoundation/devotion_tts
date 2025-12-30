@@ -24,8 +24,24 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+parser.add_argument("--speed", type=str, default="1.0", help="Speed ratio (0.8-2.0, default 1.0)")
+
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
+
+# Parse speed value
+def parse_speed(speed_str):
+    if not speed_str: return 1.0
+    try:
+        # Handle percentage "+10%"
+        if "%" in speed_str:
+            val = float(speed_str.replace("%", ""))
+            return 1.0 + (val / 100.0)
+        return float(speed_str)
+    except ValueError:
+        return 1.0
+
+TTS_SPEED = max(0.8, min(2.0, parse_speed(args.speed)))
 
 
 # 1. Try --input argument
@@ -94,7 +110,7 @@ def speak(text: str, voice: str) -> AudioSegment:
         "audio": {
             "voice_type": voice,
             "encoding": "mp3",
-            "speed_ratio": 1.0,
+            "speed_ratio": TTS_SPEED,
             "volume_ratio": 1.0,
             "pitch_ratio": 1.0,
         },

@@ -17,90 +17,83 @@ nvidia-smi  # Should show GB10 GPU and CUDA version
 
 ---
 
-## Workflow A: CosyVoice (Tts)
-*Best for: High-quality zero-shot Chinese TTS.*
+## Workflow A: CosyVoice (TTS)
+*Best for: High-quality zero-shot Chinese TTS using built-in voices.*
 
-### 1. Run (Easy Mode)
-We provide a helper script to build and run the environment automatically.
-
+### Quick Start
 ```bash
 ./scripts/run_spark_cosy.sh
 ```
 
-*This script will:*
-1. Build the ARM64-optimized Docker image (`devotion-cosy-spark`).
-2. Mount your `~/github/CosyVoice` and `~/github/devotion_tts` directories.
-3. Drop you into an interactive shell inside the container.
+This script will:
+1. Build the ARM64-optimized Docker image (`devotion-cosy-spark`)
+2. Mount required directories
+3. Drop you into an interactive shell
 
-### 2. Manual Run (Advanced)
-If you prefer not to use the script or need to debug:
-
+### Generate Audio
+Inside the container:
 ```bash
-docker run --gpus all -it --rm \
-    --name devotion_cosy_runner \
-    --net=host \
-    --shm-size=16g \
-    -v "$(pwd)":/workspace/github/devotion_tts \
-    -v "$(realpath ../CosyVoice)":/workspace/github/CosyVoice \
-    -v "$HOME/.cache/modelscope":/root/.cache/modelscope \
-    -w /workspace/github/devotion_tts \
-    devotion-cosy-spark
+python gen_verse_devotion_cosy.py -i input.txt --bgm
 ```
-*Note: `--gpus all` is critical for GPU access.*
 
-### 3. Generate
-Inside the container, run:
+### Arguments
 
-```bash
-python gen_verse_devotion_cosy.py
-```
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--input`, `-i` | Input text file | (stdin) |
+| `--prefix` | Filename prefix | None |
+| `--bgm` | Enable background music | False |
+| `--bgm-track` | BGM filename | `AmazingGrace.MP3` |
+| `--bgm-volume` | BGM volume (dB) | `-20` |
+| `--bgm-intro` | BGM intro delay (ms) | `4000` |
+| `--debug`, `-d` | Debug level: 0, 1, 2 | `0` |
 
 > [!TIP]
-> **Dependency Updates**: If you changed requirements (like we did recently), force a rebuild of the image:
-> ```bash
-> ./scripts/run_spark_cosy.sh --build
-> ```
-
-### 4. Verification
-To verify that the container sees your GPU and PyTorch is correctly configured:
-
-```bash
-# 1. Check GPU Hardware
-nvidia-smi
-
-# 2. Check PyTorch CUDA access
-python -c "import torch; print(f'CUDA Available: {torch.cuda.is_available()}')"
-# Should output: CUDA Available: True
-```
+> Run `python gen_verse_devotion_cosy.py -?` for quick help.
 
 ---
 
 ## Workflow B: GPT-SoVITS (Voice Cloning)
-*Best for: Cloning specific characters (e.g., Sun Wukong) and training.*
+*Best for: Cloning specific voices from 3-10 second reference audio.*
 
-### 1. Docker Run
-Launch the container (mounting your models folder):
-
+### Quick Start
 ```bash
-docker run --gpus all -it --rm \
-  --net=host \
-  --shm-size=16g \
-  -v ~/github:/workspace/github \
-  -v ~/GPT-SoVITS-Models:/workspace/models \
-  -w /workspace/github/GPT-SoVITS \
-  nvcr.io/nvidia/pytorch:25.11-py3
+./scripts/run_spark_gptsovits.sh
 ```
 
-### 2. Setup (Inside Container)
+### First-Time Setup (Inside Container)
 ```bash
-# Install ffmpeg
-apt-get update && apt-get install -y ffmpeg
-
-# Install Deps
-pip install -r requirements.txt
-pip install -r extra-req.txt --no-deps
-
-# Start WebUI
-python webui.py
+python download_models.py
 ```
-Open `http://localhost:9874` on your host machine.
+
+### Generate Audio
+```bash
+python gen_verse_devotion_gptsovits.py \
+  -i input.txt \
+  --ref-audio assets/ref_audio/ref.wav \
+  --ref-text "大家好，这是一个参考音频" \
+  --speed 1.0 \
+  --bgm
+```
+
+> [!TIP]
+> See [README-sovits.md](README-sovits.md) for full documentation including reference audio preparation.
+
+---
+
+## Verification
+
+```bash
+# Check GPU Hardware
+nvidia-smi
+
+# Check PyTorch CUDA
+python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
+```
+
+## Rebuilding Images
+If you changed requirements, force a rebuild:
+```bash
+./scripts/run_spark_cosy.sh --build
+./scripts/run_spark_gptsovits.sh --build
+```

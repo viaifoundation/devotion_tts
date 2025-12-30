@@ -158,8 +158,14 @@ Run the scripts:
 ```bash
 python gen_verse_devotion_cosy.py
 # or
+python gen_verse_devotion_cosy.py --speed 1.0
+# or
 python gen_bread_audio_cosy.py
 ```
+
+### Arguments (CosyVoice Scripts)
+- `--speed`: Speed factor. **Note:** Currently a placeholder (not supported by CosyVoice engine yet). Default `1.0`.
+- `--bgm`: Enable background music.
 
 *First run will download the model automatically via ModelScope.*
 

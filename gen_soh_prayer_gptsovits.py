@@ -198,15 +198,21 @@ def main():
 
     print("🚀 Initializing GPT-SoVITS...")
     
-    # Config absolute paths to be safe
-    gpt_sovits_config_path = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "configs", "tts_infer.yaml")
+    # Use absolute path for config to avoid CWD issues
+    config_path = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "configs", "tts_infer.yaml")
     
-    # Check fallback
-    if not os.path.exists(gpt_sovits_config_path):
-         # Try local
-         gpt_sovits_config_path = "GPT_SoVITS/configs/tts_infer.yaml"
-
-    tts_config = TTS_Config(gpt_sovits_config_path)
+    if not os.path.exists(config_path):
+        # Fallback: maybe it's in the root configs?
+        config_path = os.path.join(GPT_SOVITS_ROOT, "configs", "tts_infer.yaml")
+        if not os.path.exists(config_path):
+             print(f"⚠️ Warning: Could not find tts_infer.yaml at {config_path}")
+    
+    try:
+        config = TTS_Config(config_path)
+    except Exception as e:
+        print(f"⚠️ Failed to init TTS_Config with {config_path}: {e}")
+        print("Attempting default init...")
+        config = TTS_Config("tts_infer.yaml")
     
     sovits_path, gpt_path = scan_models(GPT_SOVITS_ROOT)
     if not sovits_path or not gpt_path:
@@ -216,58 +222,20 @@ def main():
     print(f"  • SoVITS: {os.path.basename(sovits_path)}")
     print(f"  • GPT:    {os.path.basename(gpt_path)}")
     
-    tts_config.t2s_weights_path = sovits_path
-    tts_config.vits_weights_path = gpt_path
+    config.default_gpt_path = gpt_path
+    config.default_sovits_path = sovits_path
     
     # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
     # But FIRST, convert our paths to absolute so they still work after chdir.
     original_cwd = os.getcwd()
-    output_path_abs = os.path.abspath(output_path_abs) 
+    output_path_abs = os.path.abspath(output_path_abs)
+    ref_audio_abs = os.path.abspath(args.ref_audio) if args.ref_audio else None
+    output_dir_abs = os.path.abspath(OUTPUT_DIR)
     
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
-
-    # Monkeypatch torch.load to fix (KeyError: 'max_sec' and 'hidden_dim') in modern GPT-SoVITS models
-    original_torch_load = torch.load
-    def patched_torch_load(*args, **kwargs):
-        result = original_torch_load(*args, **kwargs)
-        if isinstance(result, dict) and "config" in result:
-             conf = result["config"]
-             # Patch 1: max_sec
-             if isinstance(conf, dict) and "data" in conf:
-                 if "max_sec" not in conf["data"]:
-                     print("🔧 Patching missing 'max_sec' in model config...")
-                     conf["data"]["max_sec"] = conf["data"].get("max_sec", 100)
-             
-             # Patch 2: hidden_dim and embedding_dim (V2 compatibility)
-             if isinstance(conf, dict) and "model" in conf:
-                 model_conf = conf["model"]
-                 
-                 # Basic default for V2 small/large models is usually 512
-                 default_dim = 512
-                 
-                 # Ensure 'embedding_dim' exists
-                 if "embedding_dim" not in model_conf:
-                      print("🔧 Patching missing 'embedding_dim' in model config...")
-                      if "hidden_dim" in model_conf:
-                           model_conf["embedding_dim"] = model_conf["hidden_dim"]
-                      else:
-                           model_conf["embedding_dim"] = default_dim
-
-                 # Ensure 'hidden_dim' exists
-                 if "hidden_dim" not in model_conf:
-                      print("🔧 Patching missing 'hidden_dim' in model config...")
-                      if "embedding_dim" in model_conf:
-                           model_conf["hidden_dim"] = model_conf["embedding_dim"]
-                      else:
-                           model_conf["hidden_dim"] = default_dim
-        return result
-
-    torch.load = patched_torch_load
-    try:
-        tts_pipeline = TTS(tts_config)
-    finally:
-        torch.load = original_torch_load
+    
+    tts_pipeline = TTS(config)
 
     # --- Ref Audio Preparation ---
     ref_audio_path = os.path.abspath(args.ref_audio)

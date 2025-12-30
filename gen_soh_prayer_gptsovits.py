@@ -235,7 +235,29 @@ def main():
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
-    tts_pipeline = TTS(config)
+    # Monkeypatch torch.load to fix KeyErrors for V2 model configs
+    original_torch_load = torch.load
+    def patched_torch_load(*args, **kwargs):
+        result = original_torch_load(*args, **kwargs)
+        if isinstance(result, dict) and "config" in result:
+            conf = result["config"]
+            if isinstance(conf, dict) and "data" in conf:
+                data_conf = conf["data"]
+                if "max_sec" not in data_conf:
+                    data_conf["max_sec"] = 54
+            if isinstance(conf, dict) and "model" in conf:
+                model_conf = conf["model"]
+                defaults = {"hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, "n_layer": 6}
+                for key, val in defaults.items():
+                    if key not in model_conf:
+                        model_conf[key] = val
+        return result
+
+    torch.load = patched_torch_load
+    try:
+        tts_pipeline = TTS(config)
+    finally:
+        torch.load = original_torch_load
 
     # --- Ref Audio Preparation ---
     ref_audio_path = os.path.abspath(args.ref_audio)

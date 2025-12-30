@@ -204,37 +204,7 @@ def main():
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
-    # Monkeypatch torch.load to fix V2 model config compatibility
-    # V2 models are missing many config keys that V1 code expects
-    original_torch_load = torch.load
-    def patched_torch_load(*args, **kwargs):
-        result = original_torch_load(*args, **kwargs)
-        if isinstance(result, dict) and "config" in result:
-            conf = result["config"]
-            # Patch data section
-            if isinstance(conf, dict) and "data" in conf:
-                data_defaults = {"max_sec": 54, "sample_rate": 32000, "filter_length": 2048, "hop_length": 640, "win_length": 2048, "n_mel_channels": 100}
-                for k, v in data_defaults.items():
-                    if k not in conf["data"]:
-                        conf["data"][k] = v
-            # Patch model section with all expected keys
-            if isinstance(conf, dict) and "model" in conf:
-                model_defaults = {
-                    "hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, 
-                    "n_layer": 6, "vocab_size": 2048, "phoneme_vocab_size": 512, "p_dropout": 0.1,
-                    "EOS": 2047, "n_head": 8, "n_layers": 6, "norm_first": True, "flash_attn": False,
-                    "dropout": 0.1
-                }
-                for k, v in model_defaults.items():
-                    if k not in conf["model"]:
-                        conf["model"][k] = v
-        return result
-
-    torch.load = patched_torch_load
-    try:
-        tts_pipeline = TTS(config)
-    finally:
-        torch.load = original_torch_load
+    tts_pipeline = TTS(config)
     
     # 4. Inference
     # Check Ref Audio (using absolute path now)

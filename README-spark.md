@@ -66,7 +66,7 @@ python gen_verse_devotion_cosy.py -i input.txt --bgm
 python download_models.py
 ```
 
-### Generate Audio
+### Generate Audio (Verse/Devotion)
 ```bash
 python gen_verse_devotion_gptsovits.py \
   -i input.txt \
@@ -75,6 +75,16 @@ python gen_verse_devotion_gptsovits.py \
   --speed 1.0 \
   --bgm
 ```
+
+### Generate Prayer (SOH)
+```bash
+python gen_soh_prayer_gptsovits.py \
+  -i input.txt \
+  --ref-audio assets/ref_audio/soh_ref.wav \
+  --ref-text "..." \
+  --bgm
+```
+
 
 > [!TIP]
 > See [README-sovits.md](README-sovits.md) for full documentation including reference audio preparation.

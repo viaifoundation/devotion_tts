@@ -85,6 +85,20 @@ python gen_verse_devotion_gptsovits.py \
 
 ---
 
+## 🎧 Generating SOH Prayer (Voice Clone)
+
+For "Sound of Home" (SOH) prayer audio with consistent filename format `乡音情_{Date}.mp3`:
+
+```bash
+python gen_soh_prayer_gptsovits.py \
+  --input input.txt \
+  --ref-audio assets/ref_audio/soh_ref.wav \
+  --ref-text "..." \
+  --bgm
+```
+
+---
+
 ## 🔧 Troubleshooting
 
 | Error | Solution |

@@ -253,7 +253,8 @@ def main():
                 model_defaults = {
                     "hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, 
                     "n_layer": 6, "vocab_size": 2048, "phoneme_vocab_size": 512, "p_dropout": 0.1,
-                    "EOS": 1024, "n_head": 8, "n_layers": 6, "norm_first": True, "flash_attn": False
+                    "EOS": 1024, "n_head": 8, "n_layers": 6, "norm_first": True, "flash_attn": False,
+                    "dropout": 0.1
                 }
                 for k, v in model_defaults.items():
                     if k not in conf["model"]:

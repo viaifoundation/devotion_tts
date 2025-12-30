@@ -85,25 +85,6 @@ def scan_models(root_dir):
                         
     return sovits_path, gpt_path
 
-# CLI Help
-if "-?" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
-    print("\nOptions:")
-    print("  --input, -i FILE     Input text file")
-    print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
-    print("  --ref-audio PATH     Reference audio file (3-10 seconds, required for voice cloning)")
-    print("  --ref-text TEXT      Exact text content of the reference audio")
-    print("  --ref-lang LANG      Reference audio language: zh, en, ja (Default: zh)")
-    print("  --speed SPEED        Speed factor: 1.0, 1.2, +20%, -10% (Default: 1.0)")
-    print("  --bgm                Enable background music (Default: False)")
-    print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.mp3)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
-    print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
-    print("  --help, -h           Show this help")
-    print("\nExample:")
-    print("  python gen_verse_devotion_gptsovits.py -i input.txt --ref-audio ref.wav --ref-text \"你好\" --speed +10%")
-    sys.exit(0)
-
 def main():
     parser = argparse.ArgumentParser(description="Generate Verse Audio with GPT-SoVITS")
     parser.add_argument("--input", "-i", type=str, help="Input text file")
@@ -223,8 +204,8 @@ def main():
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
-    # Monkeypatch torch.load to fix KeyErrors for V2 model configs
-    # V2 models have different/missing config keys compared to what the code expects
+    # Monkeypatch torch.load to fix V2 model config compatibility
+    # V2 models are missing many config keys that V1 code expects
     original_torch_load = torch.load
     def patched_torch_load(*args, **kwargs):
         result = original_torch_load(*args, **kwargs)
@@ -232,16 +213,20 @@ def main():
             conf = result["config"]
             # Patch data section
             if isinstance(conf, dict) and "data" in conf:
-                data_conf = conf["data"]
-                if "max_sec" not in data_conf:
-                    data_conf["max_sec"] = 54
-            # Patch model section  
+                data_defaults = {"max_sec": 54, "sample_rate": 32000, "filter_length": 2048, "hop_length": 640, "win_length": 2048, "n_mel_channels": 100}
+                for k, v in data_defaults.items():
+                    if k not in conf["data"]:
+                        conf["data"][k] = v
+            # Patch model section with all expected keys
             if isinstance(conf, dict) and "model" in conf:
-                model_conf = conf["model"]
-                defaults = {"hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, "n_layer": 6}
-                for key, val in defaults.items():
-                    if key not in model_conf:
-                        model_conf[key] = val
+                model_defaults = {
+                    "hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, 
+                    "n_layer": 6, "vocab_size": 2048, "phoneme_vocab_size": 512, "p_dropout": 0.1,
+                    "EOS": 1024, "n_head": 8, "n_layers": 6, "norm_first": True, "flash_attn": False
+                }
+                for k, v in model_defaults.items():
+                    if k not in conf["model"]:
+                        conf["model"][k] = v
         return result
 
     torch.load = patched_torch_load

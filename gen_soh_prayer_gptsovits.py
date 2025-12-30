@@ -235,22 +235,29 @@ def main():
     os.chdir(GPT_SOVITS_ROOT)
     print(f"Changed working directory to: {GPT_SOVITS_ROOT}")
     
-    # Monkeypatch torch.load to fix KeyErrors for V2 model configs
+    # Monkeypatch torch.load to fix V2 model config compatibility
+    # V2 models are missing many config keys that V1 code expects
     original_torch_load = torch.load
     def patched_torch_load(*args, **kwargs):
         result = original_torch_load(*args, **kwargs)
         if isinstance(result, dict) and "config" in result:
             conf = result["config"]
+            # Patch data section
             if isinstance(conf, dict) and "data" in conf:
-                data_conf = conf["data"]
-                if "max_sec" not in data_conf:
-                    data_conf["max_sec"] = 54
+                data_defaults = {"max_sec": 54, "sample_rate": 32000, "filter_length": 2048, "hop_length": 640, "win_length": 2048, "n_mel_channels": 100}
+                for k, v in data_defaults.items():
+                    if k not in conf["data"]:
+                        conf["data"][k] = v
+            # Patch model section with all expected keys
             if isinstance(conf, dict) and "model" in conf:
-                model_conf = conf["model"]
-                defaults = {"hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, "n_layer": 6}
-                for key, val in defaults.items():
-                    if key not in model_conf:
-                        model_conf[key] = val
+                model_defaults = {
+                    "hidden_dim": 512, "embedding_dim": 512, "head": 8, "linear_units": 2048, 
+                    "n_layer": 6, "vocab_size": 2048, "phoneme_vocab_size": 512, "p_dropout": 0.1,
+                    "EOS": 1024, "n_head": 8, "n_layers": 6, "norm_first": True, "flash_attn": False
+                }
+                for k, v in model_defaults.items():
+                    if k not in conf["model"]:
+                        conf["model"][k] = v
         return result
 
     torch.load = patched_torch_load

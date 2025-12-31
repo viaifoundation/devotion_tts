@@ -89,16 +89,16 @@ try:
         if "model" not in config:
             config["model"] = {}
         
-        # V2 model architecture defaults
+        # V2 model architecture defaults (from GPT-SoVITS/configs/s1.yaml)
         model_defaults = {
             "hidden_dim": 512,
             "embedding_dim": 512,
             "head": 16,
-            "n_layer": 24,
-            "vocab_size": 1025,  # Semantic token vocab size
-            "phoneme_vocab_size": 322,
+            "n_layer": 12,  # Official V2 value
+            "vocab_size": 1025,
+            "phoneme_vocab_size": 512,  # Official V2 value
             "EOS": 1024,
-            "dropout": 0.0,
+            "dropout": 0,
             "flash_attn": False,
             "linear_units": 2048,
             "num_head": 16,
@@ -143,7 +143,7 @@ try:
             "sampling_rate": 32000,
             "mel_fmin": 0,
             "mel_fmax": None,
-            "n_speakers": 0,  # Required by init_vits_weights
+            "n_speakers": 300,  # Official V2 value from s2.json
         }
         
         for key, default_val in data_defaults.items():
@@ -454,14 +454,13 @@ def main():
             # Collect audio fragments
             full_sr, full_audio_data = next(sources)
             
-            # Convert numpy int16 array to AudioSegment
+            # Convert numpy array to int16 for AudioSegment
             # GPT-SoVITS output usually (32000, np.array)
-            # Ensure it is int16.
-            if full_audio_data.dtype != np.int16:
-                 # Normalize float to int16 if needed
-                 # Usually pipeline returns int16 if return_fragment=False?
-                 # Actually check implementation. Usually it returns (sr, data).
-                 pass
+            if full_audio_data.dtype == np.float32 or full_audio_data.dtype == np.float64:
+                # Normalize float (-1 to 1) to int16
+                full_audio_data = (full_audio_data * 32767).clip(-32768, 32767).astype(np.int16)
+            elif full_audio_data.dtype != np.int16:
+                full_audio_data = full_audio_data.astype(np.int16)
 
             # Create segment
             # Note: pydub requires bytes

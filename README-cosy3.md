@@ -48,19 +48,16 @@ git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git
 
 ### 2. Download Fun-CosyVoice 3.0 Model
 
+**For local Mac/Linux (with virtual environment):**
 ```bash
-# From HuggingFace
 pip install -U huggingface_hub
 huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
     --local-dir ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B
-
-# Or from ModelScope (China)
-pip install -U modelscope
-modelscope download --model FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
-    --local_dir ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B
 ```
 
-### 3. Install Dependencies
+**For DGX Spark:** See [NVIDIA DGX Spark Setup](#nvidia-dgx-spark-setup) below.
+
+### 3. Install Dependencies (Local Mac/Linux)
 
 ```bash
 cd ~/github/devotion_tts
@@ -89,9 +86,10 @@ Use a temporary container to download (avoids host pip installation issues):
 docker run --rm \
   -v ~/github:/workspace/github \
   python:3.12-slim \
-  bash -c "pip install huggingface_hub && \
-    huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
-    --local-dir /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B"
+  bash -c "pip install -q huggingface_hub && \
+    python -c \"from huggingface_hub import snapshot_download; \
+    snapshot_download('FunAudioLLM/Fun-CosyVoice3-0.5B-2512', \
+    local_dir='/workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B')\""
 
 # Verify on host
 ls ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B/
@@ -99,27 +97,34 @@ ls ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B/
 
 #### Step 3: Run in Container
 
-**Option A: Quick Run Script**
+**Option A: Quick Run Script (on host)**
 ```bash
 cd ~/github/devotion_tts
 ./scripts/run_spark_cosy3.sh my_verse.txt
 ```
 
 **Option B: Interactive Container**
+
+*On host - start container:*
 ```bash
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
   -v ~/.cache:/root/.cache \
   -w /workspace/github/devotion_tts \
   nvcr.io/nvidia/pytorch:25.11-py3
+```
 
-# Inside container
+*Inside container - setup and run:*
+```bash
 apt-get update && apt-get install -y ffmpeg
 pip install -r requirements-cosy.txt
 
 export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
 
-python gen_verse_devotion_cosy3.py --input test.txt --rotate
+# Create test file
+echo "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。" > test.txt
+
+python gen_verse_devotion_cosy3.py --input input.txt --rotate -d 1
 ```
 
 ## Docker Files

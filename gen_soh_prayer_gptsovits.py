@@ -109,13 +109,18 @@ try:
                 config["model"][key] = default_val
                 print(f"⚠️ Patching missing 'model.{key}' with default value: {default_val}")
                 modified = True
-        
+        # Patches applied in-memory only (non-destructive)
         if modified:
             dict_s1["config"] = config
-            _torch.save(dict_s1, weights_path)
-            print("📝 Saved patched checkpoint (future runs won't need patching)")
+            # Save the patched dict back to a temp location for the original method to load
+            import tempfile
+            temp_path = tempfile.NamedTemporaryFile(suffix='.ckpt', delete=False).name
+            _torch.save(dict_s1, temp_path)
+            result = _original_init_t2s_weights(self, temp_path)
+            os.unlink(temp_path)  # Clean up temp file
+            return result
         
-        # Call original method
+        # No patching needed, call original
         return _original_init_t2s_weights(self, weights_path)
     
     TTS.init_t2s_weights = _patched_init_t2s_weights
@@ -197,13 +202,18 @@ try:
                 hps["model"][key] = default_val
                 print(f"⚠️ Patching missing 'model.{key}' with default value: {default_val}")
                 modified = True
-        
+        # Patches applied in-memory only (non-destructive)
         if modified:
             dict_s2["config"] = hps
-            _torch.save(dict_s2, weights_path)
-            print("📝 Saved patched VITS checkpoint")
+            # Save the patched dict to temp location for the original method to load
+            import tempfile
+            temp_path = tempfile.NamedTemporaryFile(suffix='.pth', delete=False).name
+            _torch.save(dict_s2, temp_path)
+            result = _original_init_vits_weights(self, temp_path)
+            os.unlink(temp_path)  # Clean up temp file
+            return result
         
-        # Call original method
+        # No patching needed, call original
         return _original_init_vits_weights(self, weights_path)
     
     TTS.init_vits_weights = _patched_init_vits_weights

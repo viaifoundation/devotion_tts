@@ -74,7 +74,7 @@ RUN pip install --no-cache-dir --no-deps \
 # RUN pip install -r /tmp/requirements-cosy-spark.txt
 
 # Set environment for CosyVoice
-ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
+ENV PYTHONPATH="/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
 
 # Create model directory
 RUN mkdir -p /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B

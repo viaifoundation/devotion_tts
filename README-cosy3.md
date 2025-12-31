@@ -128,15 +128,28 @@ python gen_verse_devotion_cosy3.py --input input.txt --rotate -d 1
 |------|---------|
 | `docker/Dockerfile.spark.cosy3` | Docker image for DGX Spark |
 | `scripts/run_spark_cosy3.sh` | Quick-start run script |
-| `setup_cosy3.sh` | One-time setup with model download |
+### 3. Run Generation
 
-## Usage
-
-### Basic Usage (Without Voice Cloning)
-
+**Option A: Quick Start (Auto-setup)**
+This runs the setup script every time (installing dependencies takes ~1 min).
 ```bash
-# Verse Devotion
-python gen_verse_devotion_cosy3.py --input my_verse.txt
+# On Host
+./scripts/run_spark_cosy3.sh sample.txt
+```
+
+**Option B: Faster Startup (Build Image)**
+Build the image once to bake in dependencies.
+```bash
+# 1. Build Image (Run once)
+docker build -t viaifoundation/cosy3-spark -f docker/Dockerfile.spark.cosy3 .
+
+# 2. Run (Instant start)
+# Edit scripts/run_spark_cosy3.sh to use IMAGE="viaifoundation/cosy3-spark"
+./scripts/run_spark_cosy3.sh sample.txt
+```
+
+> [!IMPORTANT]
+> **Audio Quality Note:** We force **FP32** inference on Spark DGX to prevent static noise issues caused by FP16 instability on some GPU architectures. This is handled automatically in the scripts.
 
 # Daily Bread
 python gen_bread_audio_cosy3.py --input my_bread.txt

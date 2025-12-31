@@ -16,16 +16,24 @@ fi
 # Step 2: Install Python dependencies
 echo "[2/4] Installing Python dependencies..."
 
-# Group 1: Utilities (Safe to install deps)
+# Group 1: Utilities & Sub-Dependencies (Safe to install deps)
+# We strictly list ALL missing deps here because Group 2 uses --no-deps
 pip install -q --force-reinstall \
+    "numpy<2.0" \
+    coloredlogs \
+    flatbuffers \
+    einx \
+    loguru \
+    "pytorch-lightning>=2.0.0" \
+    "torchmetrics>=0.7.0" \
+    pynvml \
+    "fsspec<=2025.10.0" \
     gdown \
     hydra-core \
     inflect \
     omegaconf \
     pyworld \
-    pyworld \
     pydub \
-    "numpy<2.0" \
     matplotlib \
     protobuf \
     rich \
@@ -38,14 +46,12 @@ pip install -q --force-reinstall \
     regex \
     safetensors \
     tokenizers \
-    psutil \
-    pynvml \
-    "fsspec<=2025.10.0"
+    psutil
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
-# We manually verified these need torch, and pip tries to reinstall torch if we let it resolve deps
 pip install -q --no-deps --force-reinstall \
-    "transformers>=4.40.0" \
+    "transformers==4.44.2" \
+    "huggingface-hub>=0.23.0" \
     accelerate \
     diffusers \
     HyperPyYAML \

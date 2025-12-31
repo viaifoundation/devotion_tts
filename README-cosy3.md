@@ -79,21 +79,22 @@ git pull
 git submodule update --init --recursive
 ```
 
-#### Step 2: Download Fun-CosyVoice 3.0 Model (on Spark host)
+#### Step 2: Download Fun-CosyVoice 3.0 Model
 
-> **Important:** Download on the **host** (not inside container) so it persists and is shared across containers.
+> **Important:** Download to the **host filesystem** so it persists and is shared across containers.
+
+Use a temporary container to download (avoids host pip installation issues):
 
 ```bash
-# Install huggingface_hub on host
-pip install -U huggingface_hub
+docker run --rm \
+  -v ~/github:/workspace/github \
+  python:3.12-slim \
+  bash -c "pip install huggingface_hub && \
+    huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
+    --local-dir /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B"
 
-# Download model (~10GB)
-cd ~/github/CosyVoice
-huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
-    --local-dir pretrained_models/Fun-CosyVoice3-0.5B
-
-# Verify
-ls pretrained_models/Fun-CosyVoice3-0.5B/
+# Verify on host
+ls ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B/
 ```
 
 #### Step 3: Run in Container

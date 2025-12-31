@@ -114,19 +114,11 @@ docker run --gpus all -it --rm \
   nvcr.io/nvidia/pytorch:25.11-py3
 ```
 
-*Inside container - setup and run:*
+*Inside container - run setup script:*
 ```bash
-# Install system deps
-apt-get update && apt-get install -y ffmpeg
+source scripts/setup_cosy3_spark.sh
 
-# Install Python deps (use --no-deps to avoid replacing CUDA torch)
-pip install torchcodec --no-deps
-pip install -r requirements-cosy3.txt --no-deps
-
-# Set paths
-export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
-
-# Run
+# Then run generation
 python gen_verse_devotion_cosy3.py --input input.txt --rotate -d 1
 ```
 

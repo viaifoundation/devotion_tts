@@ -1,62 +1,38 @@
 # requirements-cosy3.txt
 # Fun-CosyVoice 3.0 (0.5B) - Zero-shot voice cloning TTS
-# Based on official CosyVoice requirements with Spark adaptations
-
-# PyTorch (don't reinstall - use container's CUDA-enabled version)
-# torch>=2.3.1
-# torchaudio>=2.3.1
+# For DGX Spark: use scripts/setup_cosy3_spark.sh instead
 
 # Core CosyVoice dependencies
-conformer==0.3.2
-diffusers==0.29.0
-gdown==5.1.0
-HyperPyYAML==1.2.2
-hydra-core==1.3.2
-inflect==7.3.1
-lightning==2.2.4
-modelscope>=1.20.0
-omegaconf==2.3.0
-openai-whisper==20231117
-pyworld==0.3.4
-transformers>=4.51.3
-x-transformers==2.11.24
+HyperPyYAML
+conformer
+diffusers
+gdown
+hydra-core
+inflect
+lightning
+modelscope
+omegaconf
+openai-whisper
+pyworld
+transformers
+x-transformers
 
-# ONNX (use CPU version for ARM64/Spark)
-onnx==1.16.0
-onnxruntime==1.18.0
+# ONNX
+onnx
+onnxruntime
 
 # Audio processing
-librosa==0.10.2
-soundfile==0.12.1
-pydub>=0.25.1
-torchcodec
+librosa
+soundfile
+pydub
 
 # ML utilities
-numpy==1.26.4
-matplotlib==3.7.5
-networkx==3.1
-protobuf==4.25
-tensorboard==2.14.0
-
-# Whisper dependencies
-tiktoken
-more-itertools
-numba
-
-# Misc utilities
-rich==13.7.1
-pydantic==2.7.0
-pyarrow==18.1.0
-wetext==0.0.4
-wget==3.2
+numpy
+matplotlib
+protobuf
+rich
 ruamel.yaml
+tiktoken
+pydantic
+wget
 mutagen
-sentencepiece
-accelerate
-scipy
-Pillow
-PyYAML
-tqdm
-requests
-simplejson
-sortedcontainers

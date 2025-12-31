@@ -16,23 +16,13 @@ fi
 # Step 2: Install Python dependencies
 echo "[2/4] Installing Python dependencies..."
 
-# Group 1: Safe libraries (allow dependencies)
-# We ensure transformers is new enough for Qwen2, and install accelerate
+# Group 1: Utilities (Safe to install deps)
 pip install -q --force-reinstall \
-    HyperPyYAML \
-    diffusers \
     gdown \
     hydra-core \
     inflect \
     omegaconf \
     pyworld \
-    "transformers>=4.40.0" \
-    accelerate \
-    x-transformers \
-    onnx \
-    onnxruntime \
-    librosa \
-    soundfile \
     pydub \
     numpy \
     matplotlib \
@@ -42,15 +32,29 @@ pip install -q --force-reinstall \
     tiktoken \
     pydantic \
     wget \
-    mutagen
+    mutagen \
+    packaging \
+    regex \
+    safetensors \
+    tokenizers \
+    psutil
 
-# Group 2: Risky libraries (force --no-deps to prevent Torch downgrade)
-# These packages often pin old torch versions which breaks the NVIDIA container
+# Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
+# We manually verified these need torch, and pip tries to reinstall torch if we let it resolve deps
 pip install -q --no-deps --force-reinstall \
+    "transformers>=4.40.0" \
+    accelerate \
+    diffusers \
+    HyperPyYAML \
     conformer \
     lightning \
     modelscope \
-    openai-whisper
+    openai-whisper \
+    x-transformers \
+    onnx \
+    onnxruntime \
+    librosa \
+    soundfile
 
 # Ensure ruamel.yaml is downgraded if newer version exists (fixes max_depth error)
 pip install -q "ruamel.yaml<0.18.0"

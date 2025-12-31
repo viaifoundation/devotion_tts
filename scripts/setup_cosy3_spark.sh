@@ -50,7 +50,7 @@ pip install -q --force-reinstall \
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
 pip install -q --no-deps --force-reinstall \
-    "transformers==4.44.2" \
+    "transformers>=4.48.0" \
     "huggingface-hub>=0.23.0" \
     accelerate \
     diffusers \

@@ -88,6 +88,10 @@ try:
             "vocab_size": 1025,  # Semantic token vocab size
             "phoneme_vocab_size": 322,
             "EOS": 1024,
+            "dropout": 0.0,
+            "flash_attn": False,
+            "linear_units": 2048,
+            "num_head": 16,
         }
         
         for key, default_val in model_defaults.items():

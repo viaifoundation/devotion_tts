@@ -47,6 +47,20 @@ try:
     from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
     from tools.i18n.i18n import I18nAuto
     import torch
+    import torch.distributed as dist
+    
+    # Initialize torch.distributed for single-process inference
+    # Required by some GPT-SoVITS internal operations
+    if not dist.is_initialized():
+        os.environ.setdefault("MASTER_ADDR", "localhost")
+        os.environ.setdefault("MASTER_PORT", "29500")
+        os.environ.setdefault("RANK", "0")
+        os.environ.setdefault("WORLD_SIZE", "1")
+        dist.init_process_group(backend="gloo", rank=0, world_size=1)
+    
+    # Note: The gsv-v2final-pretrained checkpoints already contain complete configs,
+    # so no patching is needed.
+    print("✅ GPT-SoVITS modules loaded successfully")
 except ImportError as e:
     print(f"❌ Failed to import GPT-SoVITS modules: {e}")
     print("Ensure you are running in the correct container and paths are set.")
@@ -256,7 +270,8 @@ def main():
         "fragment_interval": 0.3,
         "seed": -1,
         "return_fragment": False,
-        "parallel_infer": True,
+        "split_bucket": False,  # Disable bucket splitting for speed adjustment
+        "parallel_infer": False,  # Disable parallel inference (requires torch.distributed)
         "repetition_penalty": 1.35
     }
     

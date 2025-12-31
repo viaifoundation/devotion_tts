@@ -24,8 +24,9 @@ pip install -q --force-reinstall \
     flatbuffers \
     einx \
     loguru \
-    "pytorch-lightning>=2.0.0" \
-    "torchmetrics>=0.7.0" \
+    tqdm \
+    "typing-extensions" \
+    PyYAML \
     pynvml \
     "fsspec<=2025.10.0" \
     gdown \
@@ -46,12 +47,14 @@ pip install -q --force-reinstall \
     regex \
     safetensors \
     tokenizers \
-    psutil
+    psutil || { echo "❌ Failed to install Group 1 dependencies"; return 1; }
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
 pip install -q --no-deps --force-reinstall \
     "transformers>=4.48.0" \
     "huggingface-hub>=0.23.0" \
+    "pytorch-lightning>=2.0.0" \
+    "torchmetrics>=0.7.0" \
     accelerate \
     diffusers \
     HyperPyYAML \
@@ -63,7 +66,7 @@ pip install -q --no-deps --force-reinstall \
     onnx \
     onnxruntime \
     librosa \
-    soundfile
+    soundfile || { echo "❌ Failed to install Group 2 dependencies"; return 1; }
 
 # Ensure ruamel.yaml is downgraded if newer version exists (fixes max_depth error)
 pip install -q "ruamel.yaml<0.18.0"

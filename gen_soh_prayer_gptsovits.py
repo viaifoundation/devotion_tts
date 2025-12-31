@@ -385,7 +385,7 @@ def main():
     tts_pipeline = TTS(config)
 
     # --- Ref Audio Preparation ---
-    ref_audio_path = os.path.abspath(args.ref_audio)
+    ref_audio_path = ref_audio_abs  # Use the pre-computed absolute path
     if not os.path.exists(ref_audio_path):
         print(f"❌ Reference audio not found: {ref_audio_path}")
         sys.exit(1)

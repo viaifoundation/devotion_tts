@@ -137,7 +137,9 @@ except Exception as e:
     sys.exit(1)
 
 # --- Reference Audio Setup ---
-ref_audio_path = os.path.abspath(args.ref_audio) if args.ref_audio else None
+# Use first voice from --voices as default reference
+first_voice_path = args.voices.split(",")[0].strip() if args.voices else None
+ref_audio_path = os.path.abspath(first_voice_path) if first_voice_path else None
 if ref_audio_path and os.path.exists(ref_audio_path):
     print(f"Using reference audio for voice cloning: {ref_audio_path}")
 else:

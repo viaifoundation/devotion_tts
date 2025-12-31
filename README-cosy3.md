@@ -156,44 +156,56 @@ python gen_prayer_cosy3.py --input my_prayer.txt
 
 ### Voice Cloning
 
-Clone a specific voice using 3-10 seconds of reference audio:
+CosyVoice 3.0 uses **zero-shot voice cloning** with reference audio files.
+
+#### Generate Voice Samples with Edge TTS
+
+Use `gen_voice_samples_edge.py` to create voice samples using Edge TTS:
 
 ```bash
-python gen_verse_devotion_cosy3.py \
-    --input my_verse.txt \
-    --ref-audio assets/ref_audio/speaker.wav \
-    --ref-text "这是参考音频中说的话"
+# List available voices
+python gen_voice_samples_edge.py --list
+
+# Generate default male/female samples
+python gen_voice_samples_edge.py
+
+# Generate all 10 Chinese voices
+python gen_voice_samples_edge.py --all
+
+# Custom reference text
+python gen_voice_samples_edge.py --text "你好，欢迎收听今天的节目。"
 ```
 
-**Reference Audio Requirements:**
+**Output:** `assets/ref_audio/ref_edge_zh_female_warm.wav`, etc. (16kHz mono WAV)
+
+#### Using Custom Voices
+
+Pass voices via `--voices` (comma-separated list):
+
+```bash
+# Using Edge-generated voices
+python gen_verse_devotion_cosy3.py \
+    --voices assets/ref_audio/ref_edge_zh_female_warm.wav,assets/ref_audio/ref_edge_zh_male_sunshine.wav \
+    --input my_verse.txt
+
+# Multiple voices (rotation enabled by default)
+python gen_verse_devotion_cosy3.py \
+    --voices voice1.wav,voice2.wav,voice3.wav,voice4.wav \
+    --input my_verse.txt
+
+# Single voice (no rotation)
+python gen_verse_devotion_cosy3.py \
+    --voices my_voice.wav \
+    --no-rotate \
+    --input my_verse.txt
+```
+
+**Voice Reference Requirements:**
 - Duration: 3-10 seconds
 - Format: WAV (16-bit, mono recommended)
 - Quality: Clear speech, no background noise
 - Content: Should match the language of your output text
 
-### Voice Rotation (Without Personal Cloning)
-
-Fun-CosyVoice 3.0 doesn't have built-in SFT voices like CosyVoice-300M. However, you can rotate through **preset reference audio files**:
-
-**Default preset voices (already configured):**
-- `ref_female.m4a` - Female voice
-- `ref_male.m4a` - Male voice
-
-**Run with rotation:**
-```bash
-python gen_verse_devotion_cosy3.py --input my_text.txt --rotate
-```
-
-**Preset voice configuration** (in script):
-```python
-PRESET_VOICES = [
-    {"audio": "assets/ref_audio/ref_female.m4a", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    {"audio": "assets/ref_audio/ref_male.m4a", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    # Add more voices as needed...
-]
-```
-
-> **Note:** To add more voices, just record 3-10 seconds of clear speech and add to `assets/ref_audio/`.
 
 ### With Background Music
 

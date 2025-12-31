@@ -53,7 +53,7 @@ RUN pip install --no-cache-dir \
 # Warning: Do NOT remove --no-deps or torch will be downgraded!
 RUN pip install --no-cache-dir --no-deps \
     "transformers>=4.48.0" \
-    "huggingface-hub>=0.23.0" \
+    "huggingface-hub<1.0" \
     "pytorch-lightning>=2.0.0" \
     "torchmetrics>=0.7.0" \
     accelerate \

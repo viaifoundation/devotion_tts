@@ -279,8 +279,10 @@ def main():
     print(f"  • SoVITS: {os.path.basename(sovits_path)}")
     print(f"  • GPT:    {os.path.basename(gpt_path)}")
     
-    config.default_gpt_path = gpt_path
-    config.default_sovits_path = sovits_path
+    # Set the correct config attributes for TTS
+    # NOTE: TTS uses t2s_weights_path and sovits_weights_path, NOT default_gpt_path
+    config.t2s_weights_path = gpt_path      # GPT/t2s = .ckpt file
+    config.sovits_weights_path = sovits_path  # SoVITS = .pth file
     
     # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
     # But FIRST, convert our paths to absolute so they still work after chdir.

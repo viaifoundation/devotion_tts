@@ -191,8 +191,8 @@ def main():
         print("Attempting default init...")
         config = TTS_Config("tts_infer.yaml")
 
-    config.default_gpt_path = gpt_path
-    config.default_sovits_path = sovits_path
+    config.t2s_weights_path = gpt_path      # GPT/t2s = .ckpt file
+    config.sovits_weights_path = sovits_path  # SoVITS = .pth file
     
     # CRITICAL: TTS uses relative paths internally. Change to GPT-SoVITS root.
     # But FIRST, convert our paths to absolute so they still work after chdir.

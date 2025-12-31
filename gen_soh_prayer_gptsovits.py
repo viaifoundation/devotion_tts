@@ -436,7 +436,8 @@ def main():
                 "text_split_method": "cut5",
                 "batch_size": 1,
                 "speed_factor": speed_factor,
-                "split_bucket": True,
+                "split_bucket": False,  # Disable bucket splitting for speed adjustment
+                "parallel_infer": False,  # Disable parallel inference (requires torch.distributed)
                 "return_fragment": False
             })
             

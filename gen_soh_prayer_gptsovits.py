@@ -133,12 +133,27 @@ try:
             "sampling_rate": 32000,
             "mel_fmin": 0,
             "mel_fmax": None,
+            "n_speakers": 0,  # Required by init_vits_weights
         }
         
         for key, default_val in data_defaults.items():
             if key not in hps.get("data", {}):
                 hps["data"][key] = default_val
                 print(f"⚠️ Patching missing 'data.{key}' with default value: {default_val}")
+                modified = True
+        
+        # Ensure train section exists (required for segment_size)
+        if "train" not in hps:
+            hps["train"] = {}
+        
+        train_defaults = {
+            "segment_size": 20480,  # Required by init_vits_weights
+        }
+        
+        for key, default_val in train_defaults.items():
+            if key not in hps.get("train", {}):
+                hps["train"][key] = default_val
+                print(f"⚠️ Patching missing 'train.{key}' with default value: {default_val}")
                 modified = True
         
         # Ensure model section exists

@@ -56,8 +56,8 @@ MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"  # Fun-CosyVoice 3.0 model
 # Preset voice rotation (for --rotate mode)
 # Uses existing reference audio files in assets/ref_audio/
 PRESET_VOICES = [
-    {"audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    {"audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
+    {"name": "female (ref_female.wav)", "audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
+    {"name": "male (ref_male.wav)", "audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
 ]
 
 # CLI Help
@@ -260,7 +260,7 @@ if USE_ROTATION:
     for voice in PRESET_VOICES:
         voice_path = os.path.abspath(voice["audio"])
         if os.path.exists(voice_path):
-            available_voices.append({"audio": voice_path, "text": voice["text"]})
+            available_voices.append({"audio": voice_path, "text": voice["text"], "name": voice.get("name", "Unknown")})
     
     if not available_voices:
         print("⚠️ No preset voices found for rotation. Using single voice mode.")
@@ -279,8 +279,8 @@ for i, para in enumerate(paragraphs):
         current_ref_audio = voice["audio"]
         current_ref_text = voice["text"]
         if DEBUG_LEVEL >= 1:
-            voice_name = os.path.basename(voice["audio"])
-            print(f"  > Paragraph {i+1}/{len(paragraphs)} - {voice_name} ({len(para)} chars)")
+            voice_name = voice["name"]
+            print(f"  > Paragraph {i+1}/{len(paragraphs)} - Voice: {voice_name} ({len(para)} chars)")
     else:
         current_ref_audio = ref_audio_path
         current_ref_text = args.ref_text

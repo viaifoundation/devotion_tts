@@ -50,8 +50,8 @@ MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"
 # Preset voice rotation (for --rotate mode)
 # Uses existing reference audio files in assets/ref_audio/
 PRESET_VOICES = [
-    {"audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    {"audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
+    {"name": "female (ref_female.wav)", "audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
+    {"name": "male (ref_male.wav)", "audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
 ]
 
 # CLI Help

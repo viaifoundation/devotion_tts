@@ -47,12 +47,21 @@ DEFAULT_REF_AUDIO = "assets/ref_audio/ref_female.wav"
 DEFAULT_REF_TEXT = "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"
 MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"
 
-# Preset voice rotation (for --rotate mode)
-# Uses existing reference audio files in assets/ref_audio/
-PRESET_VOICES = [
-    {"name": "female (ref_female.wav)", "audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    {"name": "male (ref_male.wav)", "audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-]
+# Default voices (comma-separated, can be overridden via CLI)
+DEFAULT_VOICES = "assets/ref_audio/ref_female.wav,assets/ref_audio/ref_male.wav"
+
+def build_preset_voices(voices_str, ref_text):
+    """Build PRESET_VOICES list from comma-separated voice files."""
+    voices = []
+    for voice_path in voices_str.split(","):
+        voice_path = voice_path.strip()
+        if voice_path:
+            voices.append({
+                "name": os.path.basename(voice_path),
+                "audio": voice_path,
+                "text": ref_text
+            })
+    return voices
 
 # CLI Help
 if "-?" in sys.argv:
@@ -61,9 +70,10 @@ if "-?" in sys.argv:
     print("\nOptions:")
     print("  --input, -i FILE     Input text file")
     print("  --prefix PREFIX      Output filename prefix")
-    print("  --ref-audio FILE     Reference audio (Default: ref_female.m4a)")
-    print("  --ref-text TEXT      Text spoken in reference audio")
-    print("  --rotate             Rotate intro/main between ref_female.m4a and ref_male.m4a")
+    print("  --voices FILES       Comma-separated voice files for rotation")
+    print("                       (Default: ref_female.wav,ref_male.wav)")
+    print("  --ref-text TEXT      Reference text for all voices")
+    print("  --no-rotate          Disable voice rotation (use first voice only)")
     print("  --bgm                Enable background music")
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
     sys.exit(0)
@@ -72,9 +82,9 @@ if "-?" in sys.argv:
 parser = argparse.ArgumentParser(description="Generate Bread Audio with Fun-CosyVoice 3.0")
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
-parser.add_argument("--ref-audio", type=str, default=DEFAULT_REF_AUDIO, help="Reference audio (Default: ref_female.m4a)")
-parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Text spoken in reference audio")
-parser.add_argument("--rotate", action="store_true", help="Rotate intro/main between preset voices")
+parser.add_argument("--voices", type=str, default=DEFAULT_VOICES, help="Comma-separated voice files for rotation")
+parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Reference text for all voices")
+parser.add_argument("--no-rotate", action="store_true", help="Disable voice rotation (use first voice only)")
 parser.add_argument("--bgm", action="store_true", help="Enable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
@@ -200,8 +210,12 @@ def speak(text: str, ref_audio: str = None, ref_text: str = None) -> AudioSegmen
     return final_audio
 
 
-# Check for voice rotation mode
-if args.rotate:
+# Build preset voices from CLI args
+PRESET_VOICES = build_preset_voices(args.voices, args.ref_text)
+
+# Check for voice rotation mode (default: enabled unless --no-rotate)
+USE_ROTATION = not args.no_rotate and len(PRESET_VOICES) > 1
+if USE_ROTATION:
     available_voices = []
     for voice in PRESET_VOICES:
         voice_path = os.path.abspath(voice["audio"])
@@ -213,9 +227,9 @@ if args.rotate:
         main_voice = available_voices[1]
     else:
         print("⚠️ Not enough preset voices for rotation, using single voice")
-        intro_voice = main_voice = {"audio": ref_audio_path, "text": args.ref_text}
+        intro_voice = main_voice = {"audio": PRESET_VOICES[0]["audio"] if PRESET_VOICES else ref_audio_path, "text": args.ref_text}
 else:
-    intro_voice = main_voice = {"audio": ref_audio_path, "text": args.ref_text}
+    intro_voice = main_voice = {"audio": PRESET_VOICES[0]["audio"] if PRESET_VOICES else ref_audio_path, "text": args.ref_text}
 
 print("Generating introduction...")
 seg_intro = speak(intro, intro_voice["audio"], intro_voice["text"])

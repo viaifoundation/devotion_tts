@@ -53,12 +53,21 @@ DEFAULT_REF_AUDIO = "assets/ref_audio/ref_female.wav"
 DEFAULT_REF_TEXT = "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"
 MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"  # Fun-CosyVoice 3.0 model
 
-# Preset voice rotation (for --rotate mode)
-# Uses existing reference audio files in assets/ref_audio/
-PRESET_VOICES = [
-    {"name": "female (ref_female.wav)", "audio": "assets/ref_audio/ref_female.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-    {"name": "male (ref_male.wav)", "audio": "assets/ref_audio/ref_male.wav", "text": "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"},
-]
+# Default voices (comma-separated, can be overridden via CLI)
+DEFAULT_VOICES = "assets/ref_audio/ref_female.wav,assets/ref_audio/ref_male.wav"
+
+def build_preset_voices(voices_str, ref_text):
+    """Build PRESET_VOICES list from comma-separated voice files."""
+    voices = []
+    for voice_path in voices_str.split(","):
+        voice_path = voice_path.strip()
+        if voice_path:
+            voices.append({
+                "name": os.path.basename(voice_path),
+                "audio": voice_path,
+                "text": ref_text
+            })
+    return voices
 
 # CLI Help
 if "-?" in sys.argv:
@@ -67,27 +76,31 @@ if "-?" in sys.argv:
     print("\nOptions:")
     print("  --input, -i FILE     Input text file (or pipe via stdin)")
     print("  --prefix PREFIX      Output filename prefix")
-    print("  --ref-audio FILE     Reference audio for voice cloning (Default: ref_female.m4a)")
-    print("  --ref-text TEXT      Text spoken in reference audio")
-    print("  --rotate             Rotate through preset voices (ref_female.m4a, ref_male.m4a)")
+    print("  --voices FILES       Comma-separated voice files for rotation")
+    print("                       (Default: ref_female.wav,ref_male.wav)")
+    print("  --ref-text TEXT      Reference text for all voices")
+    print("  --no-rotate          Disable voice rotation (use first voice only)")
     print("  --bgm                Enable background music")
     print("  --bgm-track FILE     BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume DB      BGM volume adjustment (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay (Default: 4000)")
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
-    print("\nVoice Cloning:")
-    print("  Default voice: ref_female.m4a (female)")
-    print("  With --rotate: alternates between ref_female.m4a and ref_male.m4a")
-    print("  Custom voice: --ref-audio your_voice.m4a --ref-text '对应的文字'")
+    print("\nExamples:")
+    print("  # Default (rotate male/female):")
+    print("  python gen_verse_devotion_cosy3.py --input sample.txt")
+    print("  # Custom voices:")
+    print("  python gen_verse_devotion_cosy3.py --voices voice1.wav,voice2.wav,voice3.wav")
+    print("  # Single voice:")
+    print("  python gen_verse_devotion_cosy3.py --voices my_voice.wav --no-rotate")
     sys.exit(0)
 
 # CLI Args
 parser = argparse.ArgumentParser(description="Generate Verse Audio with Fun-CosyVoice 3.0 (zero-shot voice cloning)")
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
-parser.add_argument("--ref-audio", type=str, default=DEFAULT_REF_AUDIO, help="Reference audio for voice cloning (Default: ref_female.m4a)")
-parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Text spoken in reference audio")
-parser.add_argument("--rotate", action="store_true", help="Rotate between ref_female.m4a and ref_male.m4a")
+parser.add_argument("--voices", type=str, default=DEFAULT_VOICES, help="Comma-separated voice files for rotation")
+parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Reference text for all voices")
+parser.add_argument("--no-rotate", action="store_true", help="Disable voice rotation (use first voice only)")
 parser.add_argument("--speed", type=str, default="1.0", help="Speed instruction (placeholder)")
 parser.add_argument("--bgm", action="store_true", help="Enable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
@@ -95,9 +108,11 @@ parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in d
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 parser.add_argument("--debug", "-d", type=int, default=0, choices=[0, 1, 2], help="Debug level")
 
+
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
 ENABLE_BGM = args.bgm
+
 BGM_FILE = args.bgm_track
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
@@ -256,9 +271,12 @@ def speak(text: str, ref_audio: str = None, ref_text: str = None) -> AudioSegmen
 if DEBUG_LEVEL >= 1:
     print(f"Processing {len(paragraphs)} paragraphs with Fun-CosyVoice 3.0...")
 
-# Check for voice rotation mode
-USE_ROTATION = args.rotate
-if USE_ROTATION:
+# Build preset voices from CLI args
+PRESET_VOICES = build_preset_voices(args.voices, args.ref_text)
+
+# Check for voice rotation mode (default: enabled unless --no-rotate)
+USE_ROTATION = not args.no_rotate
+if USE_ROTATION and len(PRESET_VOICES) > 1:
     # Find available preset voices
     available_voices = []
     for voice in PRESET_VOICES:
@@ -268,10 +286,14 @@ if USE_ROTATION:
     
     if not available_voices:
         print("⚠️ No preset voices found for rotation. Using single voice mode.")
-        print("   To enable rotation, add voice samples to assets/ref_audio/voices/")
+        print("   To enable rotation, add voice samples to assets/ref_audio/")
         USE_ROTATION = False
     else:
         print(f"🔄 Voice rotation enabled with {len(available_voices)} voices")
+else:
+    # Single voice mode or only one voice specified
+    USE_ROTATION = False
+    available_voices = None
 
 final = AudioSegment.empty()
 silence_between = AudioSegment.silent(duration=700, frame_rate=cosyvoice.sample_rate)

@@ -1,6 +1,6 @@
-# gen_prayer_cosy3.py
-# Fun-CosyVoice 3.0 (0.5B) – Zero-shot voice cloning for prayer
-# Higher quality than CosyVoice-300M with RLHF-trained prosody
+# gen_soh_prayer_cosy3.py
+# Fun-CosyVoice 3.0 Generator for SOH Prayer (Spark/Docker)
+# Zero-shot voice cloning with RLHF-trained prosody
 
 import torch
 import numpy as np
@@ -64,7 +64,7 @@ def build_preset_voices(voices_str, ref_text):
 # CLI Help
 if "-?" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
-    print("\nFun-CosyVoice 3.0 - Zero-shot voice cloning TTS for Prayer")
+    print("\nFun-CosyVoice 3.0 - Zero-shot voice cloning TTS for SOH Prayer")
     print("\nOptions:")
     print("  --input, -i FILE     Input text file")
     print("  --prefix PREFIX      Output filename prefix")
@@ -77,7 +77,7 @@ if "-?" in sys.argv:
     sys.exit(0)
 
 # CLI Args
-parser = argparse.ArgumentParser(description="Generate Prayer Audio with Fun-CosyVoice 3.0")
+parser = argparse.ArgumentParser(description="Generate SOH Prayer Audio with Fun-CosyVoice 3.0")
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
 parser.add_argument("--voices", type=str, default=DEFAULT_VOICES, help="Comma-separated voice files for rotation")

@@ -49,7 +49,7 @@ RUN pip install --no-cache-dir \
     packaging \
     regex \
     safetensors \
-    tokenizers \
+    "tokenizers>=0.20,<0.21" \
     psutil
 
 # Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)

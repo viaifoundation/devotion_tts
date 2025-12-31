@@ -50,7 +50,7 @@ pip install -q --force-reinstall \
     packaging \
     regex \
     safetensors \
-    tokenizers \
+    "tokenizers>=0.20,<0.21" \
     psutil || { echo "❌ Failed to install Group 1 dependencies"; return 1; }
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)

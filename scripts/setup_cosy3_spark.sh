@@ -5,18 +5,6 @@
 
 echo "=== Fun-CosyVoice 3.0 Setup for DGX Spark ==="
 
-# Install system dependencies
-echo "[1/3] Installing system dependencies..."
-apt-get update -qq && apt-get install -y -qq ffmpeg > /dev/null 2>&1
-echo "✓ ffmpeg installed"
-
-# Install Python dependencies (skip grpcio - not needed for inference)
-echo "[2/3] Installing Python dependencies..."
-pip install -q \
-    HyperPyYAML \
-    conformer \
-    diffusers \
-    gdown \
     hydra-core \
     inflect \
     lightning \

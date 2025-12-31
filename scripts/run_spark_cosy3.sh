@@ -8,7 +8,8 @@ set -e
 GITHUB_DIR="${HOME}/github"
 CACHE_DIR="${HOME}/.cache"
 MODEL_DIR="${GITHUB_DIR}/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B"
-IMAGE="nvcr.io/nvidia/pytorch:25.11-py3"
+# Allow IMAGE override, default to base pytorch image
+IMAGE="${IMAGE:-nvcr.io/nvidia/pytorch:25.11-py3}"
 
 # Parse arguments
 INPUT_FILE="${1:-}"

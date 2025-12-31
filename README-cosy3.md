@@ -101,46 +101,46 @@ There are two ways to run: **Custom Image** (Recommended, fast startup) or **Bas
 #### Approach A: Built Custom Image (Recommended)
 Build the image once on the host, then reuse it for instant startup.
 
-1. **Build Image (Host):**
-    ```bash
-    git pull
-    docker build -t viaifoundation/cosy3-spark:latest -f docker/Dockerfile.spark.cosy3 .
-    ```
+**1. Build Image (Host):**
+```bash
+git pull
+docker build -t viaifoundation/cosy3-spark:latest -f docker/Dockerfile.spark.cosy3 .
+```
 
-2. **Run Container:**
-    ```bash
-    docker run --gpus all -it --rm \
-      -v ~/github:/workspace/github \
-      -v ~/.cache:/root/.cache \
-      -w /workspace/github/devotion_tts \
-      viaifoundation/cosy3-spark:latest \
-      bash
-    ```
+**2. Run Container:**
+```bash
+docker run --gpus all -it --rm \
+  -v ~/github:/workspace/github \
+  -v ~/.cache:/root/.cache \
+  -w /workspace/github/devotion_tts \
+  viaifoundation/cosy3-spark:latest \
+  bash
+```
 
-3. **Generate Audio (Inside Container):**
-    ```bash
-    source scripts/setup_cosy3_spark.sh  # Initial patches only
-    python gen_verse_devotion_cosy3.py --input sample.txt -d 1
-    ```
+**3. Generate Audio (Inside Container):**
+```bash
+source scripts/setup_cosy3_spark.sh  # Initial patches only
+python gen_verse_devotion_cosy3.py --input sample.txt -d 1
+```
 
 #### Approach B: Base Image (One-off)
 Use the standard NVIDIA image. Downloads/installs dependencies every time.
 
-1. **Run Container:**
-    ```bash
-    docker run --gpus all -it --rm \
-      -v ~/github:/workspace/github \
-      -v ~/.cache:/root/.cache \
-      -w /workspace/github/devotion_tts \
-      nvcr.io/nvidia/pytorch:25.11-py3 \
-      bash
-    ```
+**1. Run Container:**
+```bash
+docker run --gpus all -it --rm \
+  -v ~/github:/workspace/github \
+  -v ~/.cache:/root/.cache \
+  -w /workspace/github/devotion_tts \
+  nvcr.io/nvidia/pytorch:25.11-py3 \
+  bash
+```
 
-2. **Setup & Run (Inside Container):**
-    ```bash
-    source scripts/setup_cosy3_spark.sh  # Installs ALL deps (~2 mins)
-    python gen_verse_devotion_cosy3.py --input sample.txt -d 1
-    ```
+**2. Setup & Run (Inside Container):**
+```bash
+source scripts/setup_cosy3_spark.sh  # Installs ALL deps (~2 mins)
+python gen_verse_devotion_cosy3.py --input sample.txt -d 1
+```
 
 ## Docker Files
 

@@ -23,8 +23,9 @@ pip install -q --force-reinstall \
     inflect \
     omegaconf \
     pyworld \
+    pyworld \
     pydub \
-    numpy \
+    "numpy<2.0" \
     matplotlib \
     protobuf \
     rich \
@@ -37,7 +38,9 @@ pip install -q --force-reinstall \
     regex \
     safetensors \
     tokenizers \
-    psutil
+    psutil \
+    pynvml \
+    "fsspec<=2025.10.0"
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
 # We manually verified these need torch, and pip tries to reinstall torch if we let it resolve deps

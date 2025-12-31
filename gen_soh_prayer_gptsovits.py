@@ -56,25 +56,50 @@ try:
     os.chdir(old_cwd)
     
     # --- Monkey-patch for GPT-SoVITS V2 model compatibility ---
-    # V2 model checkpoints may not contain 'max_sec' in the config,
+    # V2 model checkpoints may not contain various config keys,
     # causing KeyError. We patch init_t2s_weights to provide defaults.
     _original_init_t2s_weights = TTS.init_t2s_weights
     
     def _patched_init_t2s_weights(self, weights_path):
-        """Patched init_t2s_weights that handles missing 'max_sec' key."""
+        """Patched init_t2s_weights that handles missing config keys for V2."""
         import torch as _torch
         dict_s1 = _torch.load(weights_path, map_location="cpu")
         config = dict_s1.get("config", {})
+        modified = False
         
         # Provide defaults for missing keys in V2 models
+        # Default values based on GPT-SoVITS V2 pretrained model specs
         if "data" not in config:
             config["data"] = {}
         if "max_sec" not in config.get("data", {}):
-            config["data"]["max_sec"] = 54  # Default value from GPT-SoVITS
+            config["data"]["max_sec"] = 54
             print(f"⚠️ Patching missing 'max_sec' with default value: 54")
+            modified = True
+            
+        if "model" not in config:
+            config["model"] = {}
+        
+        # V2 model architecture defaults
+        model_defaults = {
+            "hidden_dim": 512,
+            "embedding_dim": 512,
+            "head": 16,
+            "n_layer": 24,
+            "vocab_size": 1025,  # Semantic token vocab size
+            "phoneme_vocab_size": 322,
+            "EOS": 1024,
+        }
+        
+        for key, default_val in model_defaults.items():
+            if key not in config.get("model", {}):
+                config["model"][key] = default_val
+                print(f"⚠️ Patching missing 'model.{key}' with default value: {default_val}")
+                modified = True
+        
+        if modified:
             dict_s1["config"] = config
-            # Temporarily save patched checkpoint
             _torch.save(dict_s1, weights_path)
+            print("📝 Saved patched checkpoint (future runs won't need patching)")
         
         # Call original method
         return _original_init_t2s_weights(self, weights_path)

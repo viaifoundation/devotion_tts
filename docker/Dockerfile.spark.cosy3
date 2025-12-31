@@ -1,0 +1,55 @@
+# Dockerfile for Fun-CosyVoice 3.0 on NVIDIA DGX Spark (ARM64/Blackwell)
+# Supports zero-shot voice cloning with 0.5B parameter model
+
+FROM nvcr.io/nvidia/pytorch:25.11-py3
+
+# Set working directory
+WORKDIR /workspace/github/devotion_tts
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CosyVoice dependencies
+# NOTE: onnxruntime-gpu not available for ARM64, using CPU version for text frontend
+RUN pip install --no-cache-dir \
+    modelscope \
+    hyperpyyaml \
+    conformer \
+    diffusers \
+    gdown \
+    librosa \
+    matplotlib \
+    numpy \
+    onnx \
+    onnxruntime \
+    openai-whisper \
+    protobuf \
+    pydantic \
+    rich \
+    soundfile \
+    tensorboard \
+    torch-complex \
+    wget \
+    huggingface_hub \
+    && USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
+
+# Copy and install devotion_tts specific deps
+COPY requirements-cosy-spark.txt /tmp/requirements-cosy-spark.txt
+RUN pip install -r /tmp/requirements-cosy-spark.txt
+
+# Set environment for CosyVoice
+ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
+
+# Create model directory
+RUN mkdir -p /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B
+
+# Download Fun-CosyVoice 3.0 model during build (optional, can also mount)
+# Uncomment below to bake model into image (increases image size by ~10GB)
+# RUN huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
+#     --local-dir /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B
+
+# Default command
+CMD ["/bin/bash"]

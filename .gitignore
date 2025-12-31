@@ -30,3 +30,6 @@ env/
 *.log
 *.tmp
 temp_*
+
+# Output directory
+output/

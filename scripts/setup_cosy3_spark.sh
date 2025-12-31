@@ -5,29 +5,49 @@
 
 echo "=== Fun-CosyVoice 3.0 Setup for DGX Spark ==="
 
-    hydra-core \
-    inflect \
-    lightning \
-    modelscope \
-    omegaconf \
-    openai-whisper \
-    pyworld \
-    transformers \
-    x-transformers \
-    onnx \
-    onnxruntime \
-    librosa \
-    soundfile \
-    pydub \
-    numpy \
-    matplotlib \
-    protobuf \
-    rich \
-    ruamel.yaml \
-    tiktoken \
-    pydantic \
-    wget \
-    mutagen
+# Step 1: Install system dependencies (FFmpeg)
+if ! command -v ffmpeg &> /dev/null; then
+    echo "[1/4] Installing system dependencies..."
+    apt-get update -qq && apt-get install -y -qq ffmpeg > /dev/null 2>&1
+else
+    echo "[1/4] System dependencies (ffmpeg) already installed."
+fi
+
+# Step 2: Install Python dependencies
+# Check for key packages to skip redundant installs
+if pip show modelscope pydub &> /dev/null; then
+    echo "[2/4] Python dependencies already installed."
+else
+    echo "[2/4] Installing Python dependencies..."
+    pip install -q \
+        HyperPyYAML \
+        conformer \
+        diffusers \
+        gdown \
+        hydra-core \
+        inflect \
+        lightning \
+        modelscope \
+        omegaconf \
+        openai-whisper \
+        pyworld \
+        transformers \
+        x-transformers \
+        onnx \
+        onnxruntime \
+        librosa \
+        soundfile \
+        pydub \
+        numpy \
+        matplotlib \
+        protobuf \
+        rich \
+        ruamel.yaml \
+        tiktoken \
+        pydantic \
+        wget \
+        mutagen
+fi
 
 # Reinstall torchaudio if needed (sometimes pip breaks it)
 pip install -q torchaudio --no-deps 2>/dev/null || true

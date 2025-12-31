@@ -52,6 +52,16 @@ try:
     from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
     from tools.i18n.i18n import I18nAuto
     import torch
+    import torch.distributed as dist
+    
+    # Initialize torch.distributed for single-process inference
+    # Required by some GPT-SoVITS internal operations
+    if not dist.is_initialized():
+        os.environ.setdefault("MASTER_ADDR", "localhost")
+        os.environ.setdefault("MASTER_PORT", "29500")
+        os.environ.setdefault("RANK", "0")
+        os.environ.setdefault("WORLD_SIZE", "1")
+        dist.init_process_group(backend="gloo", rank=0, world_size=1)
     
     os.chdir(old_cwd)
     

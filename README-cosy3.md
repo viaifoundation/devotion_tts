@@ -70,18 +70,41 @@ pip install -r ../CosyVoice/requirements.txt
 
 ### NVIDIA DGX Spark Setup
 
-**Option 1: Quick Interactive Run**
+> **Note:** If you already have `~/github/CosyVoice` from using CosyVoice v1, **keep it** - the same repo supports all versions (1.0, 2.0, 3.0). Just download the new model.
+
+#### Step 1: Update CosyVoice Repo (on Spark host)
 ```bash
-./scripts/run_spark_cosy3.sh my_verse.txt assets/ref_audio/speaker.wav
+cd ~/github/CosyVoice
+git pull
+git submodule update --init --recursive
 ```
 
-**Option 2: Build Custom Docker Image**
+#### Step 2: Download Fun-CosyVoice 3.0 Model (on Spark host)
+
+> **Important:** Download on the **host** (not inside container) so it persists and is shared across containers.
+
+```bash
+# Install huggingface_hub on host
+pip install -U huggingface_hub
+
+# Download model (~10GB)
+cd ~/github/CosyVoice
+huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
+    --local-dir pretrained_models/Fun-CosyVoice3-0.5B
+
+# Verify
+ls pretrained_models/Fun-CosyVoice3-0.5B/
+```
+
+#### Step 3: Run in Container
+
+**Option A: Quick Run Script**
 ```bash
 cd ~/github/devotion_tts
-docker build -f docker/Dockerfile.spark.cosy3 -t cosy3-spark .
+./scripts/run_spark_cosy3.sh my_verse.txt
 ```
 
-**Option 3: Manual Interactive**
+**Option B: Interactive Container**
 ```bash
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
@@ -91,15 +114,11 @@ docker run --gpus all -it --rm \
 
 # Inside container
 apt-get update && apt-get install -y ffmpeg
-pip install -r requirements-cosy.txt huggingface_hub
-
-# Download model
-huggingface-cli download FunAudioLLM/Fun-CosyVoice3-0.5B-2512 \
-    --local-dir /workspace/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B
+pip install -r requirements-cosy.txt
 
 export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
 
-python gen_verse_devotion_cosy3.py --input test.txt
+python gen_verse_devotion_cosy3.py --input test.txt --rotate
 ```
 
 ## Docker Files

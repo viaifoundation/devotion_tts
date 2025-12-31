@@ -14,31 +14,41 @@ RUN apt-get update && apt-get install -y \
 
 # Install CosyVoice dependencies
 # NOTE: onnxruntime-gpu not available for ARM64, using CPU version for text frontend
+# Install CosyVoice 3.0 dependencies
+# Match packages from setup_cosy3_spark.sh
 RUN pip install --no-cache-dir \
-    modelscope \
-    hyperpyyaml \
+    HyperPyYAML \
     conformer \
     diffusers \
     gdown \
-    librosa \
-    matplotlib \
-    numpy \
+    hydra-core \
+    inflect \
+    lightning \
+    modelscope \
+    omegaconf \
+    openai-whisper \
+    pyworld \
+    transformers \
+    x-transformers \
     onnx \
     onnxruntime \
-    openai-whisper \
-    protobuf \
-    pydantic \
-    rich \
+    librosa \
     soundfile \
-    tensorboard \
-    torch-complex \
+    pydub \
+    numpy \
+    matplotlib \
+    protobuf \
+    rich \
+    ruamel.yaml \
+    tiktoken \
+    pydantic \
     wget \
-    huggingface_hub \
-    && USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
+    mutagen \
+    huggingface_hub
 
-# Copy and install devotion_tts specific deps
-COPY requirements-cosy-spark.txt /tmp/requirements-cosy-spark.txt
-RUN pip install -r /tmp/requirements-cosy-spark.txt
+# Remove requirements copy since we installed everything above
+# COPY requirements-cosy-spark.txt /tmp/requirements-cosy-spark.txt
+# RUN pip install -r /tmp/requirements-cosy-spark.txt
 
 # Set environment for CosyVoice
 ENV PYTHONPATH="${PYTHONPATH}:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"

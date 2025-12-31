@@ -54,6 +54,34 @@ try:
     import torch
     
     os.chdir(old_cwd)
+    
+    # --- Monkey-patch for GPT-SoVITS V2 model compatibility ---
+    # V2 model checkpoints may not contain 'max_sec' in the config,
+    # causing KeyError. We patch init_t2s_weights to provide defaults.
+    _original_init_t2s_weights = TTS.init_t2s_weights
+    
+    def _patched_init_t2s_weights(self, weights_path):
+        """Patched init_t2s_weights that handles missing 'max_sec' key."""
+        import torch as _torch
+        dict_s1 = _torch.load(weights_path, map_location="cpu")
+        config = dict_s1.get("config", {})
+        
+        # Provide defaults for missing keys in V2 models
+        if "data" not in config:
+            config["data"] = {}
+        if "max_sec" not in config.get("data", {}):
+            config["data"]["max_sec"] = 54  # Default value from GPT-SoVITS
+            print(f"⚠️ Patching missing 'max_sec' with default value: 54")
+            dict_s1["config"] = config
+            # Temporarily save patched checkpoint
+            _torch.save(dict_s1, weights_path)
+        
+        # Call original method
+        return _original_init_t2s_weights(self, weights_path)
+    
+    TTS.init_t2s_weights = _patched_init_t2s_weights
+    print("✅ Applied GPT-SoVITS V2 compatibility patch")
+    
 except ImportError as e:
     print(f"❌ Failed to import GPT-SoVITS modules: {e}")
     print("Ensure you are running in the correct container and paths are set.")

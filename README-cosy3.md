@@ -103,23 +103,28 @@ cd ~/github/devotion_tts
 ./scripts/run_spark_cosy3.sh my_verse.txt
 ```
 
-**Option B: Interactive Container**
+**Option B: Interactive Container (Manual)**
+Best for debugging or custom runs.
 
-*On host - start container:*
+1. **Launch Container:**
 ```bash
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \
   -v ~/.cache:/root/.cache \
   -w /workspace/github/devotion_tts \
-  nvcr.io/nvidia/pytorch:25.11-py3
+  nvcr.io/nvidia/pytorch:25.11-py3 \
+  bash
 ```
 
-*Inside container - run setup script:*
+2. **Initialize Environment (Important):**
 ```bash
+# Patches CosyVoice & Installs Deps
 source scripts/setup_cosy3_spark.sh
+```
 
-# Then run generation
-python gen_verse_devotion_cosy3.py --input input.txt --rotate -d 1
+3. **Run Generation:**
+```bash
+python gen_verse_devotion_cosy3.py --input sample.txt -d 1
 ```
 
 ## Docker Files

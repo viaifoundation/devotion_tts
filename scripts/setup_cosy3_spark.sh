@@ -37,6 +37,11 @@ echo "✓ Python dependencies installed"
 # Patch CosyVoice to use librosa (most robust for resampling/formats)
 echo "[3/4] Patching CosyVoice..."
 sed -i "s/speech, sample_rate = torchaudio.load(wav, backend='soundfile')/import librosa; speech, sample_rate = librosa.load(wav, sr=target_sr); speech = torch.from_numpy(speech); speech = speech.unsqueeze(0)/" /workspace/github/CosyVoice/cosyvoice/utils/file_utils.py
+
+# FORCE FP32: Patch default fp16=True to fp16=False in source code
+# This fixes the static noise issue on Blackwell/ARM64
+sed -i "s/fp16: bool = True/fp16: bool = False/g" /workspace/github/CosyVoice/cosyvoice/cli/cosyvoice.py
+echo "✓ Patched cosyvoice to force FP32 (fixes Spark noise)"
 echo "✓ Patched cosyvoice/utils/file_utils.py"
 
 # Set PYTHONPATH

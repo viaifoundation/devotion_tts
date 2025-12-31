@@ -106,7 +106,13 @@ cd ~/github/devotion_tts
 **Option B: Interactive Container (Manual)**
 Best for debugging or custom runs.
 
-1. **Launch Container:**
+1. **Update Code (On Host):**
+```bash
+# Volume mount means host changes appear in container
+git pull
+```
+
+2. **Launch Container:**
 ```bash
 docker run --gpus all -it --rm \
   -v ~/github:/workspace/github \

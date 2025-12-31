@@ -1,0 +1,78 @@
+# Dockerfile.spark.indextts2
+# Index-TTS2 on NVIDIA DGX Spark
+# Based on: https://github.com/index-tts/index-tts
+
+FROM nvcr.io/nvidia/pytorch:25.01-py3-igpu
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    git-lfs \
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install
+
+WORKDIR /workspace/github
+
+# Clone Index-TTS2 repository with LFS
+RUN git clone https://github.com/index-tts/index-tts.git index-tts \
+    && cd index-tts && git lfs pull
+
+# Forcefully remove conflicting pre-installed versions
+RUN pip uninstall -y huggingface-hub transformers 2>/dev/null || true
+
+# Tier 1: Safe Utilities (Install with dependencies)
+RUN pip install --no-cache-dir \
+    "numpy<2.0" \
+    coloredlogs \
+    einx \
+    loguru \
+    tqdm \
+    "typing-extensions" \
+    PyYAML \
+    nvidia-ml-py \
+    "fsspec<=2025.10.0" \
+    pydub \
+    matplotlib \
+    protobuf \
+    rich \
+    tiktoken \
+    pydantic \
+    wget \
+    mutagen \
+    packaging \
+    regex \
+    safetensors \
+    "tokenizers>=0.20,<0.21" \
+    psutil \
+    deepspeed \
+    gradio
+
+# Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)
+RUN pip install --no-cache-dir --no-deps \
+    "transformers==4.46.3" \
+    "huggingface-hub<1.0" \
+    "pytorch-lightning>=2.0.0" \
+    "torchmetrics>=0.7.0" \
+    torchaudio \
+    accelerate \
+    diffusers \
+    lightning \
+    modelscope \
+    onnx \
+    onnxruntime \
+    librosa \
+    soundfile
+
+# Install Index-TTS2 requirements
+RUN cd /workspace/github/index-tts && pip install --no-cache-dir -r requirements.txt --no-deps 2>/dev/null || true
+
+# Download pre-trained models
+RUN huggingface-cli download IndexTeam/IndexTTS-2 --local-dir /workspace/github/index-tts/checkpoints
+
+# Set PYTHONPATH
+ENV PYTHONPATH="/workspace/github/index-tts:/workspace/github/devotion_tts:${PYTHONPATH}"
+
+WORKDIR /workspace/github/devotion_tts
+
+CMD ["bash"]

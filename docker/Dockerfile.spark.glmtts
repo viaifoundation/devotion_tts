@@ -1,0 +1,78 @@
+# Dockerfile.spark.glmtts
+# GLM-TTS on NVIDIA DGX Spark
+# Based on: https://github.com/zai-org/GLM-TTS
+
+FROM nvcr.io/nvidia/pytorch:25.01-py3-igpu
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/github
+
+# Clone GLM-TTS repository
+RUN git clone https://github.com/zai-org/GLM-TTS.git GLM-TTS
+
+# Forcefully remove conflicting pre-installed versions
+RUN pip uninstall -y huggingface-hub transformers 2>/dev/null || true
+
+# Tier 1: Safe Utilities (Install with dependencies)
+RUN pip install --no-cache-dir \
+    "numpy<2.0" \
+    coloredlogs \
+    einx \
+    loguru \
+    tqdm \
+    "typing-extensions" \
+    PyYAML \
+    nvidia-ml-py \
+    "fsspec<=2025.10.0" \
+    gdown \
+    hydra-core \
+    omegaconf \
+    pydub \
+    matplotlib \
+    protobuf \
+    rich \
+    "ruamel.yaml<0.18.0" \
+    tiktoken \
+    pydantic \
+    wget \
+    mutagen \
+    packaging \
+    regex \
+    safetensors \
+    "tokenizers>=0.20,<0.21" \
+    psutil
+
+# Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)
+# Warning: Do NOT remove --no-deps or torch will be downgraded!
+RUN pip install --no-cache-dir --no-deps \
+    "transformers==4.46.3" \
+    "huggingface-hub<1.0" \
+    "pytorch-lightning>=2.0.0" \
+    "torchmetrics>=0.7.0" \
+    torchaudio \
+    accelerate \
+    diffusers \
+    lightning \
+    modelscope \
+    onnx \
+    onnxruntime \
+    librosa \
+    soundfile
+
+# Install GLM-TTS requirements (--no-deps to be safe)
+RUN cd /workspace/github/GLM-TTS && pip install --no-cache-dir -r requirements.txt --no-deps 2>/dev/null || true
+
+# Download pre-trained models
+RUN huggingface-cli download zai-org/GLM-TTS --local-dir /workspace/github/GLM-TTS/ckpt
+
+# Set PYTHONPATH
+ENV PYTHONPATH="/workspace/github/GLM-TTS:/workspace/github/devotion_tts:${PYTHONPATH}"
+
+WORKDIR /workspace/github/devotion_tts
+
+CMD ["bash"]

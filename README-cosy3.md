@@ -93,45 +93,54 @@ docker run --rm \
 
 # Verify on host
 ls ~/github/CosyVoice/pretrained_models/Fun-CosyVoice3-0.5B/
-```
 
-#### Step 3: Run in Container
+### 3. Run on NVIDIA DGX Spark
 
-**Option A: Quick Run Script (on host)**
-```bash
-cd ~/github/devotion_tts
-./scripts/run_spark_cosy3.sh my_verse.txt
-```
+There are two ways to run: **Custom Image** (Recommended, fast startup) or **Base Image** (No build needed, slower startup).
 
-**Option B: Interactive Container (Manual)**
-Best for debugging or custom runs.
+#### Approach A: Built Custom Image (Recommended)
+Build the image once on the host, then reuse it for instant startup.
 
-1. **Update Code (On Host):**
-```bash
-# Volume mount means host changes appear in container
-git pull
-```
+1. **Build Image (Host):**
+    ```bash
+    git pull
+    docker build -t viaifoundation/cosy3-spark:latest -f docker/Dockerfile.spark.cosy3 .
+    ```
 
-2. **Launch Container:**
-```bash
-docker run --gpus all -it --rm \
-  -v ~/github:/workspace/github \
-  -v ~/.cache:/root/.cache \
-  -w /workspace/github/devotion_tts \
-  nvcr.io/nvidia/pytorch:25.11-py3 \
-  bash
-```
+2. **Run Container:**
+    ```bash
+    docker run --gpus all -it --rm \
+      -v ~/github:/workspace/github \
+      -v ~/.cache:/root/.cache \
+      -w /workspace/github/devotion_tts \
+      viaifoundation/cosy3-spark:latest \
+      bash
+    ```
 
-2. **Initialize Environment (Important):**
-```bash
-# Patches CosyVoice & Installs Deps
-source scripts/setup_cosy3_spark.sh
-```
+3. **Generate Audio (Inside Container):**
+    ```bash
+    source scripts/setup_cosy3_spark.sh  # Initial patches only
+    python gen_verse_devotion_cosy3.py --input sample.txt -d 1
+    ```
 
-3. **Run Generation:**
-```bash
-python gen_verse_devotion_cosy3.py --input sample.txt -d 1
-```
+#### Approach B: Base Image (One-off)
+Use the standard NVIDIA image. Downloads/installs dependencies every time.
+
+1. **Run Container:**
+    ```bash
+    docker run --gpus all -it --rm \
+      -v ~/github:/workspace/github \
+      -v ~/.cache:/root/.cache \
+      -w /workspace/github/devotion_tts \
+      nvcr.io/nvidia/pytorch:25.11-py3 \
+      bash
+    ```
+
+2. **Setup & Run (Inside Container):**
+    ```bash
+    source scripts/setup_cosy3_spark.sh  # Installs ALL deps (~2 mins)
+    python gen_verse_devotion_cosy3.py --input sample.txt -d 1
+    ```
 
 ## Docker Files
 

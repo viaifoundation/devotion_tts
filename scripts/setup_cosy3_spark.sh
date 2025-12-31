@@ -3,8 +3,6 @@
 # Run this INSIDE the container after starting with:
 #   docker run --gpus all -it --rm -v ~/github:/workspace/github -w /workspace/github/devotion_tts nvcr.io/nvidia/pytorch:25.11-py3
 
-set -e
-
 echo "=== Fun-CosyVoice 3.0 Setup for DGX Spark ==="
 
 # Install system dependencies
@@ -41,7 +39,8 @@ pip install -q \
     tiktoken \
     pydantic \
     wget \
-    mutagen
+    mutagen \
+    torchcodec
 
 # Reinstall torchaudio if needed (sometimes pip breaks it)
 pip install -q torchaudio --no-deps 2>/dev/null || true
@@ -55,7 +54,5 @@ export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/Cosy
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "To use Fun-CosyVoice 3.0, run:"
-echo "  export PYTHONPATH=\$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS"
-echo "  python gen_verse_devotion_cosy3.py --input input.txt -d 1"
+echo "Run: python gen_verse_devotion_cosy3.py --input input.txt -d 1"
 echo ""

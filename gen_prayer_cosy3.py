@@ -118,6 +118,9 @@ try:
         print(f"Model not found locally, attempting to download from: {model_path}")
     
     cosyvoice = AutoModel(model_dir=model_path)
+    if hasattr(cosyvoice, 'fp16'):
+        print("🔧 Forcing FP32 (disabling FP16) to prevent audio noise...")
+        cosyvoice.fp16 = False
     print(f"✅ Fun-CosyVoice 3.0 loaded (sample_rate={cosyvoice.sample_rate})")
 except Exception as e:
     print(f"❌ Error loading Fun-CosyVoice 3.0: {e}")

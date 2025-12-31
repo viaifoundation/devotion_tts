@@ -16,35 +16,58 @@ RUN apt-get update && apt-get install -y \
 # NOTE: onnxruntime-gpu not available for ARM64, using CPU version for text frontend
 # Install CosyVoice 3.0 dependencies
 # Match packages from setup_cosy3_spark.sh
+# Install CosyVoice dependencies
+# Tier 1: Safe Utilities (Install with dependencies)
 RUN pip install --no-cache-dir \
-    HyperPyYAML \
-    conformer \
-    diffusers \
+    "numpy<2.0" \
+    coloredlogs \
+    flatbuffers \
+    einx \
+    loguru \
+    tqdm \
+    "typing-extensions" \
+    PyYAML \
+    pynvml \
+    "fsspec<=2025.10.0" \
     gdown \
     hydra-core \
     inflect \
-    lightning \
-    modelscope \
     omegaconf \
-    openai-whisper \
     pyworld \
-    transformers \
-    x-transformers \
-    onnx \
-    onnxruntime \
-    librosa \
-    soundfile \
     pydub \
-    numpy \
     matplotlib \
     protobuf \
     rich \
-    ruamel.yaml \
+    "ruamel.yaml<0.18.0" \
     tiktoken \
     pydantic \
     wget \
     mutagen \
-    huggingface_hub
+    packaging \
+    regex \
+    safetensors \
+    tokenizers \
+    psutil
+
+# Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)
+# Warning: Do NOT remove --no-deps or torch will be downgraded!
+RUN pip install --no-cache-dir --no-deps \
+    "transformers>=4.48.0" \
+    "huggingface-hub>=0.23.0" \
+    "pytorch-lightning>=2.0.0" \
+    "torchmetrics>=0.7.0" \
+    accelerate \
+    diffusers \
+    HyperPyYAML \
+    conformer \
+    lightning \
+    modelscope \
+    openai-whisper \
+    x-transformers \
+    onnx \
+    onnxruntime \
+    librosa \
+    soundfile
 
 # Remove requirements copy since we installed everything above
 # COPY requirements-cosy-spark.txt /tmp/requirements-cosy-spark.txt

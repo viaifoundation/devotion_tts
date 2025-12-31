@@ -16,6 +16,10 @@ fi
 # Step 2: Install Python dependencies
 echo "[2/4] Installing Python dependencies..."
 
+# Explicitly uninstall conflicting packages that might be pre-installed in the container
+# This is necessary because pip may skip downgrading some "satisfied" system packages
+pip uninstall -y huggingface-hub transformers 2>/dev/null
+
 # Group 1: Utilities & Sub-Dependencies (Safe to install deps)
 # We strictly list ALL missing deps here because Group 2 uses --no-deps
 pip install -q --force-reinstall \
@@ -51,7 +55,7 @@ pip install -q --force-reinstall \
 
 # Group 2: AI Core (Install with NO DEPS to prevent torch downgrade)
 pip install -q --no-deps --force-reinstall \
-    "transformers>=4.48.0" \
+    "transformers==4.46.3" \
     "huggingface-hub<1.0" \
     "pytorch-lightning>=2.0.0" \
     "torchmetrics>=0.7.0" \

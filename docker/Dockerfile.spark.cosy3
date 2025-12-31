@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y \
 # Install CosyVoice 3.0 dependencies
 # Match packages from setup_cosy3_spark.sh
 # Install CosyVoice dependencies
+# Explicitly uninstall conflicting packages
+RUN pip uninstall -y huggingface-hub transformers 2>/dev/null
+
 # Tier 1: Safe Utilities (Install with dependencies)
 RUN pip install --no-cache-dir \
     "numpy<2.0" \
@@ -52,7 +55,7 @@ RUN pip install --no-cache-dir \
 # Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)
 # Warning: Do NOT remove --no-deps or torch will be downgraded!
 RUN pip install --no-cache-dir --no-deps \
-    "transformers>=4.48.0" \
+    "transformers==4.46.3" \
     "huggingface-hub<1.0" \
     "pytorch-lightning>=2.0.0" \
     "torchmetrics>=0.7.0" \

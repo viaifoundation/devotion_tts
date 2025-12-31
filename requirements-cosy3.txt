@@ -29,6 +29,7 @@ onnxruntime==1.18.0
 librosa==0.10.2
 soundfile==0.12.1
 pydub>=0.25.1
+torchcodec                  # Audio loading for torchaudio
 
 # ML utilities
 numpy==1.26.4

@@ -116,14 +116,17 @@ docker run --gpus all -it --rm \
 
 *Inside container - setup and run:*
 ```bash
+# Install system deps
 apt-get update && apt-get install -y ffmpeg
-pip install -r requirements-cosy.txt
 
+# Install Python deps (use --no-deps to avoid replacing CUDA torch)
+pip install torchcodec --no-deps
+pip install -r requirements-cosy3.txt --no-deps
+
+# Set paths
 export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
 
-# Create test file
-echo "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。" > test.txt
-
+# Run
 python gen_verse_devotion_cosy3.py --input input.txt --rotate -d 1
 ```
 

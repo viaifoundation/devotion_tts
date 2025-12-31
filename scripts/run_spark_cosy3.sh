@@ -52,5 +52,6 @@ docker run --gpus all -it --rm \
     -w /workspace/github/devotion_tts \
     "$IMAGE" \
     bash -c "apt-get update -qq && apt-get install -y -qq ffmpeg > /dev/null 2>&1 && \
-             pip install -q pydub mutagen 2>/dev/null && \
+             pip install -q torchcodec --no-deps 2>/dev/null && \
+             pip install -q -r requirements-cosy3.txt --no-deps 2>/dev/null && \
              $CMD"

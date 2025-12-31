@@ -46,10 +46,9 @@ pip install -q torchaudio --no-deps 2>/dev/null || true
 
 echo "✓ Python dependencies installed"
 
-# Patch CosyVoice to use soundfile (avoids torchaudio.load issues) but KEEP resampling
+# Patch CosyVoice to use librosa (most robust for resampling/formats)
 echo "[3/4] Patching CosyVoice..."
-sed -i "s/speech, sample_rate = torchaudio.load(wav, backend='soundfile')/import soundfile as sf; data, sample_rate = sf.read(wav); speech = torch.from_numpy(data).float(); speech = speech.unsqueeze(0) if len(speech.shape)==1 else speech.mean(dim=1, keepdim=True).T; \
-    if sample_rate != target_sr: import torchaudio.transforms as T; speech = T.Resample(sample_rate, target_sr)(speech)/" /workspace/github/CosyVoice/cosyvoice/utils/file_utils.py
+sed -i "s/speech, sample_rate = torchaudio.load(wav, backend='soundfile')/import librosa; speech, sample_rate = librosa.load(wav, sr=target_sr); speech = torch.from_numpy(speech); speech = speech.unsqueeze(0)/" /workspace/github/CosyVoice/cosyvoice/utils/file_utils.py
 echo "✓ Patched cosyvoice/utils/file_utils.py"
 
 # Set PYTHONPATH

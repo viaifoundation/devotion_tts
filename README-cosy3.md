@@ -255,10 +255,14 @@ Fun-CosyVoice 3.0 requires ~8-10GB VRAM. If you're running out of memory:
 - Use CPU mode (slower but works): Set `CUDA_VISIBLE_DEVICES=""`
 - Use the smaller CosyVoice-300M (`gen_*_cosy.py` scripts)
 
-### Audio Quality Issues
-- Ensure reference audio is 3-10 seconds of clear speech
-- Check that `--ref-text` matches what's spoken in the reference audio
-- Try different reference audio samples
+### Audio Quality Issues (Noise/Static)
+If you hear static noise:
+1. **Sample Rate Mismatch:** Ensure your reference audio is **16kHz mono WAV**.
+    ```bash
+    ffmpeg -y -i input.m4a -acodec pcm_s16le -ar 16000 -ac 1 output.wav
+    ```
+2. **FP16 Instability (Spark/ARM64):** The scripts automatically force **FP32** on Spark to prevent this. 
+   - If using custom code, ensure `cosyvoice.fp16 = False`.
 
 ## References
 

@@ -15,20 +15,18 @@ fi
 
 # Step 2: Install Python dependencies
 echo "[2/4] Installing Python dependencies..."
-# Use --force-reinstall to ensure pydub and others are actually written
+# Use --no-deps for torch-heavy libs to prevent downgrading NVIDIA PyTorch
 pip install -q --force-reinstall \
     HyperPyYAML \
-    conformer \
     diffusers \
     gdown \
     hydra-core \
     inflect \
-    lightning \
     modelscope \
     omegaconf \
     openai-whisper \
     pyworld \
-    transformers \
+    "transformers>=4.40.0" \
     x-transformers \
     onnx \
     onnxruntime \
@@ -44,6 +42,8 @@ pip install -q --force-reinstall \
     pydantic \
     wget \
     mutagen
+
+pip install -q --no-deps conformer lightning
 
 # Ensure ruamel.yaml is downgraded if newer version exists (fixes max_depth error)
 pip install -q "ruamel.yaml<0.18.0"

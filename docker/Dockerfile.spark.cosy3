@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir \
     tqdm \
     "typing-extensions" \
     PyYAML \
-    pynvml \
+    nvidia-ml-py \
     "fsspec<=2025.10.0" \
     gdown \
     hydra-core \
@@ -59,6 +59,7 @@ RUN pip install --no-cache-dir --no-deps \
     "huggingface-hub<1.0" \
     "pytorch-lightning>=2.0.0" \
     "torchmetrics>=0.7.0" \
+    torchaudio \
     accelerate \
     diffusers \
     HyperPyYAML \

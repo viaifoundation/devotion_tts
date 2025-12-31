@@ -31,7 +31,7 @@ pip install -q --force-reinstall \
     tqdm \
     "typing-extensions" \
     PyYAML \
-    pynvml \
+    nvidia-ml-py \
     "fsspec<=2025.10.0" \
     gdown \
     hydra-core \
@@ -59,6 +59,7 @@ pip install -q --no-deps --force-reinstall \
     "huggingface-hub<1.0" \
     "pytorch-lightning>=2.0.0" \
     "torchmetrics>=0.7.0" \
+    torchaudio \
     accelerate \
     diffusers \
     HyperPyYAML \

@@ -15,7 +15,8 @@ fi
 
 # Step 2: Install Python dependencies
 echo "[2/4] Installing Python dependencies..."
-pip install -q \
+# Use --force-reinstall to ensure pydub and others are actually written
+pip install -q --force-reinstall \
     HyperPyYAML \
     conformer \
     diffusers \
@@ -38,7 +39,7 @@ pip install -q \
     matplotlib \
     protobuf \
     rich \
-    ruamel.yaml<0.18.0 \
+    "ruamel.yaml<0.18.0" \
     tiktoken \
     pydantic \
     wget \

@@ -109,6 +109,79 @@ try:
         return _original_init_t2s_weights(self, weights_path)
     
     TTS.init_t2s_weights = _patched_init_t2s_weights
+    
+    # --- Monkey-patch for SoVITS/VITS weights (missing data config keys) ---
+    _original_init_vits_weights = TTS.init_vits_weights
+    
+    def _patched_init_vits_weights(self, weights_path):
+        """Patched init_vits_weights that handles missing config keys for V2."""
+        import torch as _torch
+        dict_s2 = _torch.load(weights_path, map_location="cpu")
+        hps = dict_s2.get("config", {})
+        modified = False
+        
+        # Ensure data section exists
+        if "data" not in hps:
+            hps["data"] = {}
+        
+        # V2 SoVITS data defaults (based on standard GPT-SoVITS configs)
+        data_defaults = {
+            "filter_length": 2048,
+            "hop_length": 640,
+            "win_length": 2048,
+            "n_mel_channels": 128,
+            "sampling_rate": 32000,
+            "mel_fmin": 0,
+            "mel_fmax": None,
+        }
+        
+        for key, default_val in data_defaults.items():
+            if key not in hps.get("data", {}):
+                hps["data"][key] = default_val
+                print(f"⚠️ Patching missing 'data.{key}' with default value: {default_val}")
+                modified = True
+        
+        # Ensure model section exists
+        if "model" not in hps:
+            hps["model"] = {}
+            
+        # V2 SoVITS model defaults
+        model_defaults = {
+            "inter_channels": 192,
+            "hidden_channels": 192,
+            "filter_channels": 768,
+            "n_heads": 2,
+            "n_layers": 6,
+            "kernel_size": 3,
+            "p_dropout": 0.1,
+            "resblock": "1",
+            "resblock_kernel_sizes": [3, 7, 11],
+            "resblock_dilation_sizes": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+            "upsample_rates": [10, 8, 2, 2, 2],
+            "upsample_initial_channel": 512,
+            "upsample_kernel_sizes": [16, 16, 8, 2, 2],
+            "n_layers_q": 3,
+            "use_spectral_norm": False,
+            "gin_channels": 512,
+            "semantic_frame_rate": "25hz",
+            "freeze_quantizer": True,
+        }
+        
+        for key, default_val in model_defaults.items():
+            if key not in hps.get("model", {}):
+                hps["model"][key] = default_val
+                print(f"⚠️ Patching missing 'model.{key}' with default value: {default_val}")
+                modified = True
+        
+        if modified:
+            dict_s2["config"] = hps
+            _torch.save(dict_s2, weights_path)
+            print("📝 Saved patched VITS checkpoint")
+        
+        # Call original method
+        return _original_init_vits_weights(self, weights_path)
+    
+    TTS.init_vits_weights = _patched_init_vits_weights
     print("✅ Applied GPT-SoVITS V2 compatibility patch")
     
 except ImportError as e:

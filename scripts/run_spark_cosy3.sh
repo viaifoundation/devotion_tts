@@ -51,7 +51,5 @@ docker run --gpus all -it --rm \
     -v "${CACHE_DIR}:/root/.cache" \
     -w /workspace/github/devotion_tts \
     "$IMAGE" \
-    bash -c "apt-get update -qq && apt-get install -y -qq ffmpeg > /dev/null 2>&1 && \
-             pip install -q torchcodec --no-deps 2>/dev/null && \
-             pip install -q -r requirements-cosy3.txt --no-deps 2>/dev/null && \
+    bash -c "source scripts/setup_cosy3_spark.sh && \
              $CMD"

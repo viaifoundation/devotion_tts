@@ -9,7 +9,6 @@ __pycache__/
 # Audio files
 *.mp3
 *.aiff
-*.wav
 *.m4a
 
 # IDE and editor files

@@ -39,16 +39,20 @@ pip install -q \
     tiktoken \
     pydantic \
     wget \
-    mutagen \
-    torchcodec
+    mutagen
 
 # Reinstall torchaudio if needed (sometimes pip breaks it)
 pip install -q torchaudio --no-deps 2>/dev/null || true
 
 echo "✓ Python dependencies installed"
 
+# Patch CosyVoice to use soundfile instead of torchaudio (avoid torchcodec issues)
+echo "[3/4] Patching CosyVoice..."
+sed -i "s/speech, sample_rate = torchaudio.load(wav, backend='soundfile')/import soundfile as sf; data, sample_rate = sf.read(wav); speech = torch.from_numpy(data).float(); speech = speech.mean(dim=-1, keepdim=True).T if len(speech.shape) > 1 else speech.unsqueeze(0)/" /workspace/github/CosyVoice/cosyvoice/utils/file_utils.py
+echo "✓ Patched cosyvoice/utils/file_utils.py"
+
 # Set PYTHONPATH
-echo "[3/3] Setting up environment..."
+echo "[4/4] Setting up environment..."
 export PYTHONPATH=$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS
 
 echo ""

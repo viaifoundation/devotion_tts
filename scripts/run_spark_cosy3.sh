@@ -35,10 +35,16 @@ fi
 CMD="cd /workspace/github/devotion_tts && "
 CMD+="export PYTHONPATH=\$PYTHONPATH:/workspace/github/CosyVoice:/workspace/github/CosyVoice/third_party/Matcha-TTS && "
 
-if [ -n "$INPUT_FILE" ]; then
-    CMD+="python gen_verse_devotion_cosy3.py --input $INPUT_FILE --ref-audio $REF_AUDIO --ref-text '$REF_TEXT'"
+# Pass all arguments directly to the python script
+if [ "$#" -eq 0 ]; then
+    CMD+="bash" # Interactive if no args
 else
-    CMD+="bash"
+    # If first arg is a file that exists, assume it's for --input (backward compatibility)
+    if [ -f "$1" ]; then
+        CMD+="python gen_verse_devotion_cosy3.py --input $1"
+    else
+        CMD+="python gen_verse_devotion_cosy3.py $@"
+    fi
 fi
 
 echo "🐳 Starting Docker container..."

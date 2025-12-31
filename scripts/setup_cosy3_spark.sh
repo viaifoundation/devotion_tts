@@ -14,40 +14,35 @@ else
 fi
 
 # Step 2: Install Python dependencies
-# Check for key packages to skip redundant installs
-if pip show modelscope pydub &> /dev/null; then
-    echo "[2/4] Python dependencies already installed."
-else
-    echo "[2/4] Installing Python dependencies..."
-    pip install -q \
-        HyperPyYAML \
-        conformer \
-        diffusers \
-        gdown \
-        hydra-core \
-        inflect \
-        lightning \
-        modelscope \
-        omegaconf \
-        openai-whisper \
-        pyworld \
-        transformers \
-        x-transformers \
-        onnx \
-        onnxruntime \
-        librosa \
-        soundfile \
-        pydub \
-        numpy \
-        matplotlib \
-        protobuf \
-        rich \
-        ruamel.yaml<0.18.0 \
-        tiktoken \
-        pydantic \
-        wget \
-        mutagen
-fi
+echo "[2/4] Installing Python dependencies..."
+pip install -q \
+    HyperPyYAML \
+    conformer \
+    diffusers \
+    gdown \
+    hydra-core \
+    inflect \
+    lightning \
+    modelscope \
+    omegaconf \
+    openai-whisper \
+    pyworld \
+    transformers \
+    x-transformers \
+    onnx \
+    onnxruntime \
+    librosa \
+    soundfile \
+    pydub \
+    numpy \
+    matplotlib \
+    protobuf \
+    rich \
+    ruamel.yaml<0.18.0 \
+    tiktoken \
+    pydantic \
+    wget \
+    mutagen
 
 # Ensure ruamel.yaml is downgraded if newer version exists (fixes max_depth error)
 pip install -q "ruamel.yaml<0.18.0"

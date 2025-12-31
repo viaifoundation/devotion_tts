@@ -31,7 +31,7 @@ numpy
 matplotlib
 protobuf
 rich
-ruamel.yaml
+ruamel.yaml<0.18.0
 tiktoken
 pydantic
 wget

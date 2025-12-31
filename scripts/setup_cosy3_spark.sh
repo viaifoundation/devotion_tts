@@ -42,12 +42,15 @@ else
         matplotlib \
         protobuf \
         rich \
-        ruamel.yaml \
+        ruamel.yaml<0.18.0 \
         tiktoken \
         pydantic \
         wget \
         mutagen
 fi
+
+# Ensure ruamel.yaml is downgraded if newer version exists (fixes max_depth error)
+pip install -q "ruamel.yaml<0.18.0"
 
 # Reinstall torchaudio if needed (sometimes pip breaks it)
 pip install -q torchaudio --no-deps 2>/dev/null || true

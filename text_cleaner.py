@@ -34,38 +34,21 @@ def convert_urls_to_speech(text):
     
     Examples:
         https://votd.vi.fyi -> v o t d 点 v i 点 f y i
+        votd.vi.fyi         -> v o t d 点 v i 点 f y i
         http://example.com  -> example 点 com
     """
-    # Known domain mappings for better pronunciation
-    domain_mappings = {
-        'vi.fyi': 'v i 点 f y i',  # Spell out to avoid "six"
-        'votd.vi.fyi': 'v o t d 点 v i 点 f y i',
-    }
+    # Step 1: Remove protocols (https://, http://)
+    text = re.sub(r'https?://', '', text)
     
-    def url_to_speech(match):
-        url = match.group(0)
-        # Remove protocol
-        clean_url = re.sub(r'^https?://', '', url)
-        # Remove trailing slash
-        clean_url = clean_url.rstrip('/')
-        
-        # Check for known domain mappings
-        for domain, pronunciation in domain_mappings.items():
-            if clean_url == domain or clean_url.endswith('/' + domain):
-                return pronunciation
-        
-        # Default: spell out domain parts
-        # Replace dots with "点" (Chinese for "dot")
-        result = clean_url.replace('.', ' 点 ')
-        # Remove path components after domain
-        result = result.split('/')[0]
-        return result
+    # Step 2: Handle known domain patterns
+    # .vi.fyi should be pronounced as "点 v i 点 f y i" (spell out to avoid "six")
+    text = re.sub(r'\.vi\.fyi\b', ' 点 v i 点 f y i', text)
     
-    # Match URLs
-    url_pattern = r'https?://[^\s<>"\'\]\)]+[^\s<>"\'\]\),.]'
-    text = re.sub(url_pattern, url_to_speech, text)
+    # Step 3: Handle votd prefix (spell it out)
+    text = re.sub(r'\bvotd\b', 'v o t d', text)
     
     return text
+
 
 def clean_text(text):
     """

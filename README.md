@@ -43,6 +43,12 @@ It supports automatic filename generation based on the Bible verse and date foun
 | **Gemini TTS** | `gen_*_gemini.py` | `gcloud auth` | [README-gemini.md](README-gemini.md) |
 | **CosyVoice (Mac)** | `gen_*_cosy.py` | Offline (CPU/MPS) | [README-cosy.md](README-cosy.md) |
 
+### Utility Tools
+
+| Tool | Purpose | Usage |
+|------|---------|-------|
+| `mp3_to_mp4.py` | Convert MP3 to MP4 for YouTube | `python mp3_to_mp4.py audio.mp3 --bg image.jpg` |
+| `gen_voice_samples_edge.py` | Generate voice samples for CosyVoice 3.0 | `python gen_voice_samples_edge.py --all` |
 
 ## Environment Setup (Recommended)
 

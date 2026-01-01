@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+# mp3_to_mp4.py
+# Create MP4 video from MP3 audio with static background image for YouTube upload
+# Usage: python mp3_to_mp4.py input.mp3 [--bg image.jpg] [--output output.mp4]
+
+import argparse
+import os
+import subprocess
+import sys
+
+# Default background image
+DEFAULT_BG = "assets/background/background.jpg"
+
+# CLI Help
+if "-?" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} <input.mp3> [OPTIONS]")
+    print("\nCreate MP4 video from MP3 audio with static background image for YouTube")
+    print("\nArguments:")
+    print("  input.mp3              Input MP3 audio file (required)")
+    print("\nOptions:")
+    print(f"  --bg, -b FILE          Background image (Default: {DEFAULT_BG})")
+    print("  --output, -o FILE      Output MP4 file (Default: input with .mp4)")
+    print("  --resolution RES       Output resolution (Default: 1920x1080)")
+    print("  --bitrate BR           Audio bitrate (Default: 192k)")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} output/devotion.mp3")
+    print(f"  python {sys.argv[0]} audio.mp3 --bg custom_bg.jpg")
+    print(f"  python {sys.argv[0]} audio.mp3 --output my_video.mp4")
+    sys.exit(0)
+
+def check_ffmpeg():
+    """Check if ffmpeg is installed."""
+    try:
+        result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+def generate_output_filename(input_mp3: str, output: str = None) -> str:
+    """Generate output MP4 filename from input MP3."""
+    if output:
+        return output
+    # Replace .mp3 with .mp4
+    base = os.path.splitext(input_mp3)[0]
+    return f"{base}.mp4"
+
+def create_mp4(input_mp3: str, bg_image: str, output_mp4: str, 
+               resolution: str = "1920x1080", audio_bitrate: str = "192k") -> bool:
+    """
+    Create MP4 video from MP3 audio with static background image.
+    
+    Args:
+        input_mp3: Path to input MP3 audio file
+        bg_image: Path to background image file
+        output_mp4: Path to output MP4 video file
+        resolution: Output video resolution (default: 1920x1080)
+        audio_bitrate: Audio bitrate (default: 192k)
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    # Parse resolution
+    width, height = resolution.split("x")
+    
+    # Build ffmpeg command
+    # -loop 1: Loop the image
+    # -c:v libx264: Use H.264 codec
+    # -tune stillimage: Optimize for still image input
+    # -vf: Scale and pad to exact resolution, maintaining aspect ratio
+    # -c:a aac: Use AAC audio codec
+    # -pix_fmt yuv420p: Pixel format for maximum compatibility
+    # -shortest: End when the shortest input ends (audio)
+    
+    scale_filter = f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+    
+    cmd = [
+        "ffmpeg",
+        "-loop", "1",
+        "-i", bg_image,
+        "-i", input_mp3,
+        "-c:v", "libx264",
+        "-tune", "stillimage",
+        "-vf", scale_filter,
+        "-c:a", "aac",
+        "-b:a", audio_bitrate,
+        "-pix_fmt", "yuv420p",
+        "-shortest",
+        "-y",  # Overwrite output file if exists
+        output_mp4
+    ]
+    
+    print(f"🎬 Creating MP4 video...")
+    print(f"   Input audio: {input_mp3}")
+    print(f"   Background:  {bg_image}")
+    print(f"   Output:      {output_mp4}")
+    print(f"   Resolution:  {resolution}")
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            # Get file size
+            size_mb = os.path.getsize(output_mp4) / (1024 * 1024)
+            print(f"✅ Success! Created: {output_mp4} ({size_mb:.1f} MB)")
+            return True
+        else:
+            print(f"❌ FFmpeg error:\n{result.stderr}")
+            return False
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return False
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create MP4 video from MP3 audio with static background image for YouTube"
+    )
+    parser.add_argument("input", type=str, help="Input MP3 audio file")
+    parser.add_argument("--bg", "-b", type=str, default=DEFAULT_BG, 
+                        help=f"Background image (Default: {DEFAULT_BG})")
+    parser.add_argument("--output", "-o", type=str, default=None,
+                        help="Output MP4 file (Default: input with .mp4)")
+    parser.add_argument("--resolution", "-r", type=str, default="1920x1080",
+                        help="Output resolution (Default: 1920x1080)")
+    parser.add_argument("--bitrate", type=str, default="192k",
+                        help="Audio bitrate (Default: 192k)")
+    
+    args = parser.parse_args()
+    
+    # Check ffmpeg
+    if not check_ffmpeg():
+        print("❌ FFmpeg not found. Please install ffmpeg:")
+        print("   macOS:  brew install ffmpeg")
+        print("   Linux:  sudo apt install ffmpeg")
+        sys.exit(1)
+    
+    # Validate input file
+    if not os.path.exists(args.input):
+        print(f"❌ Input file not found: {args.input}")
+        sys.exit(1)
+    
+    # Validate background image
+    bg_path = args.bg
+    if not os.path.exists(bg_path):
+        # Try relative to script directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        bg_path = os.path.join(script_dir, args.bg)
+        if not os.path.exists(bg_path):
+            print(f"❌ Background image not found: {args.bg}")
+            print(f"   Create: mkdir -p assets/background && cp your_image.jpg {DEFAULT_BG}")
+            sys.exit(1)
+    
+    # Generate output filename
+    output_mp4 = generate_output_filename(args.input, args.output)
+    
+    # Create MP4
+    success = create_mp4(
+        input_mp3=args.input,
+        bg_image=bg_path,
+        output_mp4=output_mp4,
+        resolution=args.resolution,
+        audio_bitrate=args.bitrate
+    )
+    
+    sys.exit(0 if success else 1)
+
+
+if __name__ == "__main__":
+    main()

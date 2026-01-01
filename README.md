@@ -12,17 +12,37 @@ This project provides Python scripts to generate high-quality audio for:
 
 It supports automatic filename generation based on the Bible verse and date found in the text.
 
-## Supported Providers
+## Supported TTS Engines
 
-| Provider | Script Prefix | Key Features | Setup |
+### Performance Comparison
+
+| Engine | CER (ZH) ↓ | VRAM | Type | Best For |
+|--------|------------|------|------|----------|
+| **Fun-CosyVoice 3.0** | **0.81** ✅ | ~4-6GB | Zero-shot | Best accuracy (SOTA) |
+| GLM-TTS RL | 0.89 | ~8GB | Zero-shot | GRPO emotion |
+| Index-TTS2 | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
+| GPT-SoVITS | N/A | ~6GB | Fine-tune | Custom voice training |
+| Qwen TTS | N/A | ~4GB | Neural | Local multi-voice |
+| Vibe | N/A | ~4GB | Voice | Voice cloning |
+| Volc (Volcengine) | N/A | API | Cloud | ByteDance API |
+| Edge TTS | N/A | 0 | Cloud | Fast/Free |
+| Gemini TTS | N/A | API | Cloud | Google API |
+
+### Quick Reference
+
+| Provider | Script Prefix | Setup | Documentation |
 | :--- | :--- | :--- | :--- |
-| **Edge TTS** | `gen_*_edge.py` | **Free**, High Quality, No API Key | `pip install edge-tts` |
-| **Google Gemini** | `gen_*_gemini.py` | Professional, Google Cloud | `gcloud auth application-default login` |
-| **Alibaba Qwen** | `gen_*_qwen.py` | Concise, Neural | `DASHSCOPE_API_KEY` env var |
-| **Fun-CosyVoice 3.0** | `gen_*_cosy3.py` | **Voice Cloning**, RLHF, Best Quality | [README-cosy3.md](README-cosy3.md) |
-| **CosyVoice (Mac)** | `gen_*_cosy.py` | Offline/Local (CPU/MPS), 300M Model | [README-cosy.md](README-cosy.md) |
-| **CosyVoice (Spark)** | `gen_*_spark.py` | **NVIDIA DGX Spark** (ARM64 Docker), GPU Accel | [README-spark.md](README-spark.md) |
-| **CosyVoice (Pop!_OS)** | `gen_*_pop.py` | **System76 Laptop** (Host/x86), Native speed | [README-pop.md](README-pop.md) |
+| **Fun-CosyVoice 3.0** | `gen_*_cosy3.py` | DGX Spark / Docker | [README-cosy3.md](README-cosy3.md) |
+| **GLM-TTS** | `gen_*_glmtts.py` | DGX Spark / Docker | [README-glmtts.md](README-glmtts.md) |
+| **Index-TTS2** | `gen_*_indextts2.py` | DGX Spark / Docker | [README-indextts2.md](README-indextts2.md) |
+| **GPT-SoVITS** | `gen_*_gptsovits.py` | DGX Spark / Docker | [README-gptsovits.md](README-gptsovits.md) |
+| **Qwen TTS** | `gen_*_qwen.py` | `DASHSCOPE_API_KEY` | [README-qwen.md](README-qwen.md) |
+| **Vibe** | `gen_*_vibe.py` | Local | [README-vibe.md](README-vibe.md) |
+| **Volc** | `gen_*_volc.py` | Volcengine API | [README-volc.md](README-volc.md) |
+| **Edge TTS** | `gen_*_edge.py` | `pip install edge-tts` | [README-edge.md](README-edge.md) |
+| **Gemini TTS** | `gen_*_gemini.py` | `gcloud auth` | [README-gemini.md](README-gemini.md) |
+| **CosyVoice (Mac)** | `gen_*_cosy.py` | Offline (CPU/MPS) | [README-cosy.md](README-cosy.md) |
+
 
 ## Environment Setup (Recommended)
 

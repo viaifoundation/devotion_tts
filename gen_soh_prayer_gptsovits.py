@@ -104,7 +104,7 @@ def scan_models(root_dir):
     return sovits_path, gpt_path
 
 # CLI Help
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
     print("  --input, -i FILE     Input text file")

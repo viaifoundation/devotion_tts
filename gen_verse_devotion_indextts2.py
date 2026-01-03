@@ -61,7 +61,7 @@ def build_preset_voices(voices_str, ref_text):
     return voices
 
 # CLI Help
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nIndex-TTS2 - Zero-shot voice cloning with duration/emotion control")
     print("\nOptions:")

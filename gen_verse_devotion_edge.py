@@ -17,7 +17,7 @@ import argparse
 import audio_mixer
 
 # CLI Args
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--speed SPEED] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--help]")
     print("Options:")
     print("  --input FILE, -i     Text file to read input from")

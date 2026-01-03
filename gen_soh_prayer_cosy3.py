@@ -62,7 +62,7 @@ def build_preset_voices(voices_str, ref_text):
     return voices
 
 # CLI Help
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nFun-CosyVoice 3.0 - Zero-shot voice cloning TTS for SOH Prayer")
     print("\nOptions:")
@@ -72,17 +72,25 @@ if "-?" in sys.argv:
     print("                       (Default: ref_female.wav,ref_male.wav)")
     print("  --ref-text TEXT      Reference text for all voices")
     print("  --no-rotate          Disable voice rotation (use first voice only)")
+    print("  --speed SPEED        Speed factor: 1.0, 1.2, +20%, -10% (Default: 1.0)")
     print("  --bgm                Enable background music")
+    print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
+    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
+    print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
+    print("  -?, -h, --help       Show this help")
+    print("\nExample:")
+    print(f"  python {sys.argv[0]} -i input.txt --prefix MyPrefix --speed 1.1")
     sys.exit(0)
 
 # CLI Args
-parser = argparse.ArgumentParser(description="Generate SOH Prayer Audio with Fun-CosyVoice 3.0")
+parser = argparse.ArgumentParser(description="Generate SOH Prayer Audio with Fun-CosyVoice 3.0", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
 parser.add_argument("--voices", type=str, default=DEFAULT_VOICES, help="Comma-separated voice files for rotation")
 parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Reference text for all voices")
 parser.add_argument("--no-rotate", action="store_true", help="Disable voice rotation (use first voice only)")
+parser.add_argument("--speed", type=str, default="1.0", help="Speed factor/rate")
 parser.add_argument("--bgm", action="store_true", help="Enable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
@@ -90,6 +98,22 @@ parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay
 parser.add_argument("--debug", "-d", type=int, default=0, choices=[0, 1, 2], help="Debug level")
 
 args, unknown = parser.parse_known_args()
+
+# Parse Speed
+speed_factor = 1.0
+if args.speed:
+    try:
+        s = args.speed
+        if "%" in s:
+            val = float(s.replace("%", ""))
+            speed_factor = 1.0 + (val / 100.0)
+        else:
+            speed_factor = float(s)
+    except ValueError:
+        print(f"⚠️ Invalid speed format '{args.speed}', using 1.0")
+
+# Limit speed to safe range
+speed_factor = max(0.5, min(2.0, speed_factor))
 CLI_PREFIX = args.prefix
 ENABLE_BGM = args.bgm
 BGM_FILE = args.bgm_track

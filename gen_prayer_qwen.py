@@ -18,7 +18,7 @@ import argparse
 
 # CLI Args
 # CLI Args
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--bgm] [--bgm-track TRACK] [--bgm-volume VOL] [--bgm-intro MS] [--help]")
     print("\nOptions:")
     print("  --input FILE, -i     Text file to read input from")

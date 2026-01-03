@@ -39,7 +39,7 @@ import filename_parser
 import argparse
 
 # CLI Args
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [--input FILE] [--prefix PREFIX] [--help] [--speed SPEED]")
     print ("\nOptions:")
     print("  --input FILE, -i     Input text file")

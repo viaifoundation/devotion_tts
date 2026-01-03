@@ -21,7 +21,7 @@ BGM_VOLUME = -20   # Default dB
 BGM_INTRO_DELAY = 4000 # Default ms
 
 # Custom handling for -? 
-if "-?" in sys.argv:
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [--input FILE] [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--help] [--version]")
     print("\nOptions:")
     print("  -h, --help           Show this help message and exit")

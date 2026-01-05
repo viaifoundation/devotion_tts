@@ -189,6 +189,17 @@ filename = filename_parser.generate_filename_v2(
     ext=".mp3"
 ).replace(".mp3", "_vibe.mp3")
 
+# Add speed suffix to filename if non-default speed is used
+if args.speed and args.speed not in ["1.0", "1"]:
+    speed_val = args.speed.replace("%", "")
+    if speed_val.startswith("+"):
+        speed_suffix = f"plus{speed_val[1:]}"
+    elif speed_val.startswith("-"):
+        speed_suffix = f"minus{speed_val[1:]}"
+    else:
+        speed_suffix = speed_val
+        filename = filename.replace(".mp3", f"_speed-{speed_suffix}.mp3")
+
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)

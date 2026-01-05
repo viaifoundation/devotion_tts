@@ -168,6 +168,9 @@ if ENABLE_BGM and BGM_FILE:
     bgm_base = os.path.splitext(os.path.basename(BGM_FILE))[0]
     filename = filename.replace(".mp3", f"_bgm_{bgm_base}.mp3")
 
+# Note: GLM-TTS does not currently support speed adjustment
+# Add this placeholder for consistency with other scripts
+
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)

@@ -22,7 +22,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("Options:")
     print("  --input FILE, -i     Text file to read input from")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
-    print("  --speed SPEED        Speech rate adjustment (e.g. +10%, -5%)")
+    print("  --speed SPEED        Speech rate adjustment (e.g. +10%, --speed=-10%)")
     print("  --bgm                Enable background music (Default: False)")
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
@@ -105,6 +105,18 @@ filename = filename_parser.generate_filename_v2(
 if ENABLE_BGM:
     filename = filename.replace(".mp3", "_bgm.mp3")
 
+# Add speed suffix to filename if non-default speed is used
+if args.speed:
+    speed_val = args.speed.replace("%", "")
+    if speed_val.startswith("+"):
+        speed_suffix = f"plus{speed_val[1:]}"
+    elif speed_val.startswith("-"):
+        speed_suffix = f"minus{speed_val[1:]}"
+    else:
+        speed_suffix = speed_val
+    # Only add suffix if not default speed
+    if speed_suffix and speed_suffix not in ["0", "plus0", "1.0"]:
+        filename = filename.replace(".mp3", f"_speed-{speed_suffix}.mp3")
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):

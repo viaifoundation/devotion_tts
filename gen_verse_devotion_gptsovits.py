@@ -166,6 +166,17 @@ def main():
     if args.bgm:
         filename = filename.replace(".mp3", "_bgm.mp3")
 
+    # Add speed suffix to filename if non-default speed is used
+    if args.speed and args.speed not in ["1.0", "1"]:
+        speed_val = args.speed.replace("%", "")
+        if speed_val.startswith("+"):
+            speed_suffix = f"plus{speed_val[1:]}"
+        elif speed_val.startswith("-"):
+            speed_suffix = f"minus{speed_val[1:]}"
+        else:
+            speed_suffix = speed_val
+            filename = filename.replace(".mp3", f"_speed-{speed_suffix}.mp3")
+
     OUTPUT_DIR = os.path.join(os.getcwd(), "output")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)

@@ -30,6 +30,7 @@ This is the **upgraded** version of CosyVoice with significantly better quality 
 | `gen_verse_devotion_cosy3.py` | Verse + Devotion with voice cloning |
 | `gen_bread_audio_cosy3.py` | Daily Bread with voice cloning |
 | `gen_prayer_cosy3.py` | Prayer with voice cloning |
+| `gen_soh_prayer_cosy3.py` | SOH Prayer with voice cloning |
 
 ## Setup
 
@@ -143,14 +144,26 @@ source scripts/setup_cosy3_spark.sh  # Installs ALL deps (~2 mins)
 python gen_verse_devotion_cosy3.py --input sample.txt -d 1
 ```
 
-## Examples
+## Quick Start Examples
 
 ```bash
-# Daily Bread
-python gen_bread_audio_cosy3.py --input my_bread.txt
+# Default (rotate male/female voices)
+python gen_verse_devotion_cosy3.py -i input.txt
 
-# Prayer
-python gen_prayer_cosy3.py --input my_prayer.txt
+# Male voice only
+python gen_verse_devotion_cosy3.py -i input.txt --voice male
+
+# Female voice only with BGM
+python gen_verse_devotion_cosy3.py -i input.txt --voice female --bgm
+
+# Rotate voices with speed adjustment
+python gen_verse_devotion_cosy3.py -i input.txt --voice rotate --speed 1.1
+
+# Daily Bread
+python gen_bread_audio_cosy3.py -i my_bread.txt --voice male
+
+# Prayer with BGM
+python gen_prayer_cosy3.py -i my_prayer.txt --voice female --bgm
 ```
 
 
@@ -223,9 +236,11 @@ python gen_verse_devotion_cosy3.py \
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `--input`, `-i` | Input text file | (stdin) |
-| `--ref-audio` | Reference audio for voice cloning | `ref_female.m4a` |
-| `--ref-text` | Text spoken in reference audio | (preset) |
-| `--rotate` | Rotate between ref_female.m4a and ref_male.m4a | False |
+| `--voice` | Voice mode: `male`, `female`, `rotate` | `rotate` |
+| `--voices` | Custom comma-separated voice files | (see --voice) |
+| `--ref-text` | Reference text for voice cloning | (preset) |
+| `--no-rotate` | Disable voice rotation | False |
+| `--speed` | Speed factor: `1.0`, `1.2`, `+20%`, `--speed=-10%` | `1.0` |
 | `--prefix` | Output filename prefix | (from text) |
 | `--bgm` | Enable background music | False |
 | `--bgm-track` | BGM filename | `AmazingGrace.MP3` |
@@ -233,7 +248,7 @@ python gen_verse_devotion_cosy3.py \
 | `--bgm-intro` | BGM intro delay in ms | 4000 |
 | `--debug`, `-d` | Debug level (0-2) | 0 |
 
-**Quick Help:** Run `python gen_verse_devotion_cosy3.py -?` for help.
+**Quick Help:** Run `python gen_verse_devotion_cosy3.py -?` or `-h` or `--help`.
 
 ## Comparison with Other TTS Engines
 

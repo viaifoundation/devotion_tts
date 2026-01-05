@@ -68,26 +68,29 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nOptions:")
     print("  --input, -i FILE     Input text file")
     print("  --prefix PREFIX      Output filename prefix")
-    print("  --voices FILES       Comma-separated voice files for rotation")
+    print("  --voice MODE         Voice mode: male, female, rotate (Default: rotate)")
+    print("  --voices FILES       Custom comma-separated voice files for rotation")
     print("                       (Default: ref_female.wav,ref_male.wav)")
     print("  --ref-text TEXT      Reference text for all voices")
     print("  --no-rotate          Disable voice rotation (use first voice only)")
-    print("  --speed SPEED        Speed factor: 1.0, 1.2, +20%, -10% (Default: 1.0)")
+    print("  --speed SPEED        Speed factor: 1.0, 1.2, +20%, --speed=-10% (Default: 1.0)")
     print("  --bgm                Enable background music")
     print("  --bgm-track TRACK    Specific BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
     print("  -?, -h, --help       Show this help")
-    print("\nExample:")
-    print(f"  python {sys.argv[0]} -i input.txt --prefix MyPrefix --speed 1.1")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} -i input.txt --voice male")
+    print(f"  python {sys.argv[0]} -i input.txt --voice female --bgm")
+    print(f"  python {sys.argv[0]} -i input.txt --voice rotate --speed 1.1")
     sys.exit(0)
 
-# CLI Args
 parser = argparse.ArgumentParser(description="Generate SOH Prayer Audio with Fun-CosyVoice 3.0", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
-parser.add_argument("--voices", type=str, default=DEFAULT_VOICES, help="Comma-separated voice files for rotation")
+parser.add_argument("--voice", type=str, default="rotate", choices=["male", "female", "rotate"], help="Voice mode: male, female, rotate")
+parser.add_argument("--voices", type=str, default=None, help="Custom comma-separated voice files for rotation")
 parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Reference text for all voices")
 parser.add_argument("--no-rotate", action="store_true", help="Disable voice rotation (use first voice only)")
 parser.add_argument("--speed", type=str, default="1.0", help="Speed factor/rate")
@@ -120,6 +123,17 @@ BGM_FILE = args.bgm_track
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
 DEBUG_LEVEL = args.debug
+
+# Determine voices based on --voice or --voices
+if args.voices:
+    # Custom voices provided
+    VOICES_STR = args.voices
+elif args.voice == "male":
+    VOICES_STR = "assets/ref_audio/ref_male.wav"
+elif args.voice == "female":
+    VOICES_STR = "assets/ref_audio/ref_female.wav"
+else:  # rotate (default)
+    VOICES_STR = "assets/ref_audio/ref_female.wav,assets/ref_audio/ref_male.wav"
 
 # 1. Try --input argument
 if args.input:
@@ -202,6 +216,8 @@ if args.speed and args.speed not in ["1.0", "1"]:
         speed_suffix = f"minus{speed_val[1:]}"
     else:
         speed_suffix = speed_val
+    # Only add suffix if not default
+    if speed_suffix:
         filename = filename.replace(".mp3", f"_speed-{speed_suffix}.mp3")
 
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
@@ -251,7 +267,7 @@ final_mix = AudioSegment.empty()
 silence = AudioSegment.silent(duration=800, frame_rate=cosyvoice.sample_rate)
 
 # Build preset voices from CLI args
-PRESET_VOICES = build_preset_voices(args.voices, args.ref_text)
+PRESET_VOICES = build_preset_voices(VOICES_STR, args.ref_text)
 
 # Check for voice rotation mode (default: enabled unless --no-rotate)
 USE_ROTATION = not args.no_rotate and len(PRESET_VOICES) > 1

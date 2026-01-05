@@ -10,7 +10,7 @@ import filename_parser
 import re
 from datetime import datetime
 
-TTS_RATE = "+10%"  # Speed up by 10%
+TTS_RATE = "+0%"  # Default Speed (normal)
 
 import argparse
 

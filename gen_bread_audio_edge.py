@@ -16,7 +16,7 @@ import audio_mixer
 VERSION = "1.0.0"
 ENABLE_BGM = False
 BGM_FILE = "AmazingGrace.MP3" # Default to AmazingGrace
-TTS_RATE = "+10%"  # Default Speed
+TTS_RATE = "+0%"  # Default Speed (normal)
 BGM_VOLUME = -20   # Default dB
 BGM_INTRO_DELAY = 4000 # Default ms
 

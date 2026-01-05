@@ -30,5 +30,6 @@ env/
 *.tmp
 temp_*
 
+#ref
 # Output directory
 output/

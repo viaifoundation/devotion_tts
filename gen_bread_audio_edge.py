@@ -22,30 +22,42 @@ BGM_INTRO_DELAY = 4000 # Default ms
 
 # Custom handling for -? 
 if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--input FILE] [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--help] [--version]")
+    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
-    print("  -h, --help           Show this help message and exit")
     print("  --input FILE, -i     Text file to read input from")
-    print("  -?,                  Show this help message and exit")
-    print("  --bgm                Enable background music (Default: False)")
-    print("  --bgm-track TRACK    Specific BGM filename in assets/bgm (Default: AmazingGrace.MP3)")
-    print("  --rate RATE          TTS Speech rate (Default: +10%)")
-    print("  --speed SPEED        Alias for --rate (e.g. +10%, -5%)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
+    print("  --prefix PREFIX      Filename prefix")
+    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: two)")
+    print("  --voices LIST        Custom voices (CSV, overrides --voice)")
+    print("                       e.g. zh-CN-YunyangNeural,zh-CN-XiaoxiaoNeural")
+    print("  --speed SPEED        Speech rate: +10%, --speed=-10% (Default: +0%)")
+    print("  --bgm                Enable background music")
+    print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
+    print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
-    print("  --version, -v        Show program version")
+    print("  -?, -h, --help       Show this help")
+    print("\nVoice Modes:")
+    print("  male    - Single male voice (YunyangNeural)")
+    print("  female  - Single female voice (XiaoxiaoNeural)")
+    print("  two     - Two voices: intro=female, body=male (Default)")
+    print("  four    - Rotate 4 voices (2 male + 2 female)")
+    print("  six     - Rotate all 6 zh-CN voices")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} -i input.txt --voice male")
+    print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
     sys.exit(0)
 
-parser = argparse.ArgumentParser(description="Generate Bread Audio with Edge TTS")
+parser = argparse.ArgumentParser(description="Generate Bread Audio with Edge TTS", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
-parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
-parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (Default: +10%%)")
-parser.add_argument("--speed", type=str, default=None, help="Alias for --rate (e.g. +10%%)")
-parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
-parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
-parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
-parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e.g. MyPrefix)")
-parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+parser.add_argument("--voice", type=str, default="two", choices=["male", "female", "two", "four", "six"],
+                    help="Voice mode: male, female, two, four, six")
+parser.add_argument("--voices", type=str, default=None,
+                    help="Custom voices (CSV format, overrides --voice)")
+parser.add_argument("--speed", type=str, default=None, help="Speech rate (e.g. +10%%)")
+parser.add_argument("--bgm", action="store_true", help="Enable background music")
+parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
+parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 
 args, unknown = parser.parse_known_args()
 
@@ -55,18 +67,48 @@ CLI_PREFIX = args.prefix
 if args.bgm:
     ENABLE_BGM = True
 
-# Allow --speed to override --rate if provided
+# Speed parsing
 if args.speed:
     if not "%" in args.speed and (args.speed.startswith("+") or args.speed.startswith("-") or args.speed.isdigit()):
         TTS_RATE = f"{args.speed}%"
     else:
         TTS_RATE = args.speed
-else:
-    TTS_RATE = args.rate
 
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
 BGM_FILE = args.bgm_track
+
+# Voice presets
+VOICE_MALE_1 = "zh-CN-YunyangNeural"    # Professional, Reliable
+VOICE_MALE_2 = "zh-CN-YunxiNeural"      # Lively, Sunshine
+VOICE_MALE_3 = "zh-CN-YunjianNeural"    # Passion
+VOICE_FEMALE_1 = "zh-CN-XiaoxiaoNeural"  # Warm
+VOICE_FEMALE_2 = "zh-CN-XiaoyiNeural"    # Lively
+VOICE_FEMALE_3 = "zh-CN-YunxiaNeural"    # Cute
+
+# Voice mode configuration
+# --voices overrides --voice if provided
+if args.voices:
+    VOICES = [v.strip() for v in args.voices.split(",") if v.strip()]
+    print(f"🎤 Custom voices: {', '.join(VOICES)}")
+elif args.voice == "male":
+    VOICES = [VOICE_MALE_1]
+    print(f"🎤 Voice mode: male ({VOICE_MALE_1})")
+elif args.voice == "female":
+    VOICES = [VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: female ({VOICE_FEMALE_1})")
+elif args.voice == "four":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
+    print(f"🎤 Voice mode: four (rotating 4 voices)")
+elif args.voice == "six":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: six (rotating 6 voices)")
+else:  # two (default for bread)
+    VOICES = [VOICE_FEMALE_1, VOICE_MALE_1]  # Intro=female, Body=male
+    print(f"🎤 Voice mode: two (intro={VOICE_FEMALE_1}, body={VOICE_MALE_1})")
+
+FIRST_VOICE = VOICES[0]
+SECOND_VOICE = VOICES[1] if len(VOICES) > 1 else VOICES[0]
 
 
 # Cleaned Chinese devotional text (replace with actual text)
@@ -101,78 +143,7 @@ first_paragraphs = [paragraphs[0]]  # First paragraph (introduction)
 second_paragraphs = ["\n\n".join(paragraphs[1:])]  # All remaining paragraphs (main content)
 
 """
-Locale,ShortName,Gender,Voice Personalities,Content Categories
-zh-CN,zh-CN-XiaoxiaoNeural,Female,Warm,"News, Novel"
-zh-CN,zh-CN-XiaoyiNeural,Female,Lively,"Cartoon, Novel"
-zh-CN,zh-CN-YunjianNeural,Male,Passion,"Sports, Novel"
-zh-CN,zh-CN-YunxiNeural,Male,"Lively, Sunshine",Novel
-zh-CN,zh-CN-YunxiaNeural,Male,Cute,"Cartoon, Novel"
-zh-CN,zh-CN-YunyangNeural,Male,"Professional, Reliable",News
-zh-CN-liaoning,zh-CN-liaoning-XiaobeiNeural,Female,Humorous,Dialect
-zh-CN-shaanxi,zh-CN-shaanxi-XiaoniNeural,Female,Bright,Dialect
-zh-HK,zh-HK-HiuGaaiNeural,Female,"Friendly, Positive",General
-zh-HK,zh-HK-HiuMaanNeural,Female,"Friendly, Positive",General
-zh-HK,zh-HK-WanLungNeural,Male,"Friendly, Positive",General
-zh-TW,zh-TW-HsiaoChenNeural,Female,"Friendly, Positive",General
-zh-TW,zh-TW-HsiaoYuNeural,Female,"Friendly, Positive",General
-zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
-"""
-"""
-Locale,ShortName,Gender,Voice Personalities,Content Categories
-zh-CN,zh-CN-XiaoxiaoNeural,Female,Warm,"News, Novel"
-zh-CN,zh-CN-XiaoyiNeural,Female,Lively,"Cartoon, Novel"
-zh-CN,zh-CN-YunjianNeural,Male,Passion,"Sports, Novel"
-zh-CN,zh-CN-YunxiNeural,Male,"Lively, Sunshine",Novel
-zh-CN,zh-CN-YunxiaNeural,Male,Cute,"Cartoon, Novel"
-zh-CN,zh-CN-YunyangNeural,Male,"Professional, Reliable",News
-zh-CN,zh-CN-XiaochenNeural,Female,Warm,General
-zh-CN,zh-CN-XiaohanNeural,Female,Cheerful,"Novel, Cartoon"
-zh-CN,zh-CN-XiaomoNeural,Female,Emotional,"Novel, Cartoon"
-zh-CN,zh-CN-XiaoqiuNeural,Female,Lively,General
-zh-CN,zh-CN-XiaoruiNeural,Female,Angry,"Novel, Cartoon"
-zh-CN,zh-CN-XiaoshuangNeural,Female,Cute,"Cartoon, Novel"
-zh-CN,zh-CN-XiaoxuanNeural,Female,"Chat, Assistant","Novel, CustomerService"
-zh-CN,zh-CN-XiaoyanNeural,Female,Professional,"News, Novel"
-zh-CN,zh-CN-XiaoyouNeural,Female,Cheerful,"Cartoon, Novel"
-zh-CN,zh-CN-XiaozhenNeural,Female,Friendly,General
-zh-CN,zh-CN-YunhaoNeural,Male,Professional,"News, Novel"
-zh-CN,zh-CN-YunxiaoNeural,Male,Friendly,General
-zh-CN,zh-CN-YunyeNeural,Male,Serious,"Novel, Narration"
-zh-CN,zh-CN-YunzeNeural,Male,Calm,"Novel, Narration"
-zh-CN-liaoning,zh-CN-liaoning-XiaobeiNeural,Female,Humorous,Dialect
-zh-CN-shaanxi,zh-CN-shaanxi-XiaoniNeural,Female,Bright,Dialect
-zh-CN-sichuan,zh-CN-sichuan-YunxiNeural,Male,Lively,Dialect
-zh-CN-wuu,zh-CN-wuu-XiaotongNeural,Female,Friendly,Dialect
-zh-CN-wuu,zh-CN-wuu-YunzheNeural,Male,Professional,Dialect
-zh-CN-yue,zh-CN-yue-XiaoshanNeural,Female,Friendly,Dialect
-zh-CN-yue,zh-CN-yue-YunSongNeural,Male,Professional,Dialect
-zh-HK,zh-HK-HiuGaaiNeural,Female,"Friendly, Positive",General
-zh-HK,zh-HK-HiuMaanNeural,Female,"Friendly, Positive",General
-zh-HK,zh-HK-WanLungNeural,Male,"Friendly, Positive",General
-zh-TW,zh-TW-HsiaoChenNeural,Female,"Friendly, Positive",General
-zh-TW,zh-TW-HsiaoYuNeural,Female,"Friendly, Positive",General
-zh-TW,zh-TW-YunJheNeural,Male,"Friendly, Positive",General
-zh-TW,zh-TW-HanHanNeural,Female,Friendly,General
-"""
-# Voice settings
-FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # First voice (introduction)
-SECOND_VOICE = "zh-CN-YunyangNeural"  # Second voice (main content)
-#FIRST_VOICE = "zh-HK-WanLungNeural"  # Second voice (main content)
-#SECOND_VOICE = "zh-HK-HiuGaaiNeural"  # First voice (introduction)
-#SECOND_VOICE = "zh-CN-XiaoyiNeural"  # Second voice (main content)
-#FIRST_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
-#SECOND_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
-#SECOND_VOICE = "zh-HK-HiuMaanNeural"  # Second voice (main content)
-#SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
-#FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
-#FIRST_VOICE = "zh-TW-HsiaoChenNeural"  # First voice (introduction)
-#SECOND_VOICE = "zh-TW-YunJheNeural"  # Second voice (main content)
-FIRST_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
-SECOND_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
-#FIRST_VOICE = "zh-CN-YunyangNeural"  # First voice (introduction)
-#SECOND_VOICE = "zh-CN-XiaoxiaoNeural"  # Second voice (main content)
-#SECOND_VOICE = "zh-HK-WanLungNeural"  # First voice (introduction)
-#FIRST_VOICE = "zh-HK-HiuGaaiNeural"  # Second voice (main content)
+
 first_line = "Bread_Audio"
 
 from datetime import datetime

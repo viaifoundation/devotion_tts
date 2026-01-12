@@ -3,31 +3,75 @@
 Uses Microsoft Edge's online text-to-speech service (via `edge-tts` library) for high-quality multi-voice audio generation. Free and no API key required.
 
 ## Files
-- `gen_bread_audio_edge.py`: Daily Bread (2 voices)
-- `gen_verse_devotion_edge.py`: Verse + Devotion + Prayer (5 voices)
-- `requirements-edge.txt`: Dependencies
+
+| Script | Purpose | Default Voice Mode |
+|--------|---------|-------------------|
+| `gen_verse_devotion_edge.py` | Verse + Devotion + Prayer | `six` |
+| `gen_prayer_edge.py` | Prayer | `six` |
+| `gen_prayer_soh.py` | SOH Prayer | `two` |
+| `gen_bread_audio_edge.py` | Daily Bread | `two` |
 
 ## Setup
 
-1. **Environment**:
-   ```bash
-   pyenv activate tts-venv-edge  # Recommended
-   pip install -r requirements-edge.txt
-   ```
+```bash
+pip install -r requirements-edge.txt
+```
 
 ## Usage
 
-Run the script:
 ```bash
-python gen_bread_audio_edge.py       # ~5-10 seconds
-python gen_verse_devotion_edge.py --speed +10%
+# Default (6 voices rotation)
+python gen_verse_devotion_edge.py -i input.txt
+
+# Male voice only
+python gen_verse_devotion_edge.py -i input.txt --voice male
+
+# Female voice only with BGM
+python gen_prayer_edge.py -i input.txt --voice female --bgm
+
+# Two voices (1 male + 1 female)
+python gen_bread_audio_edge.py -i input.txt --voice two
+
+# Four voices with speed adjustment
+python gen_verse_devotion_edge.py -i input.txt --voice four --speed +10%
+
+# Custom voices (CSV format)
+python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-CN-XiaoyiNeural"
 ```
 
-### Arguments
-- `--speed`: Speech rate adjustment (e.g. `+10%`, `-5%`, `1.1`). Default `+0%`.
-- `--bgm`: Enable background music.
+## Command Line Arguments
 
-Output will be saved to `~/Downloads/*.mp3`.
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--input`, `-i` | Input text file | (stdin) |
+| `--voice` | Voice mode: `male`, `female`, `two`, `four`, `six` | varies by script |
+| `--voices` | Custom voices (CSV, overrides --voice) | (none) |
+| `--speed` | Speech rate: `+10%`, `--speed=-10%` | `+0%` |
+| `--prefix` | Output filename prefix | (from text) |
+| `--bgm` | Enable background music | False |
+| `--bgm-track` | BGM filename | `AmazingGrace.MP3` |
+| `--bgm-volume` | BGM volume in dB | -20 |
+| `--bgm-intro` | BGM intro delay in ms | 4000 |
 
-## Voices
-Configured to use Microsoft Edge Neural voices (e.g., `zh-CN-YunxiNeural`, `zh-CN-XiaoyiNeural`, `zh-CN-YunyangNeural`).
+## Voice Modes
+
+| Mode | Voices |
+|------|--------|
+| `male` | YunyangNeural (Professional, Reliable) |
+| `female` | XiaoxiaoNeural (Warm) |
+| `two` | Yunyang + Xiaoxiao |
+| `four` | Yunyang, Xiaoxiao, Yunxi, Xiaoyi |
+| `six` | All 6 zh-CN voices |
+
+## Available zh-CN Voices
+
+| Voice | Gender | Personality |
+|-------|--------|-------------|
+| `zh-CN-YunyangNeural` | Male | Professional, Reliable |
+| `zh-CN-YunxiNeural` | Male | Lively, Sunshine |
+| `zh-CN-YunjianNeural` | Male | Passion |
+| `zh-CN-XiaoxiaoNeural` | Female | Warm |
+| `zh-CN-XiaoyiNeural` | Female | Lively |
+| `zh-CN-YunxiaNeural` | Male | Cute |
+
+**Quick Help:** Run `python gen_verse_devotion_edge.py -h` for help.

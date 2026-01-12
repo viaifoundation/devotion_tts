@@ -29,30 +29,40 @@ if __name__ == "__main__":
 
 # Custom handling for -? 
 if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
-    print(f"Usage: python {sys.argv[0]} [--input FILE] [--bgm] [--rate RATE] [--speed SPEED] [--bgm-volume VOL] [--bgm-intro MS] [--bgm-track TRACK] [--help] [--version]")
+    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
-    print("  -h, --help           Show this help message and exit")
-    print("  --input FILE, -i     Text file to read input from (default: stdin if piped)")
-    print("  -?,                  Show this help message and exit")
-    print("  --bgm                Enable background music (Default: False)")
-    print("  --bgm-track TRACK    Specific BGM filename in assets/bgm (Default: AmazingGrace.MP3)")
-    print("  --rate RATE          TTS Speech rate (Default: +10%)")
-    print("  --speed SPEED        Same as --rate (e.g. +10%, -5%)")
-    print("  --bgm-volume VOL     BGM volume adjustment in dB (Default: -20)")
+    print("  --input FILE, -i     Text file to read input from")
+    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: two)")
+    print("  --voices LIST        Custom voices (CSV, overrides --voice)")
+    print("                       e.g. zh-CN-YunyangNeural,zh-CN-XiaoxiaoNeural")
+    print("  --speed SPEED        Speech rate: +10%, --speed=-10% (Default: +0%)")
+    print("  --bgm                Enable background music")
+    print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
+    print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
-    print("  --version, -v        Show program version")
-    print("\n  (Note: You can also add 'FilenamePrefix: <Prefix>' in the input TEXT)")
+    print("  -?, -h, --help       Show this help")
+    print("\nVoice Modes:")
+    print("  male    - Single male voice (YunyangNeural)")
+    print("  female  - Single female voice (XiaoxiaoNeural)")
+    print("  two     - Rotate 2 voices (1 male + 1 female)")
+    print("  four    - Rotate 4 voices (2 male + 2 female)")
+    print("  six     - Rotate all 6 zh-CN voices (Default)")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} -i input.txt --voice male")
+    print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
     sys.exit(0)
 
-parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS (SOH Version)")
+parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS (SOH Version)", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
-parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
-parser.add_argument("--rate", type=str, default="+10%", help="TTS Speech rate (Default: +10%%)")
-parser.add_argument("--speed", type=str, default=None, help="Alias for --rate (e.g. +10%%)")
-parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB (Default: -20)")
-parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms (Default: 4000)")
-parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="Specific BGM filename (Default: AmazingGrace.MP3)")
-parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
+parser.add_argument("--voice", type=str, default="two", choices=["male", "female", "two", "four", "six"],
+                    help="Voice mode: male, female, two, four, six")
+parser.add_argument("--voices", type=str, default=None,
+                    help="Custom voices (CSV format, overrides --voice)")
+parser.add_argument("--speed", type=str, default=None, help="Speech rate (e.g. +10%%)")
+parser.add_argument("--bgm", action="store_true", help="Enable background music")
+parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
+parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 
 args, unknown = parser.parse_known_args()
 
@@ -60,19 +70,45 @@ args, unknown = parser.parse_known_args()
 if args.bgm:
     ENABLE_BGM = True
 
-# Allow --speed to override --rate if provided
+# Speed parsing
 if args.speed:
-    # Check if user provided just a number like "+20" or "-10"
     if not "%" in args.speed and (args.speed.startswith("+") or args.speed.startswith("-") or args.speed.isdigit()):
         TTS_RATE = f"{args.speed}%"
     else:
         TTS_RATE = args.speed
-else:
-    TTS_RATE = args.rate
 
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
-BGM_FILE = args.bgm_track # If None, mixer will pick random
+BGM_FILE = args.bgm_track
+
+# Voice presets
+VOICE_MALE_1 = "zh-CN-YunyangNeural"    # Professional, Reliable
+VOICE_MALE_2 = "zh-CN-YunxiNeural"      # Lively, Sunshine
+VOICE_MALE_3 = "zh-CN-YunjianNeural"    # Passion
+VOICE_FEMALE_1 = "zh-CN-XiaoxiaoNeural"  # Warm
+VOICE_FEMALE_2 = "zh-CN-XiaoyiNeural"    # Lively
+VOICE_FEMALE_3 = "zh-CN-YunxiaNeural"    # Cute
+
+# Voice mode configuration
+# --voices overrides --voice if provided
+if args.voices:
+    VOICES = [v.strip() for v in args.voices.split(",") if v.strip()]
+    print(f"🎤 Custom voices: {', '.join(VOICES)}")
+elif args.voice == "male":
+    VOICES = [VOICE_MALE_1]
+    print(f"🎤 Voice mode: male ({VOICE_MALE_1})")
+elif args.voice == "female":
+    VOICES = [VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: female ({VOICE_FEMALE_1})")
+elif args.voice == "two":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: two (rotating 2 voices)")
+elif args.voice == "four":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
+    print(f"🎤 Voice mode: four (rotating 4 voices)")
+else:  # six
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: six (rotating 6 voices)")
 
 
 # 1. Try --input argument
@@ -124,15 +160,8 @@ TEXT = clean_text(TEXT)
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
-# Mandarin Voices for Rotation
-voices = [
-    "zh-CN-XiaoxiaoNeural", 
-    "zh-CN-YunxiNeural", 
-    "zh-CN-XiaoyiNeural", 
-    "zh-CN-YunyangNeural", 
-    "zh-CN-YunxiaNeural",
-    "zh-CN-YunjianNeural"
-]
+# Use VOICES array from --voice option
+voices = VOICES
 
 TEMP_DIR = OUTPUT_DIR + os.sep 
 

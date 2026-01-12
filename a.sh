@@ -1,0 +1,10 @@
+python mp3_to_mp4.py output/神设立安息日来祝福我们_20250103_edge_bgm.mp3           
+python mp3_to_mp4.py output/穿上新人_20251230_edge_bgm.mp3                         
+python mp3_to_mp4.py output/神的同在_20260104_edge_bgm.mp3
+python mp3_to_mp4.py output/耶稣是主_20251227_edge_bgm.mp3                         
+python mp3_to_mp4.py output/耶稣是我们的光_20251231_edge_bgm.mp3                   
+python mp3_to_mp4.py output/变化_20260105_edge_bgm.mp3
+python mp3_to_mp4.py output/慷慨地播种_20251228_edge_bgm.mp3                       
+python mp3_to_mp4.py output/新的开始_20260101_edge_bgm.mp3                         
+python mp3_to_mp4.py output/全然委身_20251229_edge_bgm.mp3                         
+python mp3_to_mp4.py output/不要丧胆_20260102_edge_bgm.mp3                         

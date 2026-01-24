@@ -1,28 +1,36 @@
-# Devotion Audio TTS – Qwen3-TTS Edition (Offline · Best Chinese Quality)
+# Devotion Audio TTS – Qwen API Edition
 
-Uses Alibaba's official Qwen3-TTS model (Nov 2025) with PyTorch + MPS → runs blazing fast on M1–M4 Macs.
+Uses Alibaba's **Dashscope API** for cloud-based Qwen TTS synthesis.
+
+> [!NOTE]
+> For **local GPU inference** on DGX Spark, see [README-spark.md](README-spark.md) → Workflow C (Qwen-TTS Local).
 
 ## Files
-- `gen_bread_audio_qwen.py`      → Daily Bread (2 voices)
-- `gen_verse_devotion_qwen.py`    → Verse + Devotion + Prayer (5 voices)
-- `requirements-qwen.txt`         → install once
+- `gen_bread_audio_qwen.py` → Daily Bread (2 voices)
+- `gen_verse_devotion_qwen.py` → Verse + Devotion + Prayer (5 voices)
+- `gen_prayer_qwen.py` → Prayer audio
+- `requirements-qwen.txt` → Dependencies
 
-## One-time setup (already done)
+## Setup
 ```bash
+# Install dependencies
 pip install -r requirements-qwen.txt
+
+# Set API key
+export DASHSCOPE_API_KEY="your-key-here"
 ```
 
-## Daily use
-```
-source ~/.pyenv/versions/3.12.12/envs/tts-venv-qwen/bin/activate
-python gen_bread_audio_qwen.py        # ~1.5 seconds
+## Daily Use
+```bash
+python gen_bread_audio_qwen.py
 python gen_verse_devotion_qwen.py --speed 1.2
 ```
 
 ### Arguments
-- `--speed`: Speed adjustment (e.g. `1.2` or `+20%`). Default `1.0`.
-- `--bgm`: Enable background music.
-Output → ~/Downloads/*.mp3
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--speed` | Speed adjustment (e.g. `1.2` or `+20%`) | `1.0` |
+| `--bgm` | Enable background music | False |
+| `--input`, `-i` | Input text file | stdin |
 
-First run downloads model (~1.8 GB), then cached forever).
-Enjoy the highest-quality offline Chinese devotional audio in 2025 — completely free.
+Output → `output/*.mp3`

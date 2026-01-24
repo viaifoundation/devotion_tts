@@ -22,7 +22,8 @@ It supports automatic filename generation based on the Bible verse and date foun
 | GLM-TTS RL | 0.89 | ~8GB | Zero-shot | GRPO emotion |
 | Index-TTS2 | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
 | GPT-SoVITS | N/A | ~6GB | Fine-tune | Custom voice training |
-| Qwen TTS | N/A | ~4GB | Neural | Local multi-voice |
+| Qwen-TTS (Local) | N/A | ~10GB | Zero-shot | Voice Design / DGX Spark |
+| Qwen TTS (API) | N/A | API | Cloud | Dashscope multi-voice |
 | Vibe | N/A | ~4GB | Voice | Voice cloning |
 | Volc (Volcengine) | N/A | API | Cloud | ByteDance API |
 | Edge TTS | N/A | 0 | Cloud | Fast/Free |
@@ -36,7 +37,8 @@ It supports automatic filename generation based on the Bible verse and date foun
 | **GLM-TTS** | `gen_*_glmtts.py` | DGX Spark / Docker | [README-glmtts.md](README-glmtts.md) |
 | **Index-TTS2** | `gen_*_indextts2.py` | DGX Spark / Docker | [README-indextts2.md](README-indextts2.md) |
 | **GPT-SoVITS** | `gen_*_gptsovits.py` | DGX Spark / Docker | [README-gptsovits.md](README-gptsovits.md) |
-| **Qwen TTS** | `gen_*_qwen.py` | `DASHSCOPE_API_KEY` | [README-qwen.md](README-qwen.md) |
+| **Qwen-TTS (Local)** | `gen_*_qwentts.py` | DGX Spark / Docker | [README-qwentts.md](README-qwentts.md) |
+| **Qwen TTS (API)** | `gen_*_qwen.py` | `DASHSCOPE_API_KEY` | [README-qwen.md](README-qwen.md) |
 | **Vibe** | `gen_*_vibe.py` | Local | [README-vibe.md](README-vibe.md) |
 | **Volc** | `gen_*_volc.py` | Volcengine API | [README-volc.md](README-volc.md) |
 | **Edge TTS** | `gen_*_edge.py` | `pip install edge-tts` | [README-edge.md](README-edge.md) |

@@ -1,0 +1,54 @@
+# Dockerfile for Qwen3-TTS on NVIDIA DGX Spark (ARM64/Blackwell)
+# Supports Qwen2.5-TTS 1.7B Model
+
+FROM nvcr.io/nvidia/pytorch:25.11-py3
+
+# Set working directory
+WORKDIR /workspace/github/devotion_tts
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Qwen3-TTS dependencies
+# We uninstall transformers first to ensure we get a clean install if needed, 
+# although we want to be careful not to break the container's optimized environment.
+# Since Qwen2.5-TTS likely needs a recent transformers, checking version compatibility is key.
+# The base image likely has transformers installed.
+
+# Tier 1: Utilities
+RUN pip install --no-cache-dir \
+    numpy \
+    scipy \
+    soundfile \
+    librosa \
+    pydub \
+    inflect \
+    tqdm \
+    loguru \
+    "typing-extensions" \
+    accelerate \
+    einops \
+    transformers_stream_generator \
+    tiktoken \
+    gradio \
+    "fsspec<=2025.10.0"
+
+# Tier 2: AI Core (Install with NO DEPS to prevent torch downgrade)
+# Warning: Do NOT remove --no-deps or torch will be downgraded!
+RUN pip install --no-cache-dir --no-deps \
+    "transformers>=4.40.0" \
+    "huggingface-hub" \
+    "torchaudio"
+
+# Attempt to install flash-attn. Steps taken to maximize success on ARM64:
+# 1. Ensure ninja is installed (usually is in these containers)
+# 2. Use --no-build-isolation to use the container's torch
+RUN pip install ninja && \
+    pip install flash-attn --no-build-isolation || echo "⚠️ Flash Attention build failed, continuing without it. Performance may be degraded."
+
+# Default command
+CMD ["/bin/bash"]

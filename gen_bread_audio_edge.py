@@ -141,9 +141,6 @@ TEXT = clean_text(TEXT)
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 first_paragraphs = [paragraphs[0]]  # First paragraph (introduction)
 second_paragraphs = ["\n\n".join(paragraphs[1:])]  # All remaining paragraphs (main content)
-
-"""
-
 first_line = "Bread_Audio"
 
 from datetime import datetime

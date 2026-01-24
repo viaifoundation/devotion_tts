@@ -91,6 +91,43 @@ python gen_soh_prayer_gptsovits.py \
 
 ---
 
+---
+
+## Workflow C: Qwen-TTS (Local)
+*Best for: High-Fidelity Voice Design & Narration on Blackwell GPU.*
+
+### Quick Start
+```bash
+./scripts/run_spark_qwentts.sh
+```
+
+### Generate Audio
+Inside the container:
+```bash
+python gen_verse_devotion_qwentts.py \
+  -i input.txt \
+  --voice-prompt "A clear, soothing male voice reading scripture." \
+  --bgm
+```
+
+### Arguments
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--voice-prompt` | Natural language voice description | "A clear, soothing..." |
+| `--prefix` | Filename prefix | None |
+
+---
+
+## Workflow D: Qwen-TTS (Hybrid/API)
+*Best for: Lightweight generation using Dashscope Qwen API.*
+
+You can also run the API-based generator inside the Spark environment for consistent BGM/File handling:
+
+```bash
+# Inside the container from Workflow C
+python gen_verse_devotion_qwen.py -i input.txt
+```
+
 ## Verification
 
 ```bash

@@ -181,9 +181,7 @@ first_paragraphs = [paragraphs[0]] # First paragraph (introduction)
 second_paragraphs = [paragraphs[1]] # Second paragraph
 third_paragraphs = [paragraphs[2]] # Third paragraph
 fourth_paragraphs = ["\n\n".join(paragraphs[3:-1])] # Paragraphs between 3rd and last
-fifth_paragraphs = [paragraphs[-1]] # Last paragraph
-"""
-
+fifth_paragraphs = [paragraphs[-1]] # Last paragraph\n
 TEMP_DIR = OUTPUT_DIR + os.sep # For temp files
 TEMP_FIRST = os.path.join(OUTPUT_DIR, "temp_first_verse.mp3")
 TEMP_SECOND = os.path.join(OUTPUT_DIR, "temp_second_verse.mp3")

@@ -44,6 +44,9 @@ RUN pip install --no-cache-dir --no-deps \
     "huggingface-hub" \
     "torchaudio"
 
+# Install Qwen3-TTS package (Critical for model architecture support)
+RUN pip install --no-cache-dir git+https://github.com/QwenLM/Qwen3-TTS.git
+
 # Attempt to install flash-attn. Steps taken to maximize success on ARM64:
 # 1. Ensure ninja is installed (usually is in these containers)
 # 2. Use --no-build-isolation to use the container's torch

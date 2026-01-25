@@ -9,6 +9,7 @@ import torch
 import io
 import soundfile as sf
 import numpy as np
+import traceback
 from datetime import datetime
 import re
 
@@ -116,19 +117,34 @@ class QwenTTSLocalEngine:
         self.device = device
         self.mode = mode
         
-        try:
-            # Placeholder for actual Qwen3-TTS loading logic.
-            # Assuming usage of Qwen3TTSModel from qwen_tts package as per docs
-            try:
-                from qwen_tts import Qwen3TTSModel
-                self.model = Qwen3TTSModel.from_pretrained(
-                    self.model_name, 
-                    device_map=device, 
-                    torch_dtype=torch.float16,
-                    attn_implementation="flash_attention_2"
-                )
-            except ImportError:
-                 print("⚠️ 'qwen_tts' package not found. Trying transformers fallback...")
+            # Try loading with different attention implementations
+            attn_impls = ["flash_attention_2", "sdpa", "eager"]
+            success = False
+            
+            from qwen_tts import Qwen3TTSModel
+            
+            for attn in attn_impls:
+                try:
+                    print(f"⏳ Attempting to load model with attn_implementation='{attn}'...")
+                    self.model = Qwen3TTSModel.from_pretrained(
+                        self.model_name, 
+                        device_map=device, 
+                        torch_dtype=torch.float16,
+                        attn_implementation=attn
+                    )
+                    success = True
+                    print(f"✅ Model loaded successfully with {attn}.")
+                    break
+                except Exception as e:
+                    print(f"⚠️ Failed with {attn}: {e}")
+                    # Continue to next implementation
+            
+            if not success:
+                raise RuntimeError("All attention implementations failed.")
+
+        except ImportError:
+             print("⚠️ 'qwen_tts' package not found. Trying transformers fallback...")
+             try:
                  from transformers import AutoModel
                  self.model = AutoModel.from_pretrained(
                     self.model_name, 
@@ -136,10 +152,15 @@ class QwenTTSLocalEngine:
                     trust_remote_code=True, 
                     torch_dtype=torch.float16
                 )
-            # self.model.eval() # Qwen3TTSModel might not need explicit eval, but safe to keep
-            print("✅ Model loaded successfully.")
+                 print("✅ Model loaded successfully (Fallback).")
+             except Exception as e:
+                 print(f"❌ Fallback failed: {e}")
+                 traceback.print_exc()
+                 self.model = None
+
         except Exception as e:
             print(f"❌ Error loading model: {e}")
+            traceback.print_exc()
             print("⚠️ Running in MOCK mode for structure verification.")
             self.model = None
 

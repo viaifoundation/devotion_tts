@@ -38,6 +38,10 @@ pip install -q --no-deps \
     "huggingface-hub" \
     "torchaudio" || echo "⚠️ AI Core install issues"
 
+# Install Qwen3-TTS package
+echo "[2.5/3] Installing Qwen3-TTS package..."
+pip install -q git+https://github.com/QwenLM/Qwen3-TTS.git || echo "⚠️ Qwen-TTS install failed"
+
 
 # Step 3: Flash Attention Check
 if python -c "import flash_attn" &> /dev/null; then

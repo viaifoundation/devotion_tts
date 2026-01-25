@@ -8,6 +8,7 @@ import argparse
 import torch
 import io
 import soundfile as sf
+import numpy as np
 from datetime import datetime
 import re
 
@@ -42,6 +43,9 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
     print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
     print("  --voices LIST        Custom voices (comma-separated, overrides --voice)")
+    print("  --ref-audio FILE     Reference audio path(s) for cloning (Sep with ',')")
+    print("  --ref-text TEXT      Reference transcript (Sep with '|')")
+    print("  --debug              Enable debug logging")
     print("  --bgm                Enable background music")
     print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
@@ -125,7 +129,8 @@ class QwenTTSLocalEngine:
                 )
             except ImportError:
                  print("⚠️ 'qwen_tts' package not found. Trying transformers fallback...")
-                 self.model = AutoModelForCausalLM.from_pretrained(
+                 from transformers import AutoModel
+                 self.model = AutoModel.from_pretrained(
                     self.model_name, 
                     device_map=device, 
                     trust_remote_code=True, 

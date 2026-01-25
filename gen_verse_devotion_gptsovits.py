@@ -70,7 +70,7 @@ except ImportError as e:
 # --- Configuration ---
 # Default Reference Audio (User should provide this for best results)
 DEFAULT_REF_AUDIO = "assets/ref_audio/ref.wav"
-DEFAULT_REF_TEXT = "你好，我是可以在本地运行的语音生成模型。"
+DEFAULT_REF_TEXT = "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"  # Romans 8:37
 DEFAULT_REF_LANG = "zh"
 
 def scan_models(root_dir):

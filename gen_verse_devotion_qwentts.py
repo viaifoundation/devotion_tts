@@ -1,5 +1,6 @@
 # gen_verse_devotion_qwentts.py
 # Qwen-TTS Local Inference on DGX Spark
+# Supports multiple voices with rotation similar to Edge TTS
 
 import os
 import sys
@@ -22,61 +23,174 @@ from pydub import AudioSegment
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation import GenerationConfig
 
+# Qwen3-TTS Voice Presets (from official documentation)
+# Male voices (Chinese/English native)
+VOICE_MALE_1 = "Dylan"      # Youthful Beijing male, clear natural timbre (Chinese)
+VOICE_MALE_2 = "Aiden"      # Sunny American male, clear midrange (English)
+VOICE_MALE_3 = "Ryan"       # Dynamic male with strong rhythmic drive (English)
+
+# Female voices (Chinese native)
+VOICE_FEMALE_1 = "Serena"   # Warm, gentle young female (Chinese)
+VOICE_FEMALE_2 = "Vivian"   # Bright, slightly edgy young female (Chinese)
+VOICE_FEMALE_3 = "Chelsie"  # Lively female voice (English)
+
 # CLI Args
-parser = argparse.ArgumentParser()
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
+    print("\nOptions:")
+    print("  --input FILE, -i     Text file to read input from")
+    print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
+    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
+    print("  --voices LIST        Custom voices (comma-separated, overrides --voice)")
+    print("  --bgm                Enable background music")
+    print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
+    print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
+    print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  -?, -h, --help       Show this help")
+    print("\nVoice Modes:")
+    print("  male    - Single male voice (Dylan)")
+    print("  female  - Single female voice (Serena)")
+    print("  two     - Rotate 2 voices (1M + 1F): Dylan, Serena")
+    print("  four    - Rotate 4 voices (2M + 2F): Dylan, Serena, Aiden, Vivian")
+    print("  six     - Rotate 6 voices (3M + 3F): Dylan, Serena, Aiden, Vivian, Ryan, Chelsie")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} -i input.txt --voice male")
+    print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
+    print(f"  python {sys.argv[0]} -i input.txt --voice six")
+    sys.exit(0)
+
+# CLI Args
+parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix (e.g. MyPrefix)")
-parser.add_argument("--voice-prompt", type=str, default="A clear, soothing male voice reading scripture.", help="Natural language voice prompt")
+parser.add_argument("--voice", type=str, default="six", choices=["male", "female", "two", "four", "six"],
+                    help="Voice mode: male, female, two, four, six (Default: six)")
+parser.add_argument("--voices", type=str, default=None,
+                    help="Custom voices (comma-separated, overrides --voice)")
+# Cloning Args
+parser.add_argument("--ref-audio", type=str, default=None, help="Reference audio path(s) for cloning (Triggers Cloned Mode). Sep with ',' for rotation.")
+parser.add_argument("--ref-text", type=str, default="然而，靠着爱我们的主，在这一切的事上已经得胜有余了。", help="Reference audio transcript (Use '|' to separate multiple transcripts)")
+
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume adjustment in dB")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 args, unknown = parser.parse_known_args()
 
+# Voice mode configuration
+# --voices overrides --voice if provided
+if args.voices:
+    VOICES = [v.strip() for v in args.voices.split(",") if v.strip()]
+    print(f"🎤 Custom voices: {', '.join(VOICES)}")
+elif args.voice == "male":
+    VOICES = [VOICE_MALE_1]
+    print(f"🎤 Voice mode: male ({VOICE_MALE_1})")
+elif args.voice == "female":
+    VOICES = [VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: female ({VOICE_FEMALE_1})")
+elif args.voice == "two":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: two (Dylan, Serena)")
+elif args.voice == "four":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
+    print(f"🎤 Voice mode: four (Dylan, Serena, Aiden, Vivian)")
+else:  # six
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: six (Dylan, Serena, Aiden, Vivian, Ryan, Chelsie)")
+
 class QwenTTSLocalEngine:
-    def __init__(self, model_name="Qwen/Qwen2.5-TTS", device="cuda"):
-        print(f"Loading Qwen-TTS Model: {model_name}...")
+    def __init__(self, mode="custom", device="cuda"):
+        # Select model based on mode
+        if mode == "clone":
+            self.model_name = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
+            print(f"🔬 Loading Qwen-TTS CLONING Model: {self.model_name}...")
+        else:
+            self.model_name = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+            print(f"🗣️ Loading Qwen-TTS PRESET Model: {self.model_name}...")
+            
         self.device = device
+        self.mode = mode
+        
         try:
             # Placeholder for actual Qwen3-TTS loading logic.
-            # Assuming Qwen2-Audio/TTS structure or generic CausalLM with audio head
-            # For 1.7B, we might use AutoModelForCausalLM or a specific pipeline
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name, 
-                device_map=device, 
-                trust_remote_code=True, 
-                torch_dtype=torch.float16
-            )
-            self.model.eval()
-            print("Model loaded successfully.")
+            # Assuming usage of Qwen3TTSModel from qwen_tts package as per docs
+            try:
+                from qwen_tts import Qwen3TTSModel
+                self.model = Qwen3TTSModel.from_pretrained(
+                    self.model_name, 
+                    device_map=device, 
+                    torch_dtype=torch.float16,
+                    attn_implementation="flash_attention_2"
+                )
+            except ImportError:
+                 print("⚠️ 'qwen_tts' package not found. Trying transformers fallback...")
+                 self.model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name, 
+                    device_map=device, 
+                    trust_remote_code=True, 
+                    torch_dtype=torch.float16
+                )
+            # self.model.eval() # Qwen3TTSModel might not need explicit eval, but safe to keep
+            print("✅ Model loaded successfully.")
         except Exception as e:
-            print(f"Error loading model: {e}")
-            print("Running in MOCK mode for structure verification.")
+            print(f"❌ Error loading model: {e}")
+            print("⚠️ Running in MOCK mode for structure verification.")
             self.model = None
 
-    def synthesize(self, text, voice_prompt, lang="auto"):
+    def synthesize(self, text, speaker_or_ref, ref_text=None, lang="auto"):
+        """
+        Synthesize audio.
+        If mode='custom', speaker_or_ref is the speaker name (str).
+        If mode='clone', speaker_or_ref is the ref_audio path (str) and ref_text must be provided.
+        """
         if not self.model:
-            # Mock return for testing script logic without 10GB download
-            print(f"MOCK SYNTHESIS: {text[:50]}...")
+            # Mock return
+            id_str = speaker_or_ref if isinstance(speaker_or_ref, str) else "REF_AUDIO"
+            print(f"MOCK SYNTHESIS ({self.mode}): '{id_str}' - {text[:30]}...")
             sr = 24000
-            # Generate 1 sec of silence as mock
-            audio_data = torch.zeros(int(sr * 1.0)).numpy()
+            audio_data = torch.zeros(int(sr * 1.5)).numpy()
             return audio_data, sr
 
-        # Real inference logic (adapted from Qwen TTS examples)
-        # This is speculative as Qwen3-TTS API isn't fully public in standard transformers yet
-        # But assuming the prompt-based structure:
-        
-        # Example: <|audio_start|> prompt <|audio_end|> text
-        # logic would go here.
-        # For now, we will assume a standard generate call
-        
-        print(f"Synthesizing: {text[:50]}... with prompt: '{voice_prompt}'")
-        # Placeholder for actual generation code
-        # audio = self.model.generate_audio(text=text, prompt=voice_prompt) 
-        
-        # MOCK for now until model ID is confirmed valid
+        if self.mode == "clone":
+            # Voice Cloning (Base Model)
+            ref_audio = speaker_or_ref
+            print(f"🧬 Cloning from {os.path.basename(ref_audio)}: {text[:40]}...")
+            
+            # Real Qwen3-TTS Clone call
+            # wavs, sr = model.generate_voice_clone(text=..., ref_audio=..., ref_text=...)
+            try:
+                wavs, sr = self.model.generate_voice_clone(
+                    text=text,
+                    language="auto", # or explicitly "Chinese"
+                    ref_audio=ref_audio,
+                    ref_text=ref_text
+                )
+                return wavs[0], sr
+            except AttributeError:
+                 # Fallback if using generic transformer model wrapper
+                 print("⚠️ generate_voice_clone not found on model object.")
+                 return self._mock_gen()
+                 
+        else:
+            # Preset Voice (CustomVoice Model)
+            speaker = speaker_or_ref
+            print(f"🗣️ Speaking ({speaker}): {text[:40]}...")
+            
+            # Real Qwen3-TTS CustomVoice call
+            # wavs, sr = model.generate_custom_voice(text=..., speaker=...)
+            try:
+                wavs, sr = self.model.generate_custom_voice(
+                    text=text,
+                    speaker=speaker,
+                    language="auto"
+                )
+                return wavs[0], sr
+            except AttributeError:
+                 # Fallback
+                 print("⚠️ generate_custom_voice not found on model object.")
+                 return self._mock_gen()
+
+    def _mock_gen(self):
         sr = 24000
         audio_data = torch.zeros(int(sr * 2.0)).numpy()
         return audio_data, sr
@@ -112,18 +226,41 @@ if not os.path.exists("output"):
     os.makedirs("output")
 
 # 4. Synthesize
-engine = QwenTTSLocalEngine() # Uses default Qwen2.5-TTS
+# Detect Mode
+if args.ref_audio:
+    MODE = "clone"
+    print(f"🚀 Starting Qwen-TTS in CLONING mode using: {args.ref_audio}")
+else:
+    MODE = "custom"
+    print(f"🚀 Starting Qwen-TTS in PRESET mode (Voices: {len(VOICES)})")
+
+engine = QwenTTSLocalEngine(mode=MODE) 
 
 # Split text into chunks (Qwen context limit)
 paragraphs = [p for p in TEXT.split('\n') if p.strip()]
 final_audio = AudioSegment.empty()
 silence = AudioSegment.silent(duration=500)
 
-for para in paragraphs:
+
+for i, para in enumerate(paragraphs):
     if not para.strip(): continue
     
     # Audio is numpy array, need to convert to AudioSegment
-    wav_data, sr = engine.synthesize(para, args.voice_prompt)
+    if MODE == "clone":
+        # Cloning Mode: Rotate through reference audios
+        ref_audios = [x.strip() for x in args.ref_audio.split(',')]
+        ref_texts = [x.strip() for x in args.ref_text.split('|')]
+        
+        current_ref_audio = ref_audios[i % len(ref_audios)]
+        current_ref_text = ref_texts[i % len(ref_texts)] # Cycle if fewer texts
+        
+        print(f"  > Para {i+1} [Clone] - Ref: {os.path.basename(current_ref_audio)}")
+        wav_data, sr = engine.synthesize(para, current_ref_audio, ref_text=current_ref_text)
+    else:
+        # Preset Mode: Rotate voices
+        voice = VOICES[i % len(VOICES)]
+        print(f"  > Para {i+1} - {voice} ({len(para)} chars)")
+        wav_data, sr = engine.synthesize(para, voice)
     
     # Convert numpy to bytes for AudioSegment
     # Assuming float32 [-1, 1], convert to int16

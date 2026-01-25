@@ -50,7 +50,7 @@ RUN pip install --no-cache-dir \
 # Warning: Do NOT remove --no-deps or torch will be downgraded!
 RUN pip install --no-cache-dir --no-deps \
     "transformers>=4.40.0" \
-    "huggingface-hub"
+    "huggingface-hub<1.0"
 
 # Install Qwen3-TTS package (Critical for model architecture support)
 # Use --no-deps to ensure it doesn't pull standard torch

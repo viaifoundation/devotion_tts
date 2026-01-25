@@ -40,7 +40,7 @@ USE_CUDA=0 pip install -q git+https://github.com/pytorch/audio.git@v2.5.1 --no-d
 # Install other AI Core deps with --no-deps
 pip install -q --no-deps --force-reinstall \
     "transformers>=4.40.0" \
-    "huggingface-hub" || echo "⚠️ AI Core install issues"
+    "huggingface-hub<1.0" || echo "⚠️ AI Core install issues"
 
 # Install Qwen3-TTS package
 echo "[2.5/3] Installing Qwen3-TTS package..."

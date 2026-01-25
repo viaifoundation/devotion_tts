@@ -117,6 +117,7 @@ class QwenTTSLocalEngine:
         self.device = device
         self.mode = mode
         
+        try:
             # Try loading with different attention implementations
             attn_impls = ["flash_attention_2", "sdpa", "eager"]
             success = False

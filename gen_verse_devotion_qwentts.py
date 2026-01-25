@@ -208,25 +208,25 @@ else:
 
 # 2. Preprocess
 TEXT = clean_text(TEXT)
-TEXT = convert_bible_reference(TEXT)
-TEXT = convert_dates_in_text(TEXT)
 
-# 3. Filename
 # 3. Filename
 # Extract Date
 first_line = TEXT.strip().split('\n')[0]
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
 if date_match:
-        m, d, y = date_match.groups()
-        date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+    m, d, y = date_match.groups()
+    date_str = f"{y}-{int(m):02d}-{int(d):02d}"
 else:
-        # Try YYYY-MM-DD
-        date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", first_line)
-        if date_match:
-            y, m, d = date_match.groups()
-            date_str = f"{y}-{int(m):02d}-{int(d):02d}"
-        else:
-            date_str = datetime.today().strftime("%Y-%m-%d")
+    # Try YYYY-MM-DD
+    date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", first_line)
+    if date_match:
+        y, m, d = date_match.groups()
+        date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+    else:
+        date_str = datetime.today().strftime("%Y-%m-%d")
+
+# Extract Verse Reference (for metadata)
+verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
 extracted_prefix = args.prefix if args.prefix else filename_parser.extract_filename_prefix(TEXT)
 filename = filename_parser.generate_filename_v2(
@@ -236,7 +236,15 @@ filename = filename_parser.generate_filename_v2(
     ext=".mp3"
 ).replace(".mp3", "_qwentts.mp3")
 
+if args.bgm:
+    filename = filename.replace(".mp3", "_bgm.mp3")
+
 OUTPUT_PATH = os.path.join("output", filename)
+
+# 4. Final Text Processing for TTS
+TEXT = convert_bible_reference(TEXT)
+TEXT = convert_dates_in_text(TEXT)
+TEXT = clean_text(TEXT) # Final cleanup
 
 if not os.path.exists("output"):
     os.makedirs("output")

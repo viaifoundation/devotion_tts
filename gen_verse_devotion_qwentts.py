@@ -161,9 +161,13 @@ class QwenTTSLocalEngine:
 
         except Exception as e:
             print(f"❌ Error loading model: {e}")
-            traceback.print_exc()
-            print("⚠️ Running in MOCK mode for structure verification.")
-            self.model = None
+            if 'args' in globals() and args.debug:
+                 print("⚠️ Debug mode enabled: Failing over to MOCK mode for testing.")
+                 traceback.print_exc()
+                 self.model = None
+            else:
+                 print("⛔ Fatal Error: Could not load model. Aborting. (Use --debug to override)")
+                 sys.exit(1)
 
     def synthesize(self, text, speaker_or_ref, ref_text=None, lang="auto"):
         """

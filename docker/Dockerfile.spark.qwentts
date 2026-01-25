@@ -11,7 +11,14 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
     libsndfile1 \
+    pkg-config \
+    cmake \
+    ninja-build \
     && rm -rf /var/lib/apt/lists/*
+
+# Install torchaudio from source (Required for NVIDIA container compatibility)
+# Disabled CUDA build for torchaudio to align with system Torch
+RUN USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
 
 # Install Qwen3-TTS dependencies
 # We uninstall transformers first to ensure we get a clean install if needed, 
@@ -41,11 +48,11 @@ RUN pip install --no-cache-dir \
 # Warning: Do NOT remove --no-deps or torch will be downgraded!
 RUN pip install --no-cache-dir --no-deps \
     "transformers>=4.40.0" \
-    "huggingface-hub" \
-    "torchaudio"
+    "huggingface-hub"
 
 # Install Qwen3-TTS package (Critical for model architecture support)
-RUN pip install --no-cache-dir git+https://github.com/QwenLM/Qwen3-TTS.git
+# Use --no-deps to ensure it doesn't pull standard torch
+RUN pip install --no-cache-dir --no-deps git+https://github.com/QwenLM/Qwen3-TTS.git
 
 # Attempt to install flash-attn. Steps taken to maximize success on ARM64:
 # 1. Ensure ninja is installed (usually is in these containers)

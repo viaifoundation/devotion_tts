@@ -57,7 +57,30 @@ python gen_verse_devotion_qwentts.py -i input.txt \
 Output → `output/*.mp3`
 
 ## Requirements
-- NVIDIA DGX Spark (ARM64 + Blackwell GPU)
-- Docker with GPU support
 - ~10GB for model weights (auto-downloaded)
+
+## Troubleshooting
+
+### 1. No Sound (Silent Audio)
+If the output audio is silent (all zeros), check the logs for:
+`⚠️ Running in MOCK mode for structure verification.`
+This means the model failed to load. Use `--debug` to see why.
+
+### 2. "Torch not compiled with CUDA enabled"
+This happens if `pip install` downgrades PyTorch to a CPU version.
+**Fix:** Run the setup script which compiles `torchaudio` from source to match the NVIDIA container:
+```bash
+source scripts/setup_qwentts_spark.sh
+```
+
+### 3. "Transformers does not recognize this architecture"
+This means the `qwen_tts` package is missing or imports failed.
+**Fix:** Run the setup script (above) which installs `qwen_tts` from GitHub.
+
+### 4. "RuntimeError: operator torchvision::nms does not exist"
+The `torchvision` package is broken due to version mismatch.
+**Fix:** Uninstall it (not needed for TTS):
+```bash
+pip uninstall -y torchvision
+```
 

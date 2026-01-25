@@ -7,7 +7,7 @@ echo "=== Qwen-TTS Setup for DGX Spark ==="
 # Step 1: Install system dependencies (FFmpeg)
 if ! command -v ffmpeg &> /dev/null; then
     echo "[1/3] Installing system dependencies..."
-    apt-get update -qq && apt-get install -y -qq ffmpeg libsndfile1 > /dev/null 2>&1
+    apt-get update -qq && apt-get install -y -qq ffmpeg libsndfile1 cmake ninja-build pkg-config > /dev/null 2>&1
 else
     echo "[1/3] System dependencies (ffmpeg) already installed."
 fi
@@ -32,15 +32,18 @@ pip install -q \
     tiktoken \
     "gradio<4.0" || echo "⚠️ Minor dep install issues"
 
-# Install AI Core with --no-deps to protect torch
-pip install -q --no-deps \
+# Compile Torchaudio (Required for NVIDIA container)
+echo "[2.1/3] Compiling Torchaudio (this may take a moment)..."
+USE_CUDA=0 pip install -q git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation || echo "⚠️ Torchaudio compile failed"
+
+# Install other AI Core deps with --no-deps
+pip install -q --no-deps --force-reinstall \
     "transformers>=4.40.0" \
-    "huggingface-hub" \
-    "torchaudio" || echo "⚠️ AI Core install issues"
+    "huggingface-hub" || echo "⚠️ AI Core install issues"
 
 # Install Qwen3-TTS package
 echo "[2.5/3] Installing Qwen3-TTS package..."
-pip install -q git+https://github.com/QwenLM/Qwen3-TTS.git || echo "⚠️ Qwen-TTS install failed"
+pip install -q --no-deps git+https://github.com/QwenLM/Qwen3-TTS.git || echo "⚠️ Qwen-TTS install failed"
 
 
 # Step 3: Flash Attention Check

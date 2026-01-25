@@ -70,6 +70,7 @@ parser.add_argument("--voices", type=str, default=None,
 # Cloning Args
 parser.add_argument("--ref-audio", type=str, default=None, help="Reference audio path(s) for cloning (Triggers Cloned Mode). Sep with ',' for rotation.")
 parser.add_argument("--ref-text", type=str, default="然而，靠着爱我们的主，在这一切的事上已经得胜有余了。", help="Reference audio transcript (Use '|' to separate multiple transcripts)")
+parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
 parser.add_argument("--bgm", action="store_true", help="Enable background music (Default: False)")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
@@ -286,8 +287,25 @@ for i, para in enumerate(paragraphs):
         print(f"  > Para {i+1} - {voice} ({len(para)} chars)")
         wav_data, sr = engine.synthesize(para, voice)
     
-    # Convert numpy to bytes for AudioSegment
-    # Assuming float32 [-1, 1], convert to int16
+    # Convert numpy/tensor to bytes for AudioSegment
+    # 1. Convert Tensor to Numpy (if needed)
+    if hasattr(wav_data, "cpu"):
+        wav_data = wav_data.cpu().float().numpy() # Ensure float32
+    elif isinstance(wav_data, np.ndarray) and (wav_data.dtype == np.float16):
+        wav_data = wav_data.astype(np.float32)
+        
+    if args.debug:
+        print(f"DEBUG: Audio Chunk - Type={type(wav_data)}, Shape={wav_data.shape}, Dtype={wav_data.dtype}")
+        print(f"DEBUG: Min={wav_data.min():.4f}, Max={wav_data.max():.4f}, Mean={wav_data.mean():.4f}")
+
+    # 2. Normalize/Scale to int16
+    # If audio is very quiet (zeros), it remains zeros.
+    if np.abs(wav_data).max() == 0:
+        if args.debug: print("DEBUG: ⚠️ Audio chunk is all ZEROS.")
+    
+    # Clip to valid range [-1, 1] before scaling just in case
+    wav_data = np.clip(wav_data, -1.0, 1.0)
+    
     wav_int16 = (wav_data * 32767).astype('int16')
     byte_io = io.BytesIO()
     sf.write(byte_io, wav_int16, sr, format='WAV')

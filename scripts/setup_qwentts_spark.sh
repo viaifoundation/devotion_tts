@@ -34,6 +34,7 @@ pip install -q \
 
 # Compile Torchaudio (Required for NVIDIA container)
 echo "[2.1/3] Compiling Torchaudio (this may take a moment)..."
+pip uninstall -y torchvision
 USE_CUDA=0 pip install -q git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation || echo "⚠️ Torchaudio compile failed"
 
 # Install other AI Core deps with --no-deps

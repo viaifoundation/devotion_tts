@@ -18,7 +18,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install torchaudio from source (Required for NVIDIA container compatibility)
 # Disabled CUDA build for torchaudio to align with system Torch
-RUN USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
+# Also remove torchvision to prevent conflicts (not needed for TTS)
+RUN pip uninstall -y torchvision && \
+    USE_CUDA=0 pip install git+https://github.com/pytorch/audio.git@v2.5.1 --no-deps --no-build-isolation
 
 # Install Qwen3-TTS dependencies
 # We uninstall transformers first to ensure we get a clean install if needed, 

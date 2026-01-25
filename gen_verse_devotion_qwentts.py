@@ -156,8 +156,13 @@ class QwenTTSLocalEngine:
                  print("✅ Model loaded successfully (Fallback).")
              except Exception as e:
                  print(f"❌ Fallback failed: {e}")
-                 traceback.print_exc()
-                 self.model = None
+                 if 'args' in globals() and args.debug:
+                      print("⚠️ Debug mode: Continuing in MOCK mode.")
+                      traceback.print_exc()
+                      self.model = None
+                 else:
+                      print("⛔ Fatal Error: Model fallback failed. Aborting. (Use --debug to override)")
+                      sys.exit(1)
 
         except Exception as e:
             print(f"❌ Error loading model: {e}")

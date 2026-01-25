@@ -212,14 +212,30 @@ TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)
 
 # 3. Filename
-if args.prefix:
-    prefix = args.prefix
+# 3. Filename
+# Extract Date
+first_line = TEXT.strip().split('\n')[0]
+date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
+if date_match:
+        m, d, y = date_match.groups()
+        date_str = f"{y}-{int(m):02d}-{int(d):02d}"
 else:
-    prefix = filename_parser.extract_filename_prefix(TEXT)
-    
-date_str = datetime.today().strftime("%Y-%m-%d") # Simplified for now
-title = TEXT.strip().split('\n')[0][:20]
-filename = f"{prefix}_{title}_{date_str}_qwentts.mp3".replace(" ", "_")
+        # Try YYYY-MM-DD
+        date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", first_line)
+        if date_match:
+            y, m, d = date_match.groups()
+            date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+        else:
+            date_str = datetime.today().strftime("%Y-%m-%d")
+
+extracted_prefix = args.prefix if args.prefix else filename_parser.extract_filename_prefix(TEXT)
+filename = filename_parser.generate_filename_v2(
+    title=first_line, 
+    date=date_str, 
+    prefix=extracted_prefix,
+    ext=".mp3"
+).replace(".mp3", "_qwentts.mp3")
+
 OUTPUT_PATH = os.path.join("output", filename)
 
 if not os.path.exists("output"):

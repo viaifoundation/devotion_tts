@@ -16,7 +16,7 @@ Uses Alibaba's **Qwen-TTS model** running locally on the DGX Spark GPU for high-
 ./scripts/run_spark_qwentts.sh
 
 # Inside container
-python gen_verse_devotion_qwentts.py -i input.txt --voice two --bgm
+python gen_verse_devotion_qwentts.py -i input.txt --voice two
 ```
 
 ### Arguments

@@ -52,6 +52,27 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--bgm-track` | BGM filename | `AmazingGrace.MP3` |
 | `--bgm-volume` | BGM volume in dB | -20 |
 | `--bgm-intro` | BGM intro delay in ms | 4000 |
+| `--mp4` | Generate MP4 video from audio | False |
+| `--mp4-bg` | Background image for MP4 | `assets/background/background.jpg` |
+| `--mp4-res` | MP4 resolution | `1920x1080` |
+
+## MP4 Video Generation
+
+Generate YouTube-ready MP4 videos with a static background image:
+
+```bash
+# Generate MP4 with default background
+python gen_verse_devotion_edge.py -i input.txt --mp4
+
+# Custom background and resolution
+python gen_verse_devotion_edge.py -i input.txt --mp4 --mp4-bg ~/imgs/banner.jpg --mp4-res 1280x720
+
+# Full pipeline: audio with BGM + MP4 video
+python gen_verse_devotion_edge.py -i input.txt --bgm --mp4
+```
+
+> [!NOTE]
+> Requires `ffmpeg` installed. The MP4 file is created alongside the MP3 with the same name.
 
 ## Voice Modes
 

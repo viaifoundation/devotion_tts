@@ -9,6 +9,7 @@ from text_cleaner import clean_text
 import filename_parser
 import re
 from datetime import datetime
+from mp3_to_mp4 import create_mp4, DEFAULT_BG
 
 TTS_RATE = "+0%"  # Default Speed (normal)
 
@@ -30,6 +31,9 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --mp4                Generate MP4 video from audio")
+    print("  --mp4-bg IMAGE       Background image for MP4 (Default: assets/background/background.jpg)")
+    print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
     print("  male    - Single male voice (YunyangNeural)")
@@ -55,6 +59,9 @@ parser.add_argument("--bgm", action="store_true", help="Enable background music"
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
+parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
+parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
+parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -275,6 +282,26 @@ async def main():
         'comments': COMMENTS
     })
     print(f"✅ Combined audio saved: {OUTPUT}")
+
+    # Generate MP4 video if requested
+    if args.mp4:
+        mp4_output = OUTPUT.replace(".mp3", ".mp4")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        bg_path = args.mp4_bg
+        if not os.path.isabs(bg_path):
+            bg_path = os.path.join(script_dir, bg_path)
+        if os.path.exists(bg_path):
+            success = create_mp4(
+                input_mp3=OUTPUT,
+                bg_image=bg_path,
+                output_mp4=mp4_output,
+                resolution=args.mp4_res
+            )
+            if not success:
+                print("⚠️ MP4 generation failed")
+        else:
+            print(f"⚠️ Background image not found: {bg_path}")
+            print(f"   Skipping MP4 generation. Create with: mkdir -p assets/background")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -61,7 +61,7 @@ It is highly recommended to use `pyenv` to manage Python versions and virtual en
 1.  **Install Prerequisites (Pyenv & FFmpeg)**:
     ```bash
     brew update
-    brew install pyenv pyenv-virtualenv ffmpeg
+    brew install pyenv ffmpeg
     ```
     *Follow the instructions printed in your terminal to add pyenv to your shell profile (e.g., `~/.zshrc` or `~/.bash_profile`).*
 
@@ -70,20 +70,22 @@ It is highly recommended to use `pyenv` to manage Python versions and virtual en
     pyenv install 3.12.12
     ```
 
-3.  **Create & Activate Virtual Environment**:
+3.  **Set Local Python Version** (Optional but recommended):
     ```bash
-    # Create virtual env named "tts-venv-qwen"
-    pyenv virtualenv 3.12.12 tts-venv-qwen
-    
-    # Activate it
-    pyenv activate tts-venv-qwen
-    
-    # (Optional) Auto-activate when entering folder
-    pyenv local tts-venv-qwen
+    pyenv local 3.12.12
     ```
 
-4.  **Confirm Activation**:
-    You should see `(tts-venv-qwen)` in your prompt.
+4.  **Create & Activate Virtual Environment**:
+    ```bash
+    # Create virtual env named ".venv"
+    python -m venv .venv
+    
+    # Activate it
+    source .venv/bin/activate
+    ```
+
+5.  **Confirm Activation**:
+    You should see `(.venv)` in your prompt.
 
 ### B. Linux Setup Guide
 
@@ -106,27 +108,27 @@ It is highly recommended to use `pyenv` to manage Python versions and virtual en
     # Install Python 3.12.12
     pyenv install 3.12.12
     
+    # Set local version
+    pyenv local 3.12.12
+
     # Create virtual env
-    pyenv virtualenv 3.12.12 tts-venv-qwen
+    python -m venv .venv
     
     # Activate
-    pyenv activate tts-venv-qwen
+    source .venv/bin/activate
     ```
 
 ### C. Helpful Commands
 
 ```bash
 # Deactivate virtual env
-pyenv deactivate
+deactivate
 
-# List all versions
+# List all pyenv versions
 pyenv versions
 
-# List virtual envs
-pyenv virtualenvs
-
-# Delete virtual env
-pyenv uninstall tts-venv-qwen
+# Remove the virtual env
+rm -rf .venv
 
 # Check current python path
 which python

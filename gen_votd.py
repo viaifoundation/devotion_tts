@@ -397,6 +397,7 @@ async def main():
     # ─── Section 2: Verse Translation TTS ───
     print(f"\n--- Section 2: Verse Translations ---")
     chapter_audio_segments = []  # Collect chapter audio for later (Section 7)
+    chapter_txt_lines = []       # Collect chapter text for output.txt (Section 7)
 
     if expanded_blocks:
         for block_idx, block in enumerate(expanded_blocks):
@@ -412,13 +413,15 @@ async def main():
                     ch_seg = ch_seg + args.speech_volume
                 chapter_audio_segments.append(ch_seg)
 
-            # Add chapter text to output.txt
+            # Collect chapter text for output.txt (Section 7)
             if block['chapter_text']:
-                txt_lines.append(block['chapter_text'])
-                txt_lines.append(f"({block['chapter_ref']})")
+                chapter_txt_lines.append(block['chapter_text'])
+                chapter_txt_lines.append(f"({block['chapter_ref']})")
+                chapter_txt_lines.append("")
             else:
                 if block_idx < len(sections['verse_texts']):
-                    txt_lines.append(sections['verse_texts'][block_idx])
+                    chapter_txt_lines.append(sections['verse_texts'][block_idx])
+                    chapter_txt_lines.append("")
 
             # Translation TTS
             if block['translations']:
@@ -535,6 +538,8 @@ async def main():
             print(f"  📖 Appending chapter {ch_idx + 1} ({len(ch_seg)/1000:.1f}s)")
             final_segments.append(SILENCE_SECTION)
             final_segments.append(ch_seg)
+        # Add chapter text to output.txt
+        txt_lines.extend(chapter_txt_lines)
 
     # ─── Combine all segments ───
     print(f"\n--- Combining {len(final_segments)} segments ---")

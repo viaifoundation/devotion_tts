@@ -200,6 +200,36 @@ print(f"Target Output: {OUTPUT_PATH}")
 
 # ─── Helpers ───
 
+def _speedup_ffmpeg(seg: AudioSegment, speed: float) -> AudioSegment:
+    """Speed up using ffmpeg atempo (preserves pitch). Chains atempo for speed > 2."""
+    import tempfile
+    import subprocess
+    from pathlib import Path
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        tmp_in = f.name
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        tmp_out = f.name
+    try:
+        seg.export(tmp_in, format="wav")
+        # atempo accepts 0.5–2.0; chain for higher speeds (e.g. 3x = atempo=2,atempo=1.5)
+        parts = []
+        r = speed
+        while r > 2.0:
+            parts.append("atempo=2")
+            r /= 2.0
+        if r > 1.0:
+            parts.append(f"atempo={r}")
+        filter_str = ",".join(parts) if parts else "atempo=1"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_in, "-filter:a", filter_str, tmp_out],
+            check=True, capture_output=True
+        )
+        return AudioSegment.from_wav(tmp_out)
+    finally:
+        Path(tmp_in).unlink(missing_ok=True)
+        Path(tmp_out).unlink(missing_ok=True)
+
+
 def _load_chapter_audio(book_num: int, chapter_num: int, speed: float = 1.0) -> AudioSegment:
     """Load pre-recorded chapter MP3 from assets/bible/audio/chapters/."""
     fname = f"{book_num:03d}_{chapter_num:03d}.mp3"
@@ -210,12 +240,9 @@ def _load_chapter_audio(book_num: int, chapter_num: int, speed: float = 1.0) -> 
     try:
         seg = AudioSegment.from_mp3(path)
         orig_len = len(seg) / 1000
-        # Apply speed change if needed
+        # Apply speed change using ffmpeg atempo (preserves pitch)
         if speed != 1.0 and speed > 0:
-            # Change speed by altering frame rate then converting back
-            new_frame_rate = int(seg.frame_rate * speed)
-            seg = seg._spawn(seg.raw_data, overrides={'frame_rate': new_frame_rate})
-            seg = seg.set_frame_rate(44100)  # Normalize back to standard rate
+            seg = _speedup_ffmpeg(seg, speed)
         print(f"  📖 Loaded chapter audio: {fname} ({orig_len:.1f}s → {len(seg)/1000:.1f}s @ {speed}x)")
         return seg
     except Exception as e:

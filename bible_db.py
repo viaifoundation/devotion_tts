@@ -218,13 +218,13 @@ class BibleDB:
     def get_verse_in_all_translations(self, book: int, chapter: int,
                                        verse_start: int, verse_end: int) -> list:
         """
-        Get a verse range in all 4 translations.
+        Get a verse range in all 4 translations (CUV appears twice: first and last).
         Returns list of (translation_code, label, text).
-        Order: 新譯本, 標準譯本, 當代譯本, 和合本
+        Order: 和合本, 新譯本, 標準譯本, 當代譯本, 和合本
         """
         result = []
-        # Order matches input2.txt: CNV, CSBS, CCB, CUV
-        for code in ["ncvs", "ccsb", "clbs", "cuvt"]:
+        # CUV bookends: CUV, CNV, CSBS, CCB, CUV
+        for code in ["cuvt", "ncvs", "ccsb", "clbs", "cuvt"]:
             text = self.get_verse_text(book, chapter, verse_start, verse_end, code)
             if text:
                 label = TRANSLATION_LABELS[code]
@@ -256,9 +256,9 @@ class BibleDB:
             chapter_text = ""
             chapter_ref = f"{book_name} {chapter} 和合本"
 
-        # Get verse in all translations
+        # Get verse in all translations (CUV bookends)
         translations = []
-        for code in ["ncvs", "ccsb", "clbs", "cuvt"]:
+        for code in ["cuvt", "ncvs", "ccsb", "clbs", "cuvt"]:
             text = self.get_verse_text(book, chapter, verse_start, verse_end, code)
             if text:
                 label = TRANSLATION_LABELS[code]

@@ -508,20 +508,19 @@ async def main():
     # ─── Section 4: Essay Body ───
     print(f"\n--- Section 4: Essay Body ---")
     if sections['essay_body']:
-        essay_text = "\n\n".join(sections['essay_body'])
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        temp_file = os.path.join(OUTPUT_DIR, "temp_votd_essay.mp3")
-        await generate_audio(tts_prep(essay_text), voice, temp_file)
-        try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        for eb in sections['essay_body']:
-            txt_lines.append(eb)
+        for eb_idx, essay_para in enumerate(sections['essay_body']):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_essay_{eb_idx}.mp3")
+            await generate_audio(tts_prep(essay_para), voice, temp_file)
+            try:
+                seg = AudioSegment.from_mp3(temp_file)
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(seg)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            txt_lines.append(essay_para)
             txt_lines.append("")
 
     # ─── Section 5: Prayer ───
@@ -541,8 +540,18 @@ async def main():
         txt_lines.append(sections['prayer'])
         txt_lines.append("")
 
-    # ─── Section 6: Credits ───
-    print(f"\n--- Section 6: Credits ---")
+    # ─── Section 6: Chapter Audio (Everest, before credits) ───
+    if chapter_audio_segments:
+        print(f"\n--- Section 6: Chapter Audio ({len(chapter_audio_segments)} chapters) ---")
+        for ch_idx, ch_seg in enumerate(chapter_audio_segments):
+            print(f"  📖 Appending chapter {ch_idx + 1} ({len(ch_seg)/1000:.1f}s)")
+            final_segments.append(SILENCE_SECTION)
+            final_segments.append(ch_seg)
+        # Add chapter text to output.txt
+        txt_lines.extend(chapter_txt_lines)
+
+    # ─── Section 7: Credits (last) ───
+    print(f"\n--- Section 7: Credits ---")
     for cr_idx, credit in enumerate(sections['credits']):
         voice = voices[global_voice_idx % len(voices)]
         global_voice_idx += 1
@@ -557,16 +566,6 @@ async def main():
                 os.remove(temp_file)
         txt_lines.append(credit)
         txt_lines.append("")
-
-    # ─── Section 7: Chapter Audio (Everest, after credits) ───
-    if chapter_audio_segments:
-        print(f"\n--- Section 7: Chapter Audio ({len(chapter_audio_segments)} chapters) ---")
-        for ch_idx, ch_seg in enumerate(chapter_audio_segments):
-            print(f"  📖 Appending chapter {ch_idx + 1} ({len(ch_seg)/1000:.1f}s)")
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(ch_seg)
-        # Add chapter text to output.txt
-        txt_lines.extend(chapter_txt_lines)
 
     # ─── Combine all segments ───
     print(f"\n--- Combining {len(final_segments)} segments ---")

@@ -1,16 +1,17 @@
 """
 bible_db.py – Query Bible text from local SQLite database.
 
-The SQLite file is at assets/bible/bible.sqlite (exported from BibleEngine MySQL).
+The SQLite file is at assets/bible/db/bible.sqlite (exported from BibleEngine MySQL).
 
 Table schema:
-  verses(book INT, chapter INT, verse INT, cuvt TEXT, ncvs TEXT, ccsb TEXT, clbs TEXT)
+  verses(book INT, chapter INT, verse INT, cuvt TEXT, ncvs TEXT, lcvs TEXT, clbs TEXT, cuvc TEXT)
 
 Translation codes:
   cuvt = 和合本 (CUV Traditional)
   ncvs = 新譯本 (CNV)
-  ccsb = 標準譯本 (CSBS)
+  lcvs = 呂振中譯本 (LCV)
   clbs = 當代譯本 (CCB / 當代聖經)
+  cuvc = 文理和合本 (Classical CUV)
 """
 
 import os
@@ -36,8 +37,9 @@ DEFAULT_DB = os.path.join(SCRIPT_DIR, "assets", "bible", "db", "bible.sqlite")
 TRANSLATION_LABELS = {
     "cuvt": "和合本",
     "ncvs": "新譯本",
-    "ccsb": "標準譯本",
+    "lcvs": "呂振中譯本",
     "clbs": "當代譯本",
+    "cuvc": "文理和合本",
 }
 
 # Book number (1-66) from English name
@@ -218,13 +220,13 @@ class BibleDB:
     def get_verse_in_all_translations(self, book: int, chapter: int,
                                        verse_start: int, verse_end: int) -> list:
         """
-        Get a verse range in all 4 translations (CUV appears twice: first and last).
+        Get a verse range in all 5 translations (CUV appears twice: first and last).
         Returns list of (translation_code, label, text).
-        Order: 和合本, 新譯本, 標準譯本, 當代譯本, 和合本
+        Order: 和合本, 新譯本, 呂振中譯本, 當代譯本, 文理和合本, 和合本
         """
         result = []
-        # CUV bookends: CUV, CNV, CSBS, CCB, CUV
-        for code in ["cuvt", "ncvs", "ccsb", "clbs", "cuvt"]:
+        # CUV bookends: CUV, CNV, LCV, CCB, CUVC, CUV
+        for code in ["cuvt", "ncvs", "lcvs", "clbs", "cuvc", "cuvt"]:
             text = self.get_verse_text(book, chapter, verse_start, verse_end, code)
             if text:
                 label = TRANSLATION_LABELS[code]
@@ -258,7 +260,7 @@ class BibleDB:
 
         # Get verse in all translations (CUV bookends)
         translations = []
-        for code in ["cuvt", "ncvs", "ccsb", "clbs", "cuvt"]:
+        for code in ["cuvt", "ncvs", "lcvs", "clbs", "cuvc", "cuvt"]:
             text = self.get_verse_text(book, chapter, verse_start, verse_end, code)
             if text:
                 label = TRANSLATION_LABELS[code]

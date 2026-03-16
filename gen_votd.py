@@ -2,8 +2,8 @@
 gen_votd.py – Enhanced Verse of the Day Audio Generator
 
 Based on gen_verse_devotion_edge.py, adds:
-  1. Multi-translation Bible verse TTS (4 translations per verse, rotating voices)
-  2. Full chapter audio (pre-recorded Everest) mixed with BGM from assets/bible/bgm/
+  1. CUV-only Bible verse TTS in the verse section
+  2. Bible Audio section: 6 readings (5 translations, CUV bookends) per verse + full chapter (Everest)
   3. Auto-expands verse references from input.txt using local SQLite Bible DB
 
 Input: input.txt (simple format with verse references like (詩篇 77:12 和合本))
@@ -421,10 +421,11 @@ async def main():
         txt_lines.append(sections['title'])
         txt_lines.append("")
 
-    # ─── Section 2: Verse Translation TTS ───
-    print(f"\n--- Section 2: Verse Translations ---")
-    chapter_audio_segments = []  # Collect chapter audio for later (Section 7)
-    chapter_txt_lines = []       # Collect chapter text for output.txt (Section 7)
+    # ─── Section 2: Verse (CUV only) ───
+    print(f"\n--- Section 2: Verse (CUV only) ---")
+    chapter_audio_segments = []  # Collect chapter audio for Section 6 (Bible Audio)
+    chapter_txt_lines = []       # Collect chapter text for output.txt
+    bible_audio_blocks = []      # Collect (translations, chapter_seg) for Section 6
 
     if expanded_blocks:
         for block_idx, block in enumerate(expanded_blocks):
@@ -432,15 +433,14 @@ async def main():
             book_num = block['book_num']
             chapter_num = block['chapter_num']
 
-            # Collect chapter audio for Section 7 (after credits)
+            # Collect chapter audio for Section 6
             ch_seg = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
             if ch_seg is not None:
                 # Boost volume if needed (Everest audio is quiet)
                 if args.speech_volume != 0:
                     ch_seg = ch_seg + args.speech_volume
-                chapter_audio_segments.append(ch_seg)
 
-            # Collect chapter text for output.txt (Section 7)
+            # Collect chapter text for output.txt
             if block['chapter_text']:
                 chapter_txt_lines.append(block['chapter_text'])
                 chapter_txt_lines.append(f"({block['chapter_ref']})")
@@ -450,25 +450,30 @@ async def main():
                     chapter_txt_lines.append(sections['verse_texts'][block_idx])
                     chapter_txt_lines.append("")
 
-            # Translation TTS
+            # Save full translations + chapter audio for Section 6 (Bible Audio)
+            bible_audio_blocks.append({
+                'translations': block['translations'],
+                'chapter_seg': ch_seg,
+                'block_idx': block_idx,
+            })
+
+            # Section 2: Only TTS the CUV (first) translation
             if block['translations']:
                 final_segments.append(SILENCE_SECTION)
-                for t_idx, (code, label, text, ref_str) in enumerate(block['translations']):
-                    voice = voices[global_voice_idx % len(voices)]
-                    global_voice_idx += 1
-                    tts_text = f"{text}\n({ref_str})"
-                    temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_trans_{block_idx}_{t_idx}.mp3")
-                    await generate_audio(tts_prep(tts_text), voice, temp_file)
-                    try:
-                        seg = AudioSegment.from_mp3(temp_file)
-                        final_segments.append(seg)
-                        if t_idx < len(block['translations']) - 1:
-                            final_segments.append(SILENCE_SHORT)
-                    finally:
-                        if os.path.exists(temp_file):
-                            os.remove(temp_file)
-                    txt_lines.append(text)
-                    txt_lines.append(f"({ref_str})")
+                code, label, text, ref_str = block['translations'][0]
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                tts_text = f"{text}\n({ref_str})"
+                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_{block_idx}.mp3")
+                await generate_audio(tts_prep(tts_text), voice, temp_file)
+                try:
+                    seg = AudioSegment.from_mp3(temp_file)
+                    final_segments.append(seg)
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                txt_lines.append(text)
+                txt_lines.append(f"({ref_str})")
 
             txt_lines.append("")
     else:
@@ -540,13 +545,42 @@ async def main():
         txt_lines.append(sections['prayer'])
         txt_lines.append("")
 
-    # ─── Section 6: Chapter Audio (Everest, before credits) ───
-    if chapter_audio_segments:
-        print(f"\n--- Section 6: Chapter Audio ({len(chapter_audio_segments)} chapters) ---")
-        for ch_idx, ch_seg in enumerate(chapter_audio_segments):
-            print(f"  📖 Appending chapter {ch_idx + 1} ({len(ch_seg)/1000:.1f}s)")
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(ch_seg)
+    # ─── Section 6: Bible Audio (multi-translation verse TTS + Everest chapter) ───
+    if bible_audio_blocks:
+        print(f"\n--- Section 6: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
+        for ba_block in bible_audio_blocks:
+            translations = ba_block['translations']
+            ch_seg = ba_block['chapter_seg']
+            block_idx = ba_block['block_idx']
+
+            # 6a. TTS all translations of the verse (6 readings: CUV, CNV, LCV, CCB, CUVC, CUV)
+            if translations:
+                print(f"  🔁 Verse block {block_idx + 1}: {len(translations)} translation readings")
+                final_segments.append(SILENCE_SECTION)
+                for t_idx, (code, label, text, ref_str) in enumerate(translations):
+                    voice = voices[global_voice_idx % len(voices)]
+                    global_voice_idx += 1
+                    tts_text = f"{text}\n({ref_str})"
+                    temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_ba_trans_{block_idx}_{t_idx}.mp3")
+                    await generate_audio(tts_prep(tts_text), voice, temp_file)
+                    try:
+                        seg = AudioSegment.from_mp3(temp_file)
+                        final_segments.append(seg)
+                        if t_idx < len(translations) - 1:
+                            final_segments.append(SILENCE_SHORT)
+                    finally:
+                        if os.path.exists(temp_file):
+                            os.remove(temp_file)
+                    txt_lines.append(text)
+                    txt_lines.append(f"({ref_str})")
+                txt_lines.append("")
+
+            # 6b. Full chapter audio (Everest pre-recorded)
+            if ch_seg is not None:
+                print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(ch_seg)
+
         # Add chapter text to output.txt
         txt_lines.extend(chapter_txt_lines)
 

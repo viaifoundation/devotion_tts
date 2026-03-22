@@ -582,15 +582,72 @@ async def main():
         txt_lines.append(sections['prayer'])
         txt_lines.append("")
 
-    # ─── Section 6: Bible Audio (multi-translation verse TTS + Everest chapter) ───
+    # ─── Section 6: Credits ───
+    print(f"\n--- Section 6: Credits ---")
+    if sections['title']:
+        sections['credits'].append(sections['title'])
+
+    for cr_idx, credit in enumerate(sections['credits']):
+        voice = voices[global_voice_idx % len(voices)]
+        global_voice_idx += 1
+        temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_credit_{cr_idx}.mp3")
+        await generate_audio(tts_prep(credit), voice, temp_file)
+        try:
+            seg = AudioSegment.from_mp3(temp_file)
+            final_segments.append(SILENCE_SECTION)
+            final_segments.append(seg)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        txt_lines.append(credit)
+        txt_lines.append("")
+
+    # ─── Combine and Export Short Version ───
+    print(f"\n--- Combining Short Version ({len(final_segments)} segments) ---")
+    short_final = AudioSegment.empty()
+    for seg in final_segments:
+        short_final += seg
+
+    if ENABLE_BGM:
+        print(f"🎵 Mixing Overall BGM for Short Version...")
+        short_final = audio_mixer.mix_bgm(
+            short_final,
+            specific_filename=BGM_FILE,
+            volume_db=BGM_VOLUME,
+            intro_delay_ms=BGM_INTRO_DELAY
+        )
+
+    PRODUCER = "VI AI Foundation"
+    TITLE = sections['title']
+    ALBUM = "VOTD"
+    bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
+    COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
+
+    short_output_path = OUTPUT_PATH.replace(".mp3", "_short.mp3")
+    short_final.export(short_output_path, format="mp3", tags={
+        'title': f"{TITLE} (Short)",
+        'artist': PRODUCER,
+        'album': ALBUM,
+        'comments': COMMENTS
+    })
+    print(f"\n✅ Short version saved: {short_output_path}")
+
+    # Save output_short.txt
+    txt_output_short = OUTPUT_PATH.replace(".mp3", "_short.txt")
+    with open(txt_output_short, "w", encoding="utf-8") as f:
+        f.write("\n".join(txt_lines))
+    print(f"📝 Short Text saved: {txt_output_short}")
+
+
+    # ─── Section 7: Bible Audio (added to long version) ───
     if bible_audio_blocks:
-        print(f"\n--- Section 6: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
+        print(f"\n--- Section 7: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
         for ba_block in bible_audio_blocks:
             translations = ba_block['translations']
             ch_seg = ba_block['chapter_seg']
             block_idx = ba_block['block_idx']
 
-            # 6a. TTS all translations of the verse (6 readings: CUV, CNV, LCV, CCB, CUVC, CUV)
+            # 7a. TTS all translations of the verse
             if translations:
                 print(f"  🔁 Verse block {block_idx + 1}: {len(translations)} translation readings")
                 final_segments.append(SILENCE_SECTION)
@@ -612,13 +669,13 @@ async def main():
                     txt_lines.append(f"({ref_str})")
                 txt_lines.append("")
 
-            # 6b. Full chapter audio (Everest pre-recorded)
+            # 7b. Full chapter audio (Everest pre-recorded)
             if ch_seg is not None:
                 print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(ch_seg)
                 
-            # 6c. Add CUV translation again after the chapter audio
+            # 7c. Add CUV translation again after the chapter audio
             if translations:
                 print(f"  🔁 Appending CUV verse again for block {block_idx + 1}")
                 final_segments.append(SILENCE_SECTION)
@@ -638,63 +695,34 @@ async def main():
         # Add chapter text to output.txt
         txt_lines.extend(chapter_txt_lines)
 
-    # ─── Section 7: Credits (last) ───
-    print(f"\n--- Section 7: Credits ---")
-    if sections['title']:
-        sections['credits'].append(sections['title'])
-
-    for cr_idx, credit in enumerate(sections['credits']):
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_credit_{cr_idx}.mp3")
-        await generate_audio(tts_prep(credit), voice, temp_file)
-        try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        txt_lines.append(credit)
-        txt_lines.append("")
-
-    # ─── Combine all segments ───
-    print(f"\n--- Combining {len(final_segments)} segments ---")
-    final = AudioSegment.empty()
+    # ─── Combine and Export Long Version ───
+    print(f"\n--- Combining Long Version ({len(final_segments)} segments) ---")
+    long_final = AudioSegment.empty()
     for seg in final_segments:
-        final += seg
+        long_final += seg
 
-    # Optional: mix overall BGM for non-bible sections
     if ENABLE_BGM:
-        print(f"🎵 Mixing Overall BGM (Vol={BGM_VOLUME}dB, Intro={BGM_INTRO_DELAY}ms)...")
-        final = audio_mixer.mix_bgm(
-            final,
+        print(f"🎵 Mixing Overall BGM for Long Version...")
+        long_final = audio_mixer.mix_bgm(
+            long_final,
             specific_filename=BGM_FILE,
             volume_db=BGM_VOLUME,
             intro_delay_ms=BGM_INTRO_DELAY
         )
 
-    # ─── Export MP3 ───
-    PRODUCER = "VI AI Foundation"
-    TITLE = sections['title']
-    ALBUM = "VOTD"
-    bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
-    COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
-
-    final.export(OUTPUT_PATH, format="mp3", tags={
+    long_output_path = OUTPUT_PATH
+    long_final.export(long_output_path, format="mp3", tags={
         'title': TITLE,
         'artist': PRODUCER,
         'album': ALBUM,
         'comments': COMMENTS
     })
-    print(f"\n✅ Combined audio saved: {OUTPUT_PATH}")
-    print(f"   Duration: {len(final)/1000:.1f}s")
+    print(f"\n✅ Long version saved: {long_output_path}")
 
-    # ─── Generate output.txt ───
-    txt_output = OUTPUT_PATH.replace(".mp3", ".txt")
-    with open(txt_output, "w", encoding="utf-8") as f:
+    txt_output_long = OUTPUT_PATH.replace(".mp3", ".txt")
+    with open(txt_output_long, "w", encoding="utf-8") as f:
         f.write("\n".join(txt_lines))
-    print(f"📝 Text saved: {txt_output}")
+    print(f"📝 Text saved: {txt_output_long}")
 
     # ─── Generate MP4 if requested ───
     if args.mp4:

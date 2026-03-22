@@ -332,15 +332,46 @@ def parse_input_sections(text: str) -> dict:
     body_and_prayer = remaining[:credits_start]
     result['credits'] = remaining[credits_start:]
 
-    # Last paragraph may be prayer
-    if body_and_prayer:
+    # Extract trailing verses from the end of body_and_prayer
+    trailing_verses = []
+    trailing_refs = []
+    while body_and_prayer:
         last = body_and_prayer[-1]
-        if (last.startswith("禱告") or "阿們" in last or "阿门" in last
-                or "奉耶穌的名" in last or "奉耶稣的名" in last):
-            result['prayer'] = last
-            result['essay_body'] = body_and_prayer[:-1]
+        ref_match = re.search(r'\(([^\)]+和合本)\)', last)
+        if ref_match:
+            trailing_verses.insert(0, last)
+            body_and_prayer.pop()
+            ref = parse_verse_reference(ref_match.group(0))
+            if ref:
+                trailing_refs.insert(0, ref)
+            else:
+                print(f"  ⚠️ Could not parse trailing verse reference: {ref_match.group(0)}")
         else:
-            result['essay_body'] = body_and_prayer
+            break
+
+    # Add trailing verses to the main verse lists so Section 6 processes all of them
+    result['verse_texts'].extend(trailing_verses)
+    result['verse_refs'].extend(trailing_refs)
+
+    # Prayer could be multiple paragraphs (e.g. starts with "禱告")
+    if body_and_prayer:
+        prayer_start_idx = -1
+        for i in range(len(body_and_prayer)):
+            if body_and_prayer[i].startswith("禱告"):
+                prayer_start_idx = i
+                break
+                
+        if prayer_start_idx != -1:
+            result['prayer'] = "\n\n".join(body_and_prayer[prayer_start_idx:])
+            result['essay_body'] = body_and_prayer[:prayer_start_idx]
+        else:
+            # Fallback if "禱告" is missing but it ends with Amen
+            last = body_and_prayer[-1]
+            if "阿們" in last or "阿门" in last or "奉耶穌的名" in last or "奉耶稣的名" in last:
+                result['prayer'] = last
+                result['essay_body'] = body_and_prayer[:-1]
+            else:
+                result['essay_body'] = body_and_prayer
 
     return result
 
@@ -445,6 +476,10 @@ async def main():
                 chapter_txt_lines.append(block['chapter_text'])
                 chapter_txt_lines.append(f"({block['chapter_ref']})")
                 chapter_txt_lines.append("")
+                if block['translations']:
+                    chapter_txt_lines.append(block['translations'][0][2])
+                    chapter_txt_lines.append(f"({block['translations'][0][3]})")
+                    chapter_txt_lines.append("")
             else:
                 if block_idx < len(sections['verse_texts']):
                     chapter_txt_lines.append(sections['verse_texts'][block_idx])
@@ -457,8 +492,8 @@ async def main():
                 'block_idx': block_idx,
             })
 
-            # Section 2: Only TTS the CUV (first) translation
-            if block['translations']:
+            # Section 2: Only TTS the CUV (first) translation FOR THE FIRST VERSE ONLY
+            if block_idx == 0 and block['translations']:
                 final_segments.append(SILENCE_SECTION)
                 code, label, text, ref_str = block['translations'][0]
                 voice = voices[global_voice_idx % len(voices)]
@@ -474,11 +509,13 @@ async def main():
                         os.remove(temp_file)
                 txt_lines.append(text)
                 txt_lines.append(f"({ref_str})")
+                txt_lines.append("")
 
-            txt_lines.append("")
     else:
-        # No DB available — use original verse text with TTS only
-        for v_idx, verse_text in enumerate(sections['verse_texts']):
+        # No DB available — use original verse text with TTS only (first verse only)
+        if sections['verse_texts']:
+            v_idx = 0
+            verse_text = sections['verse_texts'][0]
             voice = voices[global_voice_idx % len(voices)]
             global_voice_idx += 1
             temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_verse_{v_idx}.mp3")
@@ -580,12 +617,32 @@ async def main():
                 print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(ch_seg)
+                
+            # 6c. Add CUV translation again after the chapter audio
+            if translations:
+                print(f"  🔁 Appending CUV verse again for block {block_idx + 1}")
+                final_segments.append(SILENCE_SECTION)
+                code, label, text, ref_str = translations[0]
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                tts_text = f"{text}\n({ref_str})"
+                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_post_{block_idx}.mp3")
+                await generate_audio(tts_prep(tts_text), voice, temp_file)
+                try:
+                    seg = AudioSegment.from_mp3(temp_file)
+                    final_segments.append(seg)
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
 
         # Add chapter text to output.txt
         txt_lines.extend(chapter_txt_lines)
 
     # ─── Section 7: Credits (last) ───
     print(f"\n--- Section 7: Credits ---")
+    if sections['title']:
+        sections['credits'].append(sections['title'])
+
     for cr_idx, credit in enumerate(sections['credits']):
         voice = voices[global_voice_idx % len(voices)]
         global_voice_idx += 1

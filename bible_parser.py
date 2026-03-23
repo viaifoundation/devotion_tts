@@ -63,7 +63,10 @@ def convert_bible_reference(text):
                     break
         
         if valid_book:
-            return f"{prefix}{valid_book}{chapter}章{format_verses(verses)}节"
+            if "詩篇" in valid_book or "诗篇" in valid_book:
+                return f"{prefix}{valid_book}{chapter}篇{format_verses(verses)}节"
+            else:
+                return f"{prefix}{valid_book}{chapter}章{format_verses(verses)}节"
         else:
             # Check English names or unexpected keys? 
             # If not in dict, leave as is.

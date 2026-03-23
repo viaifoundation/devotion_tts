@@ -359,7 +359,7 @@ def parse_input_sections(text: str) -> dict:
     if body_and_prayer:
         prayer_start_idx = -1
         for i in range(len(body_and_prayer)):
-            if body_and_prayer[i].startswith("禱告"):
+            if body_and_prayer[i].strip() == "禱告":
                 prayer_start_idx = i
                 break
                 

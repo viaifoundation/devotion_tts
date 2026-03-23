@@ -7,7 +7,9 @@ Based on gen_verse_devotion_edge.py, adds:
   3. Auto-expands verse references from input.txt using local SQLite Bible DB
 
 Input: input.txt (simple format with verse references like (詩篇 77:12 和合本))
-Output: MP3 audio + output.txt (expanded text with all translations)
+Output: Exports two versions:
+  - Short Version: `_short.mp3` + `_short.txt` (Contains Essay + Prayer + Credits)
+  - Long Version: `.mp3` + `.txt` (Includes all of the above + multi-translation Bible audio + Chapter audio)
 
 Usage:
   python gen_votd.py -i input.txt
@@ -587,6 +589,7 @@ async def main():
     if sections['title']:
         sections['credits'].append(sections['title'])
 
+    credits_audio_segments = []
     for cr_idx, credit in enumerate(sections['credits']):
         voice = voices[global_voice_idx % len(voices)]
         global_voice_idx += 1
@@ -596,6 +599,8 @@ async def main():
             seg = AudioSegment.from_mp3(temp_file)
             final_segments.append(SILENCE_SECTION)
             final_segments.append(seg)
+            credits_audio_segments.append(SILENCE_SECTION)
+            credits_audio_segments.append(seg)
         finally:
             if os.path.exists(temp_file):
                 os.remove(temp_file)
@@ -694,6 +699,14 @@ async def main():
 
         # Add chapter text to output.txt
         txt_lines.extend(chapter_txt_lines)
+
+    # ─── Section 8: Final Credits (copy) ───
+    print(f"\n--- Section 8: Final Credits (copy) ---")
+    for seg in credits_audio_segments:
+        final_segments.append(seg)
+    for credit in sections['credits']:
+        txt_lines.append(credit)
+        txt_lines.append("")
 
     # ─── Combine and Export Long Version ───
     print(f"\n--- Combining Long Version ({len(final_segments)} segments) ---")

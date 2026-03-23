@@ -49,7 +49,7 @@ It supports automatic filename generation based on the Bible verse and date foun
 
 | Tool | Purpose | Usage |
 |------|---------|-------|
-| `gen_votd.py` | VOTD audio: CUV verse + multi-translation Bible audio + Everest chapters | `python gen_votd.py -i input.txt` |
+| `gen_votd.py` | VOTD audio: Exports both a Short version (essay+prayer) and Long version (includes multi-translation Bible audio + Everest chapters) | `python gen_votd.py -i input.txt` |
 | `mp3_to_mp4.py` | Convert MP3 to MP4 for YouTube | `python mp3_to_mp4.py audio.mp3 --bg image.jpg` |
 | `gen_voice_samples_edge.py` | Generate voice samples for CosyVoice 3.0 | `python gen_voice_samples_edge.py --all` |
 

@@ -494,8 +494,8 @@ async def main():
                 'block_idx': block_idx,
             })
 
-            # Section 2: Only TTS the CUV (first) translation FOR THE FIRST VERSE ONLY
-            if block_idx == 0 and block['translations']:
+            # Section 2: TTS the CUV (first) translation for each verse
+            if block['translations']:
                 final_segments.append(SILENCE_SECTION)
                 code, label, text, ref_str = block['translations'][0]
                 voice = voices[global_voice_idx % len(voices)]
@@ -514,10 +514,8 @@ async def main():
                 txt_lines.append("")
 
     else:
-        # No DB available — use original verse text with TTS only (first verse only)
-        if sections['verse_texts']:
-            v_idx = 0
-            verse_text = sections['verse_texts'][0]
+        # No DB available — use original verse text with TTS only
+        for v_idx, verse_text in enumerate(sections['verse_texts']):
             voice = voices[global_voice_idx % len(voices)]
             global_voice_idx += 1
             temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_verse_{v_idx}.mp3")

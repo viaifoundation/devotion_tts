@@ -204,12 +204,19 @@ if len(paragraphs) < 5:
     # Fallback if text is too short, just treat as list
     logical_sections = [[p] for p in paragraphs]
 else:
+    prayer_idx = len(paragraphs) - 1
+    for i in range(3, len(paragraphs)):
+        p_text = paragraphs[i].strip()
+        if p_text.startswith("祷告") or p_text.startswith("禱告") or p_text.startswith("祈祷") or p_text.startswith("回應") or p_text.startswith("回应") or p_text.startswith("祈求"):
+            prayer_idx = i
+            break
+
     logical_sections = [
         [paragraphs[0]],              # Intro
         [paragraphs[1]],              # Scripture 1
         [paragraphs[2]],              # Scripture 2
-        paragraphs[3:-1],             # Main Body (List of paragraphs)
-        [paragraphs[-1]]              # Prayer
+        paragraphs[3:prayer_idx],     # Main Body (List of paragraphs)
+        paragraphs[prayer_idx:]       # Prayer
     ]
 
 # Ensure we don't exceed available voices

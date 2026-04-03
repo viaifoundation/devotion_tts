@@ -8,7 +8,7 @@ def remove_space_before_god(text):
     Returns:
         str: Text with spaces removed before '神'.
     """
-    text = re.sub(r'　(神)', r'\1', text)
+    text = re.sub(r'[ 　]+(神)', r'\1', text)
     return text
 
 def remove_control_characters(text):

@@ -565,22 +565,25 @@ async def main():
             txt_lines.append(essay_para)
             txt_lines.append("")
 
-    # ─── Section 5: Prayer ───
+    # ─── Section 5: Prayer (voice rotation per paragraph) ───
     print(f"\n--- Section 5: Prayer ---")
     if sections['prayer']:
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        temp_file = os.path.join(OUTPUT_DIR, "temp_votd_prayer.mp3")
-        await generate_audio(tts_prep(sections['prayer']), voice, temp_file)
-        try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        txt_lines.append(sections['prayer'])
-        txt_lines.append("")
+        prayer_paras = [p.strip() for p in sections['prayer'].split("\n\n") if p.strip()]
+        print(f"  Prayer has {len(prayer_paras)} paragraph(s)")
+        for pr_idx, prayer_para in enumerate(prayer_paras):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_prayer_{pr_idx}.mp3")
+            await generate_audio(tts_prep(prayer_para), voice, temp_file)
+            try:
+                seg = AudioSegment.from_mp3(temp_file)
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(seg)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            txt_lines.append(prayer_para)
+            txt_lines.append("")
 
     # ─── Section 6: Credits ───
     print(f"\n--- Section 6: Credits ---")

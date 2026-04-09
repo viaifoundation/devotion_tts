@@ -20,6 +20,7 @@ It supports automatic filename generation based on the Bible verse and date foun
 |--------|------------|------|------|----------|
 | **Fun-CosyVoice 3.0** | **0.81** ✅ | ~4-6GB | Zero-shot | Best accuracy (SOTA) |
 | GLM-TTS RL | 0.89 | ~8GB | Zero-shot | GRPO emotion |
+| VoxCPM2 | SOTA-level | ~8GB | Zero-shot | Voice Design + 48kHz |
 | Index-TTS2 | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
 | GPT-SoVITS | N/A | ~6GB | Fine-tune | Custom voice training |
 | Qwen-TTS (Local) | N/A | ~10GB | Zero-shot | Voice Design / DGX Spark |
@@ -35,6 +36,7 @@ It supports automatic filename generation based on the Bible verse and date foun
 | :--- | :--- | :--- | :--- |
 | **Fun-CosyVoice 3.0** | `gen_*_cosy3.py` | DGX Spark / Docker | [README-cosy3.md](README-cosy3.md) |
 | **GLM-TTS** | `gen_*_glmtts.py` | DGX Spark / Docker | [README-glmtts.md](README-glmtts.md) |
+| **VoxCPM2** | `gen_*_voxcpm2.py` | `pip install voxcpm` | [README-voxcpm2.md](README-voxcpm2.md) |
 | **Index-TTS2** | `gen_*_indextts2.py` | DGX Spark / Docker | [README-indextts2.md](README-indextts2.md) |
 | **GPT-SoVITS** | `gen_*_gptsovits.py` | DGX Spark / Docker | [README-gptsovits.md](README-gptsovits.md) |
 | **Qwen-TTS (Local)** | `gen_*_qwentts.py` | DGX Spark / Docker | [README-qwentts.md](README-qwentts.md) |

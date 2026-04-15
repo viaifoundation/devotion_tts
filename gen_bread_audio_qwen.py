@@ -8,7 +8,7 @@ import re
 
 from bible_parser import convert_bible_reference
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts
 from datetime import datetime
 import argparse
 import sys
@@ -103,8 +103,8 @@ OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 
 
 
-TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+# 2. Final cleaning for display/text output
+TEXT = clean_text_basic(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 intro = paragraphs[0]
@@ -138,10 +138,14 @@ def chunk_text(text: str, max_len: int = 450) -> list[str]:
     return chunks
 
 def speak(text: str, voice: str = "Cherry") -> AudioSegment:
-    print(f"DEBUG: Text to read: {text[:100]}...")
+    # Prepare text specifically for TTS (pronunciation fixes, etc.)
+    tts_text = convert_bible_reference(text)
+    tts_text = clean_text_for_tts(tts_text)
+    
+    print(f"DEBUG: Text to read: {tts_text[:100]}...")
     resp = SpeechSynthesizer.call(
         model="qwen-tts",
-        text=text,
+        text=tts_text,
         voice=voice,
         format="wav",
         sample_rate=24000

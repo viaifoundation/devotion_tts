@@ -61,18 +61,44 @@ def fix_pronunciation(text):
     # Using '賺' as a phonetic guide for the TTS.
     text = text.replace("使徒行傳", "使徒行賺")
     text = text.replace("使徒行传", "使徒行赚")
-    
+
+    # 撒母耳 -> 薩母耳 (ensure correct pronunciation of '撒')
+    text = text.replace("撒母耳", "薩母耳")
+
+    # 俄巴底亞 -> 額巴底亞 (ensure 'É' sound)
+    text = text.replace("俄巴底亞", "額巴底亞")
+    text = text.replace("俄巴底亚", "额巴底亚")
+
+    return text
+
+
+def clean_text_basic(text):
+    """
+    Basic cleaning for display and saving to text files.
+    Removes control characters, bracketed emojis, and fixes spacing,
+    but does NOT change pronunciation or convert URLs to speech.
+    """
+    text = remove_control_characters(text)
+    text = remove_bracketed_emojis(text)
+    text = remove_space_before_god(text)
+    return text
+
+
+def clean_text_for_tts(text):
+    """
+    Full cleaning for TTS engines.
+    Includes basic cleaning plus URL-to-speech and pronunciation fixes.
+    """
+    text = clean_text_basic(text)
+    text = convert_urls_to_speech(text)
+    text = fix_pronunciation(text)
     return text
 
 
 def clean_text(text):
     """
-    Master cleaning function.
+    Legacy alias for clean_text_for_tts to maintain backward compatibility
+    with scripts not yet updated.
     """
-    text = remove_control_characters(text)
-    text = remove_bracketed_emojis(text)
-    text = remove_space_before_god(text)
-    text = convert_urls_to_speech(text)
-    text = fix_pronunciation(text)
-    return text
+    return clean_text_for_tts(text)
 

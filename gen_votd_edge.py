@@ -27,7 +27,7 @@ from datetime import datetime
 
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
 from mp3_to_mp4 import create_mp4, DEFAULT_BG
@@ -154,7 +154,7 @@ else:
 
 
 # ─── Filename generation ───
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 first_line = TEXT.strip().split('\n')[0]
 
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
@@ -379,10 +379,10 @@ def parse_input_sections(text: str) -> dict:
 
 
 def tts_prep(text: str) -> str:
-    """Prepare text for TTS: convert references, dates, clean."""
+    """Prepare text for TTS: convert references, dates, clean with focus on pronunciation."""
     text = convert_bible_reference(text)
     text = convert_dates_in_text(text)
-    text = clean_text(text)
+    text = clean_text_for_tts(text)
     return text
 
 
@@ -451,7 +451,7 @@ async def main():
         finally:
             if os.path.exists(temp_file):
                 os.remove(temp_file)
-        txt_lines.append(sections['title'])
+        txt_lines.append(clean_text_basic(sections['title']))
         txt_lines.append("")
 
     # ─── Section 2: Verse (CUV only) ───
@@ -509,7 +509,7 @@ async def main():
                 finally:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
-                txt_lines.append(text)
+                txt_lines.append(clean_text_basic(text))
                 txt_lines.append(f"({ref_str})")
                 txt_lines.append("")
 
@@ -544,7 +544,7 @@ async def main():
         finally:
             if os.path.exists(temp_file):
                 os.remove(temp_file)
-        txt_lines.append(essay_title)
+        txt_lines.append(clean_text_basic(essay_title))
         txt_lines.append("")
 
     # ─── Section 4: Essay Body ───
@@ -562,7 +562,7 @@ async def main():
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
-            txt_lines.append(essay_para)
+            txt_lines.append(clean_text_basic(essay_para))
             txt_lines.append("")
 
     # ─── Section 5: Prayer (voice rotation per paragraph) ───
@@ -582,7 +582,7 @@ async def main():
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
-            txt_lines.append(prayer_para)
+            txt_lines.append(clean_text_basic(prayer_para))
             txt_lines.append("")
 
     # ─── Section 6: Credits ───

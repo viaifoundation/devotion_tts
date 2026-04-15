@@ -29,7 +29,7 @@ from datetime import datetime
 
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
 from mp3_to_mp4 import create_mp4, DEFAULT_BG
@@ -169,7 +169,7 @@ else:
 
 
 # ─── Filename generation ───
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 first_line = TEXT.strip().split('\n')[0]
 
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
@@ -394,10 +394,10 @@ def parse_input_sections(text: str) -> dict:
 
 
 def tts_prep(text: str) -> str:
-    """Prepare text for TTS: convert references, dates, clean."""
+    """Prepare text for TTS: convert references, dates, clean with focus on pronunciation."""
     text = convert_bible_reference(text)
     text = convert_dates_in_text(text)
-    text = clean_text(text)
+    text = clean_text_for_tts(text)
     return text
 
 
@@ -505,7 +505,7 @@ def main():
         global_voice_idx += 1
         seg = generate_audio_segment(sections['title'], voice)
         final_segments.append(seg)
-        txt_lines.append(sections['title'])
+        txt_lines.append(clean_text_basic(sections['title']))
         txt_lines.append("")
 
     # ─── Section 2: Verse (CUV only) ───
@@ -557,7 +557,9 @@ def main():
                 tts_text = f"{text}\n({ref_str})"
                 seg = generate_audio_segment(tts_text, voice)
                 final_segments.append(seg)
-                txt_lines.append(text)
+                # Keep original formatting for display text
+                txt_line_text = clean_text_basic(text)
+                txt_lines.append(txt_line_text)
                 txt_lines.append(f"({ref_str})")
                 txt_lines.append("")
 
@@ -580,7 +582,7 @@ def main():
         seg = generate_audio_segment(essay_title, voice)
         final_segments.append(SILENCE_SECTION)
         final_segments.append(seg)
-        txt_lines.append(essay_title)
+        txt_lines.append(clean_text_basic(essay_title))
         txt_lines.append("")
 
     # ─── Section 4: Essay Body ───
@@ -592,7 +594,7 @@ def main():
             seg = generate_audio_segment(essay_para, voice)
             final_segments.append(SILENCE_SECTION)
             final_segments.append(seg)
-            txt_lines.append(essay_para)
+            txt_lines.append(clean_text_basic(essay_para))
             txt_lines.append("")
 
     # ─── Section 5: Prayer (voice rotation per paragraph) ───
@@ -606,7 +608,7 @@ def main():
             seg = generate_audio_segment(prayer_para, voice)
             final_segments.append(SILENCE_SECTION)
             final_segments.append(seg)
-            txt_lines.append(prayer_para)
+            txt_lines.append(clean_text_basic(prayer_para))
             txt_lines.append("")
 
     # ─── Section 6: Credits ───
@@ -623,7 +625,7 @@ def main():
         final_segments.append(seg)
         credits_audio_segments.append(SILENCE_SECTION)
         credits_audio_segments.append(seg)
-        txt_lines.append(credit)
+        txt_lines.append(clean_text_basic(credit))
         txt_lines.append("")
 
     # ─── Combine and Export Short Version ───

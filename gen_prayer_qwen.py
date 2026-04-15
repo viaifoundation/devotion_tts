@@ -8,7 +8,7 @@ from pydub import AudioSegment
 
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text, extract_date_from_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import re
 from datetime import datetime
@@ -84,7 +84,7 @@ if not dashscope.api_key:
 
 # Generate filename dynamically
 # 1. Extract Date
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 date_str = extract_date_from_text(TEXT)
 
 if not date_str:
@@ -117,9 +117,9 @@ if not os.path.exists(OUTPUT_DIR):
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
-TEXT = convert_bible_reference(TEXT)
-TEXT = convert_dates_in_text(TEXT)
-TEXT = clean_text(TEXT)
+# 3. Final cleaning for display/text output
+# Already done during filename generation, but keeping it here for clarity
+TEXT = clean_text_basic(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
@@ -127,11 +127,16 @@ paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 voices = ["Cherry", "Serena", "Ethan", "Chelsie"]
 
 def speak(text: str, voice: str) -> AudioSegment:
-    print(f"DEBUG: Text to read: {text[:100]}...")
+    # Prepare text specifically for TTS (pronunciation fixes, etc.)
+    tts_text = convert_bible_reference(text)
+    tts_text = convert_dates_in_text(tts_text)
+    tts_text = clean_text_for_tts(tts_text)
+    
+    print(f"DEBUG: Text to read: {tts_text[:100]}...")
     # Qwen Limit check? It's usually good for short paragraphs.
     resp = SpeechSynthesizer.call(
         model="qwen-tts",
-        text=text,
+        text=tts_text,
         voice=voice,
         format="wav",
         sample_rate=24000

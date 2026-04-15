@@ -12,7 +12,7 @@ from pydub import AudioSegment
 
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
 import re
@@ -149,9 +149,8 @@ if not os.path.exists(OUTPUT_DIR):
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
-TEXT = convert_bible_reference(TEXT)
-TEXT = convert_dates_in_text(TEXT)
-TEXT = clean_text(TEXT)
+# 4. Final cleaning for display/text output
+TEXT = clean_text_basic(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 # Supported Qwen-TTS voices
@@ -176,10 +175,15 @@ def chunk_text(text: str, max_len: int = 400) -> list[str]:
     return chunks
 
 def speak(text: str, voice: str) -> AudioSegment:
-    print(f"DEBUG: Text to read: {text[:100]}...")
+    # Prepare text specifically for TTS (pronunciation fixes, etc.)
+    tts_text = convert_bible_reference(text)
+    tts_text = convert_dates_in_text(tts_text)
+    tts_text = clean_text_for_tts(tts_text)
+    
+    print(f"DEBUG: Text to read: {tts_text[:100]}...")
     resp = SpeechSynthesizer.call(
         model="qwen-tts",
-        text=text,
+        text=tts_text,
         voice=voice,
         format="wav",
         sample_rate=24000,

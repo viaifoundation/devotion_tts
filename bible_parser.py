@@ -1,5 +1,5 @@
 import re
-from filename_parser import CHINESE_TO_ENGLISH, SINGLE_CHAPTER_BOOKS
+from filename_parser import CHINESE_TO_ENGLISH, SINGLE_CHAPTER_BOOKS, expand_to_full_book_name
 
 def convert_bible_reference(text):
     """
@@ -63,10 +63,11 @@ def convert_bible_reference(text):
                     break
         
         if valid_book:
-            if "詩篇" in valid_book or "诗篇" in valid_book:
-                return f"{prefix}{valid_book}{chapter}篇{format_verses(verses)}节"
+            full_name = expand_to_full_book_name(valid_book)
+            if "詩篇" in full_name or "诗篇" in full_name:
+                return f"{prefix}{full_name}{chapter}篇{format_verses(verses)}节"
             else:
-                return f"{prefix}{valid_book}{chapter}章{format_verses(verses)}节"
+                return f"{prefix}{full_name}{chapter}章{format_verses(verses)}节"
         else:
             # Check English names or unexpected keys? 
             # If not in dict, leave as is.
@@ -99,7 +100,8 @@ def convert_bible_reference(text):
                      break
         
         if valid_book:
-             return f"{prefix}{valid_book}{format_verses(verses)}节"
+             full_name = expand_to_full_book_name(valid_book)
+             return f"{prefix}{full_name}{format_verses(verses)}节"
         
         return m.group(0)
 

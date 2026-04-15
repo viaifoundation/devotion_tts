@@ -1,7 +1,7 @@
 """
-gen_votd_qwen.py – Enhanced Verse of the Day Audio Generator (Qwen3-TTS-Flash)
+gen_votd_qwen.py – Enhanced Verse of the Day Audio Generator (Qwen-TTS)
 
-Based on gen_votd.py, uses Qwen3-TTS-Flash via DashScope API instead of Edge TTS.
+Based on gen_votd.py, uses Qwen-TTS via DashScope API instead of Edge TTS.
   1. CUV-only Bible verse TTS in the verse section
   2. Bible Audio section: 6 readings (5 translations, CUV bookends) per verse + full chapter (Everest)
   3. Auto-expands verse references from input.txt using local SQLite Bible DB
@@ -21,8 +21,9 @@ import io
 import sys
 import os
 import re
+import requests
 import dashscope
-from dashscope.audio.tts import SpeechSynthesizer
+from dashscope.audio.qwen_tts import SpeechSynthesizer
 from pydub import AudioSegment
 from datetime import datetime
 
@@ -60,7 +61,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  -?, -h, --help       Show this help")
-    print("\nVoice Modes (Qwen3-TTS-Flash):")
+    print("\nVoice Modes (Qwen-TTS):")
     print("  male    - Single male voice (Ethan)")
     print("  female  - Single female voice (Cherry)")
     print("  two     - Rotate 2 voices (1 male + 1 female)")
@@ -121,7 +122,7 @@ def parse_speed_to_qwen_rate(speed_str):
 
 QWEN_SPEECH_RATE = parse_speed_to_qwen_rate(args.speed)
 
-# Voice presets (Qwen3-TTS-Flash)
+# Voice presets (Qwen-TTS)
 VOICE_MALE_1 = "Ethan"      # Clear midrange male
 VOICE_MALE_2 = "Dylan"      # Youthful Beijing male
 VOICE_MALE_3 = "Ryan"       # Dynamic male
@@ -422,19 +423,20 @@ def chunk_text(text: str, max_len: int = 400) -> list[str]:
 
 
 def speak(text: str, voice: str) -> AudioSegment:
-    """Generate TTS audio using Qwen3-TTS-Flash via DashScope API."""
     print(f"  🔊 TTS ({voice}): {text[:60]}...")
     resp = SpeechSynthesizer.call(
-        model="qwen3-tts-flash",
+        model="qwen-tts",
         text=text,
         voice=voice,
         format="wav",
         sample_rate=24000,
         speech_rate=QWEN_SPEECH_RATE
     )
-    audio_data = resp.get_audio_data()
-    if audio_data is None:
-        raise Exception(f"API Error: {resp.get_response().message}")
+    if resp.status_code != 200:
+        raise Exception(f"API Error: {resp.message}")
+    
+    audio_url = resp.output.audio["url"]
+    audio_data = requests.get(audio_url).content
     return AudioSegment.from_wav(io.BytesIO(audio_data))
 
 

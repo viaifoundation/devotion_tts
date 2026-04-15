@@ -1,12 +1,13 @@
 
 # gen_verse_devotion_qwen.py
-# Qwen3-TTS-Flash via DashScope API – 5 voices, works perfectly
+# Qwen-TTS via DashScope API – 5 voices
 
 import io
 import os
 import sys
+import requests
 import dashscope
-from dashscope.audio.tts import SpeechSynthesizer
+from dashscope.audio.qwen_tts import SpeechSynthesizer
 from pydub import AudioSegment
 
 from bible_parser import convert_bible_reference
@@ -177,16 +178,18 @@ def chunk_text(text: str, max_len: int = 400) -> list[str]:
 def speak(text: str, voice: str) -> AudioSegment:
     print(f"DEBUG: Text to read: {text[:100]}...")
     resp = SpeechSynthesizer.call(
-        model="qwen3-tts-flash",
+        model="qwen-tts",
         text=text,
         voice=voice,
         format="wav",
         sample_rate=24000,
         speech_rate=QWEN_SPEECH_RATE
     )
-    audio_data = resp.get_audio_data()
-    if audio_data is None:
-        raise Exception(f"API Error: {resp.get_response().message}")
+    if resp.status_code != 200:
+        raise Exception(f"API Error: {resp.message}")
+        
+    audio_url = resp.output.audio["url"]
+    audio_data = requests.get(audio_url).content
     return AudioSegment.from_wav(io.BytesIO(audio_data))
 
 # Group paragraphs into 5 logical sections

@@ -1,6 +1,6 @@
 # Devotion Audio TTS – Qwen API Edition
 
-Uses Alibaba's **Dashscope API** for cloud-based **Qwen3-TTS-Flash** synthesis.
+Uses Alibaba's **Dashscope API** for cloud-based **Qwen-TTS** synthesis.
 
 > [!NOTE]
 > For **local GPU inference** on DGX Spark, see [README-spark.md](README-spark.md) → Workflow C (Qwen-TTS Local).

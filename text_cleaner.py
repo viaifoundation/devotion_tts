@@ -50,6 +50,21 @@ def convert_urls_to_speech(text):
     return text
 
 
+def fix_pronunciation(text):
+    """
+    Substitutes characters to force correct TTS pronunciation.
+    """
+    # 祢 (Nǐ) -> 你 (Nǐ) for God
+    text = text.replace("祢", "你")
+    
+    # 使徒行傳 -> 使徒行賺 (force pronunciation "Zhuàn" instead of "Chuán")
+    # Using '賺' as a phonetic guide for the TTS.
+    text = text.replace("使徒行傳", "使徒行賺")
+    text = text.replace("使徒行传", "使徒行赚")
+    
+    return text
+
+
 def clean_text(text):
     """
     Master cleaning function.
@@ -58,5 +73,6 @@ def clean_text(text):
     text = remove_bracketed_emojis(text)
     text = remove_space_before_god(text)
     text = convert_urls_to_speech(text)
+    text = fix_pronunciation(text)
     return text
 

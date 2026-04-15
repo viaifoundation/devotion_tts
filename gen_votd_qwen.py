@@ -122,10 +122,8 @@ def parse_speed_to_qwen_rate(speed_str):
 
 QWEN_SPEECH_RATE = parse_speed_to_qwen_rate(args.speed)
 
-# Voice presets (Qwen-TTS)
+# Voice presets (Qwen-TTS) - Only these 4 are supported by the legacy model
 VOICE_MALE_1 = "Ethan"      # Clear midrange male
-VOICE_MALE_2 = "Dylan"      # Youthful Beijing male
-VOICE_MALE_3 = "Ryan"       # Dynamic male
 VOICE_FEMALE_1 = "Cherry"   # Warm female
 VOICE_FEMALE_2 = "Serena"   # Gentle female
 VOICE_FEMALE_3 = "Chelsie"  # Lively female
@@ -143,12 +141,12 @@ elif args.voice == "female":
 elif args.voice == "two":
     VOICES = [VOICE_MALE_1, VOICE_FEMALE_1]
     print(f"🎤 Voice mode: two (rotating 2 voices)")
-elif args.voice == "four":
-    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
-    print(f"🎤 Voice mode: four (rotating 4 voices)")
-else:  # six (default)
-    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
-    print(f"🎤 Voice mode: six (rotating 6 voices)")
+elif args.voice == "four" or args.voice == "six":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_FEMALE_2, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: {args.voice} (rotating 4 supported voices)")
+else:  # default
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_FEMALE_2, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: default (rotating 4 supported voices)")
 
 
 # ─── DashScope API Key ───

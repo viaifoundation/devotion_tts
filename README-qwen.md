@@ -1,11 +1,12 @@
 # Devotion Audio TTS – Qwen API Edition
 
-Uses Alibaba's **Dashscope API** for cloud-based Qwen TTS synthesis.
+Uses Alibaba's **Dashscope API** for cloud-based **Qwen3-TTS-Flash** synthesis.
 
 > [!NOTE]
 > For **local GPU inference** on DGX Spark, see [README-spark.md](README-spark.md) → Workflow C (Qwen-TTS Local).
 
 ## Files
+- `gen_votd_qwen.py` → Verse of the Day (8 sections, multi-translation)
 - `gen_bread_audio_qwen.py` → Daily Bread (2 voices)
 - `gen_verse_devotion_qwen.py` → Verse + Devotion + Prayer (5 voices)
 - `gen_prayer_qwen.py` → Prayer audio

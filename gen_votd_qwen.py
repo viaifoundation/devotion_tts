@@ -1,0 +1,772 @@
+"""
+gen_votd_qwen.py – Enhanced Verse of the Day Audio Generator (Qwen3-TTS-Flash)
+
+Based on gen_votd.py, uses Qwen3-TTS-Flash via DashScope API instead of Edge TTS.
+  1. CUV-only Bible verse TTS in the verse section
+  2. Bible Audio section: 6 readings (5 translations, CUV bookends) per verse + full chapter (Everest)
+  3. Auto-expands verse references from input.txt using local SQLite Bible DB
+
+Input: input.txt (simple format with verse references like (詩篇 77:12 和合本))
+Output: Exports two versions:
+  - Short Version: `_short.mp3` + `_short.txt` (Contains Essay + Prayer + Credits)
+  - Long Version: `.mp3` + `.txt` (Includes all of the above + multi-translation Bible audio + Chapter audio)
+
+Usage:
+  python gen_votd_qwen.py -i input.txt
+  python gen_votd_qwen.py -i input.txt --voice six --bgm
+  python gen_votd_qwen.py -i input.txt --bible-bgm-volume -18 --speech-volume 6
+"""
+
+import io
+import sys
+import os
+import re
+import dashscope
+from dashscope.audio.tts import SpeechSynthesizer
+from pydub import AudioSegment
+from datetime import datetime
+
+from bible_parser import convert_bible_reference
+from date_parser import convert_dates_in_text
+from text_cleaner import clean_text
+import filename_parser
+import audio_mixer
+from mp3_to_mp4 import create_mp4, DEFAULT_BG
+from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHAPTERS_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "audio", "chapters")
+BIBLE_BGM_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "bgm")
+
+# ─── CLI Args ───
+if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
+    print(f"Usage: python {sys.argv[0]} [OPTIONS]")
+    print("\nOptions:")
+    print("  --input FILE, -i     Text file to read input from")
+    print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
+    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
+    print("  --voices LIST        Custom voices (CSV, overrides --voice)")
+    print("  --speed SPEED        Speed factor (0.5-2.0, default 1.0)")
+    print("  --bgm                Enable background music for non-bible sections")
+    print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
+    print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
+    print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --bible-bgm-volume   Bible chapter BGM volume in dB (Default: -20)")
+    print("  --bible-bgm-intro    Bible chapter BGM intro delay in ms (Default: 4000)")
+    print("  --speech-volume VOL  Boost for chapter speech in dB (Default: 4)")
+    print("  --chapter-speed SPD  Speed multiplier for Everest chapter audio (Default: 1.5)")
+    print("  --bible-db PATH      Path to bible.sqlite (Default: assets/bible/bible.sqlite)")
+    print("  --mp4                Generate MP4 video from audio")
+    print("  --mp4-bg IMAGE       Background image for MP4")
+    print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
+    print("  -?, -h, --help       Show this help")
+    print("\nVoice Modes (Qwen3-TTS-Flash):")
+    print("  male    - Single male voice (Ethan)")
+    print("  female  - Single female voice (Cherry)")
+    print("  two     - Rotate 2 voices (1 male + 1 female)")
+    print("  four    - Rotate 4 voices (2 male + 2 female)")
+    print("  six     - Rotate all 6 voices (Default)")
+    print("\nExamples:")
+    print(f"  python {sys.argv[0]} -i input.txt")
+    print(f"  python {sys.argv[0]} -i input.txt --voice six --bgm")
+    print(f"  python {sys.argv[0]} -i input.txt --bible-bgm-volume -18")
+    sys.exit(0)
+
+import argparse
+
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("--input", "-i", type=str, help="Input text file")
+parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
+parser.add_argument("--voice", type=str, default="six", choices=["male", "female", "two", "four", "six"],
+                    help="Voice mode: male, female, two, four, six")
+parser.add_argument("--voices", type=str, default=None,
+                    help="Custom voices (CSV format, overrides --voice)")
+parser.add_argument("--speed", type=str, default="1.0", help="Speed factor (0.5-2.0, default 1.0)")
+parser.add_argument("--bgm", action="store_true", help="Enable background music for non-bible sections")
+parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
+parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
+parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
+parser.add_argument("--bible-bgm-volume", type=int, default=-20, help="Bible chapter BGM volume in dB")
+parser.add_argument("--bible-bgm-intro", type=int, default=4000, help="Bible chapter BGM intro delay in ms")
+parser.add_argument("--speech-volume", type=int, default=4, help="Boost for chapter speech in dB (Everest is quiet)")
+parser.add_argument("--chapter-speed", type=float, default=1.5, help="Speed multiplier for Everest chapter audio (Default: 1.5)")
+parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sqlite")
+parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
+parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
+parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
+
+args, unknown = parser.parse_known_args()
+CLI_PREFIX = args.prefix
+
+ENABLE_BGM = args.bgm
+BGM_FILE = args.bgm_track
+BGM_VOLUME = args.bgm_volume
+BGM_INTRO_DELAY = args.bgm_intro
+
+# Parse speed value and map to Qwen/Dashscope [-500, 500]
+def parse_speed_to_qwen_rate(speed_str):
+    if not speed_str: return 0
+    try:
+        val = 0.0
+        # Handle percentage "+10%"
+        if "%" in speed_str:
+            val = float(speed_str.replace("%", "")) / 100.0  # +10% -> 0.1
+        else:
+            val = float(speed_str) - 1.0  # 1.1 -> 0.1
+        # Map: 1.0 -> 0, 2.0 (+100%) -> 500, 0.5 (-50%) -> -500
+        rate = int(val * 500)
+        return max(-500, min(500, rate))
+    except ValueError:
+        return 0
+
+QWEN_SPEECH_RATE = parse_speed_to_qwen_rate(args.speed)
+
+# Voice presets (Qwen3-TTS-Flash)
+VOICE_MALE_1 = "Ethan"      # Clear midrange male
+VOICE_MALE_2 = "Dylan"      # Youthful Beijing male
+VOICE_MALE_3 = "Ryan"       # Dynamic male
+VOICE_FEMALE_1 = "Cherry"   # Warm female
+VOICE_FEMALE_2 = "Serena"   # Gentle female
+VOICE_FEMALE_3 = "Chelsie"  # Lively female
+
+# Voice mode configuration
+if args.voices:
+    VOICES = [v.strip() for v in args.voices.split(",") if v.strip()]
+    print(f"🎤 Custom voices: {', '.join(VOICES)}")
+elif args.voice == "male":
+    VOICES = [VOICE_MALE_1]
+    print(f"🎤 Voice mode: male ({VOICE_MALE_1})")
+elif args.voice == "female":
+    VOICES = [VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: female ({VOICE_FEMALE_1})")
+elif args.voice == "two":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1]
+    print(f"🎤 Voice mode: two (rotating 2 voices)")
+elif args.voice == "four":
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
+    print(f"🎤 Voice mode: four (rotating 4 voices)")
+else:  # six (default)
+    VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
+    print(f"🎤 Voice mode: six (rotating 6 voices)")
+
+
+# ─── DashScope API Key ───
+dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
+if not dashscope.api_key:
+    raise ValueError("Please set DASHSCOPE_API_KEY in ~/.secrets")
+
+
+# ─── Input text loading ───
+if args.input:
+    print(f"Reading text from file: {args.input}")
+    with open(args.input, "r", encoding="utf-8") as f:
+        TEXT = f.read()
+elif not sys.stdin.isatty():
+    print("Reading text from Stdin...")
+    TEXT = sys.stdin.read()
+else:
+    print("❌ No input provided. Use --input or pipe text via stdin.")
+    sys.exit(1)
+
+
+# ─── Filename generation ───
+TEXT = clean_text(TEXT)
+first_line = TEXT.strip().split('\n')[0]
+
+date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
+if date_match:
+    m, d, y = date_match.groups()
+    date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+else:
+    date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", first_line)
+    if date_match:
+        y, m, d = date_match.groups()
+        date_str = f"{y}-{int(m):02d}-{int(d):02d}"
+    else:
+        date_str = datetime.today().strftime("%Y-%m-%d")
+
+verse_ref = filename_parser.extract_verse_from_text(TEXT)
+
+extracted_prefix = CLI_PREFIX if CLI_PREFIX else filename_parser.extract_filename_prefix(TEXT)
+filename = filename_parser.generate_filename_v2(
+    title=first_line,
+    date=date_str,
+    prefix=extracted_prefix,
+    ext=".mp3"
+).replace(".mp3", "_votd_qwen.mp3")
+
+if ENABLE_BGM:
+    filename = filename.replace(".mp3", "_bgm.mp3")
+
+if args.speed and args.speed not in ["1.0", "1"]:
+    speed_val = args.speed.replace("%", "")
+    if speed_val.startswith("+"):
+        speed_suffix = f"plus{speed_val[1:]}"
+    elif speed_val.startswith("-"):
+        speed_suffix = f"minus{speed_val[1:]}"
+    else:
+        speed_suffix = speed_val
+    if speed_suffix and speed_suffix not in ["0", "plus0", "1.0"]:
+        filename = filename.replace(".mp3", f"_speed-{speed_suffix}.mp3")
+
+OUTPUT_DIR = os.path.join(os.getcwd(), "output")
+if not os.path.exists(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
+print(f"Target Output: {OUTPUT_PATH}")
+
+
+# ─── Helpers ───
+
+def _speedup_ffmpeg(seg: AudioSegment, speed: float) -> AudioSegment:
+    """Speed up using ffmpeg atempo (preserves pitch). Chains atempo for speed > 2."""
+    import tempfile
+    import subprocess
+    from pathlib import Path
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        tmp_in = f.name
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        tmp_out = f.name
+    try:
+        seg.export(tmp_in, format="wav")
+        # atempo accepts 0.5–2.0; chain for higher speeds (e.g. 3x = atempo=2,atempo=1.5)
+        parts = []
+        r = speed
+        while r > 2.0:
+            parts.append("atempo=2")
+            r /= 2.0
+        if r > 1.0:
+            parts.append(f"atempo={r}")
+        filter_str = ",".join(parts) if parts else "atempo=1"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_in, "-filter:a", filter_str, tmp_out],
+            check=True, capture_output=True
+        )
+        return AudioSegment.from_wav(tmp_out)
+    finally:
+        Path(tmp_in).unlink(missing_ok=True)
+        Path(tmp_out).unlink(missing_ok=True)
+
+
+def _load_chapter_audio(book_num: int, chapter_num: int, speed: float = 1.0) -> AudioSegment:
+    """Load pre-recorded chapter MP3 from assets/bible/audio/chapters/."""
+    fname = f"{book_num:03d}_{chapter_num:03d}.mp3"
+    path = os.path.join(CHAPTERS_DIR, fname)
+    if not os.path.exists(path):
+        print(f"  ⚠️ Chapter audio not found: {path}")
+        return None
+    try:
+        seg = AudioSegment.from_mp3(path)
+        orig_len = len(seg) / 1000
+        # Apply speed change using ffmpeg atempo (preserves pitch)
+        if speed != 1.0 and speed > 0:
+            seg = _speedup_ffmpeg(seg, speed)
+        print(f"  📖 Loaded chapter audio: {fname} ({orig_len:.1f}s → {len(seg)/1000:.1f}s @ {speed}x)")
+        return seg
+    except Exception as e:
+        print(f"  ❌ Error loading {fname}: {e}")
+        return None
+
+
+def parse_input_sections(text: str) -> dict:
+    """
+    Parse input.txt format (simple format) into sections:
+    1. Title (first line)
+    2. Verse paragraphs (each ending with (BookName X:Y 和合本))
+    3. Essay titles (3 repeated short paragraphs)
+    4. Essay body
+    5. Prayer
+    6. Credits
+    """
+    text = text.strip()
+    paragraphs = [p.strip() for p in re.split(r'\n{2,}', text) if p.strip()]
+
+    result = {
+        'title': paragraphs[0] if paragraphs else '',
+        'verse_refs': [],      # list of (book, chapter, verse_start, verse_end)
+        'verse_texts': [],     # original verse text from input
+        'essay_titles': [],
+        'essay_body': [],
+        'prayer': '',
+        'credits': []
+    }
+
+    if len(paragraphs) < 5:
+        print(f"⚠️ Too few paragraphs ({len(paragraphs)}). Falling back to simple mode.")
+        return result
+
+    idx = 1  # Start after title
+
+    # Collect verse paragraphs (ending with translation label in parens)
+    verse_end_idx = idx
+    for i in range(idx, len(paragraphs)):
+        para = paragraphs[i]
+        has_ref = bool(re.search(r'\([^\)]*和合本\s*\)', para))
+        if has_ref:
+            verse_end_idx = i + 1
+        else:
+            break
+
+    # Parse each verse paragraph to extract the reference
+    for i in range(idx, verse_end_idx):
+        para = paragraphs[i]
+        result['verse_texts'].append(para)
+
+        # Extract the reference from the last line
+        ref_match = re.search(r'\(([^\)]+和合本)\)', para)
+        if ref_match:
+            ref = parse_verse_reference(ref_match.group(0))
+            if ref:
+                result['verse_refs'].append(ref)
+            else:
+                print(f"  ⚠️ Could not parse verse reference: {ref_match.group(0)}")
+
+    idx = verse_end_idx
+
+    # Essay titles (3 repeated short paragraphs)
+    essay_title_count = 0
+    while idx < len(paragraphs) and essay_title_count < 3:
+        para = paragraphs[idx]
+        if len(para) < 50 and not re.search(r'https?://', para):
+            result['essay_titles'].append(para)
+            essay_title_count += 1
+            idx += 1
+        else:
+            break
+
+    # Essay body, prayer, credits
+    credit_markers = ["內容來自", "聖經語音", "閱讀聆聽", "Verse of the Day", "Youversion", "Everest"]
+    remaining = paragraphs[idx:]
+
+    # Credits (scan from end)
+    credits_start = len(remaining)
+    for i in range(len(remaining) - 1, -1, -1):
+        is_credit = any(marker in remaining[i] for marker in credit_markers)
+        if is_credit:
+            credits_start = i
+        else:
+            break
+
+    body_and_prayer = remaining[:credits_start]
+    result['credits'] = remaining[credits_start:]
+
+    # Extract trailing verses from the end of body_and_prayer
+    trailing_verses = []
+    trailing_refs = []
+    while body_and_prayer:
+        last = body_and_prayer[-1]
+        ref_match = re.search(r'\(([^\)]+和合本)\)', last)
+        if ref_match:
+            trailing_verses.insert(0, last)
+            body_and_prayer.pop()
+            ref = parse_verse_reference(ref_match.group(0))
+            if ref:
+                trailing_refs.insert(0, ref)
+            else:
+                print(f"  ⚠️ Could not parse trailing verse reference: {ref_match.group(0)}")
+        else:
+            break
+
+    # Add trailing verses to the main verse lists so Section 6 processes all of them
+    result['verse_texts'].extend(trailing_verses)
+    result['verse_refs'].extend(trailing_refs)
+
+    # Prayer could be multiple paragraphs (e.g. starts with "禱告")
+    if body_and_prayer:
+        prayer_start_idx = -1
+        for i in range(len(body_and_prayer)):
+            if body_and_prayer[i].strip() == "禱告":
+                prayer_start_idx = i
+                break
+                
+        if prayer_start_idx != -1:
+            result['prayer'] = "\n\n".join(body_and_prayer[prayer_start_idx:])
+            result['essay_body'] = body_and_prayer[:prayer_start_idx]
+        else:
+            # Fallback if "禱告" is missing but it ends with Amen
+            last = body_and_prayer[-1]
+            if "阿們" in last or "阿门" in last or "奉耶穌的名" in last or "奉耶稣的名" in last:
+                result['prayer'] = last
+                result['essay_body'] = body_and_prayer[:-1]
+            else:
+                result['essay_body'] = body_and_prayer
+
+    return result
+
+
+def tts_prep(text: str) -> str:
+    """Prepare text for TTS: convert references, dates, clean."""
+    text = convert_bible_reference(text)
+    text = convert_dates_in_text(text)
+    text = clean_text(text)
+    return text
+
+
+def chunk_text(text: str, max_len: int = 400) -> list[str]:
+    """Split text into chunks for Qwen's text length limits."""
+    if len(text) <= max_len:
+        return [text]
+    chunks = []
+    current_chunk = ""
+    parts = re.split(r'([。！？；!.?\n]+)', text)
+    for part in parts:
+        if len(current_chunk) + len(part) < max_len:
+            current_chunk += part
+        else:
+            if current_chunk:
+                chunks.append(current_chunk)
+            current_chunk = part
+    if current_chunk:
+        chunks.append(current_chunk)
+    return chunks
+
+
+def speak(text: str, voice: str) -> AudioSegment:
+    """Generate TTS audio using Qwen3-TTS-Flash via DashScope API."""
+    print(f"  🔊 TTS ({voice}): {text[:60]}...")
+    resp = SpeechSynthesizer.call(
+        model="qwen3-tts-flash",
+        text=text,
+        voice=voice,
+        format="wav",
+        sample_rate=24000,
+        speech_rate=QWEN_SPEECH_RATE
+    )
+    audio_data = resp.get_audio_data()
+    if audio_data is None:
+        raise Exception(f"API Error: {resp.get_response().message}")
+    return AudioSegment.from_wav(io.BytesIO(audio_data))
+
+
+def generate_audio_segment(text: str, voice: str) -> AudioSegment:
+    """Generate audio, chunking if text is too long for Qwen."""
+    text = tts_prep(text)
+    if len(text) > 450:
+        chunks = chunk_text(text, 400)
+        print(f"    Split into {len(chunks)} chunks due to length.")
+        combined = AudioSegment.empty()
+        for chunk in chunks:
+            if chunk.strip():
+                combined += speak(chunk, voice)
+        return combined
+    else:
+        return speak(text, voice)
+
+
+def main():
+    # Parse input sections
+    sections = parse_input_sections(TEXT)
+
+    print(f"\n📋 Parsed input.txt sections:")
+    print(f"  Title: {sections['title'][:50]}...")
+    print(f"  Verse refs: {len(sections['verse_refs'])}")
+    for ref in sections['verse_refs']:
+        book_name = book_number_to_chinese(ref[0])
+        print(f"    {book_name} {ref[1]}:{ref[2]}-{ref[3]}")
+    print(f"  Essay titles: {len(sections['essay_titles'])}")
+    print(f"  Essay body: {len(sections['essay_body'])} paragraphs")
+    print(f"  Prayer: {'Yes' if sections['prayer'] else 'No'}")
+    print(f"  Credits: {len(sections['credits'])} lines")
+
+    # Open Bible DB for verse expansion
+    db = None
+    try:
+        db = BibleDB(args.bible_db)
+        print(f"\n📖 Bible DB loaded: {db.db_path}")
+    except FileNotFoundError as e:
+        print(f"\n⚠️ {e}")
+        print("   Verse expansion disabled. Only original verse text will be used.")
+
+    # Expand verse blocks using the DB
+    expanded_blocks = []
+    if db and sections['verse_refs']:
+        print(f"\n--- Expanding {len(sections['verse_refs'])} verse(s) ---")
+        for ref in sections['verse_refs']:
+            book_num, chapter, v_start, v_end = ref
+            block = db.expand_verse_block(book_num, chapter, v_start, v_end)
+            expanded_blocks.append(block)
+            book_name = book_number_to_chinese(book_num)
+            print(f"  📖 {book_name} {chapter}:{v_start}-{v_end}")
+            print(f"      Chapter: {len(block['chapter_text'])} chars")
+            print(f"      Translations: {len(block['translations'])}")
+
+    voices = VOICES
+    final_segments = []
+    global_voice_idx = 0
+    txt_lines = []  # For output.txt
+
+    SILENCE_SHORT = AudioSegment.silent(duration=700)
+    SILENCE_SECTION = AudioSegment.silent(duration=1000)
+
+    # ─── Section 1: Title ───
+    print(f"\n--- Section 1: Title ---")
+    if sections['title']:
+        voice = voices[global_voice_idx % len(voices)]
+        global_voice_idx += 1
+        seg = generate_audio_segment(sections['title'], voice)
+        final_segments.append(seg)
+        txt_lines.append(sections['title'])
+        txt_lines.append("")
+
+    # ─── Section 2: Verse (CUV only) ───
+    print(f"\n--- Section 2: Verse (CUV only) ---")
+    chapter_audio_segments = []  # Collect chapter audio for Section 6 (Bible Audio)
+    chapter_txt_lines = []       # Collect chapter text for output.txt
+    bible_audio_blocks = []      # Collect (translations, chapter_seg) for Section 6
+
+    if expanded_blocks:
+        for block_idx, block in enumerate(expanded_blocks):
+            print(f"\n  📖 Verse Block {block_idx + 1}")
+            book_num = block['book_num']
+            chapter_num = block['chapter_num']
+
+            # Collect chapter audio for Section 6
+            ch_seg = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
+            if ch_seg is not None:
+                # Boost volume if needed (Everest audio is quiet)
+                if args.speech_volume != 0:
+                    ch_seg = ch_seg + args.speech_volume
+
+            # Collect chapter text for output.txt
+            if block['chapter_text']:
+                chapter_txt_lines.append(block['chapter_text'])
+                chapter_txt_lines.append(f"({block['chapter_ref']})")
+                chapter_txt_lines.append("")
+                if block['translations']:
+                    chapter_txt_lines.append(block['translations'][0][2])
+                    chapter_txt_lines.append(f"({block['translations'][0][3]})")
+                    chapter_txt_lines.append("")
+            else:
+                if block_idx < len(sections['verse_texts']):
+                    chapter_txt_lines.append(sections['verse_texts'][block_idx])
+                    chapter_txt_lines.append("")
+
+            # Save full translations + chapter audio for Section 6 (Bible Audio)
+            bible_audio_blocks.append({
+                'translations': block['translations'],
+                'chapter_seg': ch_seg,
+                'block_idx': block_idx,
+            })
+
+            # Section 2: TTS the CUV (first) translation for each verse
+            if block['translations']:
+                final_segments.append(SILENCE_SECTION)
+                code, label, text, ref_str = block['translations'][0]
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                tts_text = f"{text}\n({ref_str})"
+                seg = generate_audio_segment(tts_text, voice)
+                final_segments.append(seg)
+                txt_lines.append(text)
+                txt_lines.append(f"({ref_str})")
+                txt_lines.append("")
+
+    else:
+        # No DB available — use original verse text with TTS only
+        for v_idx, verse_text in enumerate(sections['verse_texts']):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            seg = generate_audio_segment(verse_text, voice)
+            final_segments.append(SILENCE_SECTION)
+            final_segments.append(seg)
+            txt_lines.append(verse_text)
+            txt_lines.append("")
+
+    # ─── Section 3: Essay Titles ───
+    print(f"\n--- Section 3: Essay Titles ---")
+    for et_idx, essay_title in enumerate(sections['essay_titles']):
+        voice = voices[global_voice_idx % len(voices)]
+        global_voice_idx += 1
+        seg = generate_audio_segment(essay_title, voice)
+        final_segments.append(SILENCE_SECTION)
+        final_segments.append(seg)
+        txt_lines.append(essay_title)
+        txt_lines.append("")
+
+    # ─── Section 4: Essay Body ───
+    print(f"\n--- Section 4: Essay Body ---")
+    if sections['essay_body']:
+        for eb_idx, essay_para in enumerate(sections['essay_body']):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            seg = generate_audio_segment(essay_para, voice)
+            final_segments.append(SILENCE_SECTION)
+            final_segments.append(seg)
+            txt_lines.append(essay_para)
+            txt_lines.append("")
+
+    # ─── Section 5: Prayer (voice rotation per paragraph) ───
+    print(f"\n--- Section 5: Prayer ---")
+    if sections['prayer']:
+        prayer_paras = [p.strip() for p in sections['prayer'].split("\n\n") if p.strip()]
+        print(f"  Prayer has {len(prayer_paras)} paragraph(s)")
+        for pr_idx, prayer_para in enumerate(prayer_paras):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            seg = generate_audio_segment(prayer_para, voice)
+            final_segments.append(SILENCE_SECTION)
+            final_segments.append(seg)
+            txt_lines.append(prayer_para)
+            txt_lines.append("")
+
+    # ─── Section 6: Credits ───
+    print(f"\n--- Section 6: Credits ---")
+    if sections['title']:
+        sections['credits'].append(sections['title'])
+
+    credits_audio_segments = []
+    for cr_idx, credit in enumerate(sections['credits']):
+        voice = voices[global_voice_idx % len(voices)]
+        global_voice_idx += 1
+        seg = generate_audio_segment(credit, voice)
+        final_segments.append(SILENCE_SECTION)
+        final_segments.append(seg)
+        credits_audio_segments.append(SILENCE_SECTION)
+        credits_audio_segments.append(seg)
+        txt_lines.append(credit)
+        txt_lines.append("")
+
+    # ─── Combine and Export Short Version ───
+    print(f"\n--- Combining Short Version ({len(final_segments)} segments) ---")
+    short_final = AudioSegment.empty()
+    for seg in final_segments:
+        short_final += seg
+
+    if ENABLE_BGM:
+        print(f"🎵 Mixing Overall BGM for Short Version...")
+        short_final = audio_mixer.mix_bgm(
+            short_final,
+            specific_filename=BGM_FILE,
+            volume_db=BGM_VOLUME,
+            intro_delay_ms=BGM_INTRO_DELAY
+        )
+
+    PRODUCER = "VI AI Foundation"
+    TITLE = sections['title']
+    ALBUM = "VOTD"
+    bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
+    COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
+
+    short_output_path = OUTPUT_PATH.replace(".mp3", "_short.mp3")
+    short_final.export(short_output_path, format="mp3", tags={
+        'title': f"{TITLE} (Short)",
+        'artist': PRODUCER,
+        'album': ALBUM,
+        'comments': COMMENTS
+    })
+    print(f"\n✅ Short version saved: {short_output_path}")
+
+    # Save output_short.txt
+    txt_output_short = OUTPUT_PATH.replace(".mp3", "_short.txt")
+    with open(txt_output_short, "w", encoding="utf-8") as f:
+        f.write("\n".join(txt_lines))
+    print(f"📝 Short Text saved: {txt_output_short}")
+
+
+    # ─── Section 7: Bible Audio (added to long version) ───
+    if bible_audio_blocks:
+        print(f"\n--- Section 7: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
+        for ba_block in bible_audio_blocks:
+            translations = ba_block['translations']
+            ch_seg = ba_block['chapter_seg']
+            block_idx = ba_block['block_idx']
+
+            # 7a. TTS all translations of the verse
+            if translations:
+                print(f"  🔁 Verse block {block_idx + 1}: {len(translations)} translation readings")
+                final_segments.append(SILENCE_SECTION)
+                for t_idx, (code, label, text, ref_str) in enumerate(translations):
+                    voice = voices[global_voice_idx % len(voices)]
+                    global_voice_idx += 1
+                    tts_text = f"{text}\n({ref_str})"
+                    seg = generate_audio_segment(tts_text, voice)
+                    final_segments.append(seg)
+                    if t_idx < len(translations) - 1:
+                        final_segments.append(SILENCE_SHORT)
+                    txt_lines.append(text)
+                    txt_lines.append(f"({ref_str})")
+                txt_lines.append("")
+
+            # 7b. Full chapter audio (Everest pre-recorded)
+            if ch_seg is not None:
+                print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(ch_seg)
+                
+            # 7c. Add CUV translation again after the chapter audio
+            if translations:
+                print(f"  🔁 Appending CUV verse again for block {block_idx + 1}")
+                final_segments.append(SILENCE_SECTION)
+                code, label, text, ref_str = translations[0]
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                tts_text = f"{text}\n({ref_str})"
+                seg = generate_audio_segment(tts_text, voice)
+                final_segments.append(seg)
+
+        # Add chapter text to output.txt
+        txt_lines.extend(chapter_txt_lines)
+
+    # ─── Section 8: Final Credits (copy) ───
+    print(f"\n--- Section 8: Final Credits (copy) ---")
+    for seg in credits_audio_segments:
+        final_segments.append(seg)
+    for credit in sections['credits']:
+        txt_lines.append(credit)
+        txt_lines.append("")
+
+    # ─── Combine and Export Long Version ───
+    print(f"\n--- Combining Long Version ({len(final_segments)} segments) ---")
+    long_final = AudioSegment.empty()
+    for seg in final_segments:
+        long_final += seg
+
+    if ENABLE_BGM:
+        print(f"🎵 Mixing Overall BGM for Long Version...")
+        long_final = audio_mixer.mix_bgm(
+            long_final,
+            specific_filename=BGM_FILE,
+            volume_db=BGM_VOLUME,
+            intro_delay_ms=BGM_INTRO_DELAY
+        )
+
+    long_output_path = OUTPUT_PATH
+    long_final.export(long_output_path, format="mp3", tags={
+        'title': TITLE,
+        'artist': PRODUCER,
+        'album': ALBUM,
+        'comments': COMMENTS
+    })
+    print(f"\n✅ Long version saved: {long_output_path}")
+
+    txt_output_long = OUTPUT_PATH.replace(".mp3", ".txt")
+    with open(txt_output_long, "w", encoding="utf-8") as f:
+        f.write("\n".join(txt_lines))
+    print(f"📝 Text saved: {txt_output_long}")
+
+    # ─── Generate MP4 if requested ───
+    if args.mp4:
+        mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
+        bg_path = args.mp4_bg
+        if not os.path.isabs(bg_path):
+            bg_path = os.path.join(SCRIPT_DIR, bg_path)
+        if os.path.exists(bg_path):
+            success = create_mp4(
+                input_mp3=OUTPUT_PATH,
+                bg_image=bg_path,
+                output_mp4=mp4_output,
+                resolution=args.mp4_res
+            )
+            if not success:
+                print("⚠️ MP4 generation failed")
+        else:
+            print(f"⚠️ Background image not found: {bg_path}")
+            print(f"   Skipping MP4 generation.")
+
+    # Cleanup
+    if db:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -479,7 +479,6 @@ async def main():
         await generate_audio(tts_prep(sections['title']), voice, temp_file)
         try:
             seg = AudioSegment.from_mp3(temp_file)
-            seg = match_target_amplitude(seg, TARGET_DBFS)
             final_segments.append(seg)
         finally:
             if os.path.exists(temp_file):
@@ -543,7 +542,6 @@ async def main():
                 await generate_audio(tts_prep(tts_text), voice, temp_file)
                 try:
                     seg = AudioSegment.from_mp3(temp_file)
-                    seg = match_target_amplitude(seg, TARGET_DBFS)
                     final_segments.append(seg)
                 finally:
                     if os.path.exists(temp_file):
@@ -596,7 +594,6 @@ async def main():
             await generate_audio(tts_prep(essay_para), voice, temp_file)
             try:
                 seg = AudioSegment.from_mp3(temp_file)
-                seg = match_target_amplitude(seg, TARGET_DBFS)
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(seg)
             finally:
@@ -617,7 +614,6 @@ async def main():
             await generate_audio(tts_prep(prayer_para), voice, temp_file)
             try:
                 seg = AudioSegment.from_mp3(temp_file)
-                seg = match_target_amplitude(seg, TARGET_DBFS)
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(seg)
             finally:
@@ -664,7 +660,6 @@ async def main():
         await generate_audio(tts_prep(credit), voice, temp_file)
         try:
             seg = AudioSegment.from_mp3(temp_file)
-            seg = match_target_amplitude(seg, TARGET_DBFS)
             final_segments.append(SILENCE_SECTION)
             final_segments.append(seg)
             credits_audio_segments.append(SILENCE_SECTION)
@@ -735,7 +730,6 @@ async def main():
                     await generate_audio(tts_prep(tts_text), voice, temp_file)
                     try:
                         seg = AudioSegment.from_mp3(temp_file)
-                        seg = match_target_amplitude(seg, TARGET_DBFS)
                         final_segments.append(seg)
                         if t_idx < len(translations) - 1:
                             final_segments.append(SILENCE_SHORT)

@@ -20,11 +20,15 @@ It supports automatic filename generation based on the Bible verse and date foun
 |--------|------------|------|------|----------|
 | **Fun-CosyVoice 3.0** | **0.81** ✅ | ~4-6GB | Zero-shot | Best accuracy (SOTA) |
 | GLM-TTS RL | 0.89 | ~8GB | Zero-shot | GRPO emotion |
+| StepAudio TTS-3B | ~0.9 | ~8-12GB | Zero-shot | Emotion + Dialect control |
 | VoxCPM2 | SOTA-level | ~8GB | Zero-shot | Voice Design + 48kHz |
+| F5-TTS | ~1.0 | ~4-6GB | Zero-shot | Simplest pipeline (MIT) |
+| Spark-TTS | ~1.0 | ~4-8GB | Zero-shot | Pitch/Speed/Gender control |
 | Index-TTS2 | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
 | GPT-SoVITS | N/A | ~6GB | Fine-tune | Custom voice training |
 | Qwen-TTS (Local) | N/A | ~10GB | Zero-shot | Voice Design / DGX Spark |
 | Qwen TTS (API) | N/A | API | Cloud | Dashscope multi-voice |
+| Kokoro | N/A | ~0.5GB | Voicepack | Ultra-lightweight (82M, CPU) |
 | Vibe | N/A | ~4GB | Voice | Voice cloning |
 | Volc (Volcengine) | N/A | API | Cloud | ByteDance API |
 | Edge TTS | N/A | 0 | Cloud | Fast/Free |
@@ -36,11 +40,15 @@ It supports automatic filename generation based on the Bible verse and date foun
 | :--- | :--- | :--- | :--- |
 | **Fun-CosyVoice 3.0** | `gen_*_cosy3.py` | DGX Spark / Docker | [README-cosy3.md](README-cosy3.md) |
 | **GLM-TTS** | `gen_*_glmtts.py` | DGX Spark / Docker | [README-glmtts.md](README-glmtts.md) |
+| **StepAudio TTS-3B** | `gen_*_stepaudio.py` | DGX Spark / Docker | [README-stepaudio.md](README-stepaudio.md) |
 | **VoxCPM2** | `gen_*_voxcpm2.py` | `pip install voxcpm` | [README-voxcpm2.md](README-voxcpm2.md) |
+| **F5-TTS** | `gen_*_f5tts.py` | `pip install f5-tts` | [README-f5tts.md](README-f5tts.md) |
+| **Spark-TTS** | `gen_*_sparktts.py` | DGX Spark / Docker | [README-sparktts.md](README-sparktts.md) |
 | **Index-TTS2** | `gen_*_indextts2.py` | DGX Spark / Docker | [README-indextts2.md](README-indextts2.md) |
 | **GPT-SoVITS** | `gen_*_gptsovits.py` | DGX Spark / Docker | [README-gptsovits.md](README-gptsovits.md) |
 | **Qwen-TTS (Local)** | `gen_*_qwentts.py` | DGX Spark / Docker | [README-qwentts.md](README-qwentts.md) |
 | **Qwen TTS (API)** | `gen_*_qwen.py` | `DASHSCOPE_API_KEY` | [README-qwen.md](README-qwen.md) |
+| **Kokoro** | `gen_*_kokoro.py` | `pip install kokoro` | [README-kokoro.md](README-kokoro.md) |
 | **Vibe** | `gen_*_vibe.py` | Local | [README-vibe.md](README-vibe.md) |
 | **Volc** | `gen_*_volc.py` | Volcengine API | [README-volc.md](README-volc.md) |
 | **Edge TTS** | `gen_*_edge.py` | `pip install edge-tts` | [README-edge.md](README-edge.md) |

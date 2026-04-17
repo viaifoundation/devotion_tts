@@ -16,23 +16,23 @@ It supports automatic filename generation based on the Bible verse and date foun
 
 ### Performance Comparison
 
-| Engine | CER (ZH) ↓ | VRAM | Type | Best For |
-|--------|------------|------|------|----------|
-| **Fun-CosyVoice 3.0** | **0.81** ✅ | ~4-6GB | Zero-shot | Best accuracy (SOTA) |
-| GLM-TTS RL | 0.89 | ~8GB | Zero-shot | GRPO emotion |
-| StepAudio TTS-3B | ~0.9 | ~8-12GB | Zero-shot | Emotion + Dialect control |
-| VoxCPM2 | SOTA-level | ~8GB | Zero-shot | Voice Design + 48kHz |
-| F5-TTS | ~1.0 | ~4-6GB | Zero-shot | Simplest pipeline (MIT) |
-| Spark-TTS | ~1.0 | ~4-8GB | Zero-shot | Pitch/Speed/Gender control |
-| Index-TTS2 | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
-| GPT-SoVITS | N/A | ~6GB | Fine-tune | Custom voice training |
-| Qwen-TTS (Local) | N/A | ~10GB | Zero-shot | Voice Design / DGX Spark |
-| Qwen TTS (API) | N/A | API | Cloud | Dashscope multi-voice |
-| Kokoro | N/A | ~0.5GB | Voicepack | Ultra-lightweight (82M, CPU) |
-| Vibe | N/A | ~4GB | Voice | Voice cloning |
-| Volc (Volcengine) | N/A | API | Cloud | ByteDance API |
-| Edge TTS | N/A | 0 | Cloud | Fast/Free |
-| Gemini TTS | N/A | API | Cloud | Google API |
+| Engine | Provider | CER (ZH) ↓ | VRAM | Type | Best For |
+|--------|----------|------------|------|------|----------|
+| **Fun-CosyVoice 3.0** | Alibaba (FunAudioLLM) | **0.81** ✅ | ~4-6GB | Zero-shot | Best accuracy (SOTA) |
+| GLM-TTS RL | Zhipu AI (GLM) | 0.89 | ~8GB | Zero-shot | GRPO emotion |
+| StepAudio TTS-3B | StepFun (阶跃星辰) | ~0.9 | ~8-12GB | Zero-shot | Emotion + Dialect control |
+| VoxCPM2 | OpenBMB (Tsinghua) | SOTA-level | ~8GB | Zero-shot | Voice Design + 48kHz |
+| F5-TTS | SJTU X-LANCE Lab | ~1.0 | ~4-6GB | Zero-shot | Simplest pipeline (MIT) |
+| Spark-TTS | SparkAudio (HKUST) | ~1.0 | ~4-8GB | Zero-shot | Pitch/Speed/Gender control |
+| Index-TTS2 | Bilibili | 1.03 | ~8GB | Zero-shot | Duration + Emotion control |
+| GPT-SoVITS | RVC-Boss | N/A | ~6GB | Fine-tune | Custom voice training |
+| Qwen-TTS (Local) | Alibaba (Qwen) | N/A | ~10GB | Zero-shot | Voice Design / DGX Spark |
+| Qwen TTS (API) | Alibaba (Dashscope) | N/A | API | Cloud | Dashscope multi-voice |
+| Kokoro | hexgrad | N/A | ~0.5GB | Voicepack | Ultra-lightweight (82M, CPU) |
+| Vibe | Vibe | N/A | ~4GB | Voice | Voice cloning |
+| Volc (Volcengine) | ByteDance | N/A | API | Cloud | ByteDance API |
+| Edge TTS | Microsoft | N/A | 0 | Cloud | Fast/Free |
+| Gemini TTS | Google | N/A | API | Cloud | Google API |
 
 ### Quick Reference
 

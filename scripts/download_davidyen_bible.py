@@ -141,7 +141,6 @@ def download_gdrive_folder(folder_url, output_dir, max_retries=3):
                 output=output_dir,
                 quiet=False,
                 use_cookies=False,
-                remaining_ok=True,  # Don't fail if some files already downloaded
             )
             print(f"\n✅ Download complete to: {output_dir}")
             return

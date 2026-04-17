@@ -110,8 +110,10 @@ NT_BOOK_MAP = {
 }
 
 
-def download_gdrive_folder(folder_url, output_dir):
-    """Download entire Google Drive folder using gdown."""
+def download_gdrive_folder(folder_url, output_dir, max_retries=3):
+    """Download entire Google Drive folder using gdown with retry logic."""
+    import time
+
     print(f"📥 Downloading from Google Drive...")
     print(f"   URL: {folder_url}")
     print(f"   To:  {output_dir}")
@@ -130,15 +132,37 @@ def download_gdrive_folder(folder_url, output_dir):
     # Extract folder ID from URL
     folder_id = folder_url.rstrip("/").split("/")[-1]
 
-    # Download entire folder
-    gdown.download_folder(
-        id=folder_id,
-        output=output_dir,
-        quiet=False,
-        use_cookies=False
-    )
+    # Download with retry logic (Google Drive can timeout on large folders)
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"   Attempt {attempt}/{max_retries}...")
+            gdown.download_folder(
+                id=folder_id,
+                output=output_dir,
+                quiet=False,
+                use_cookies=False,
+                remaining_ok=True,  # Don't fail if some files already downloaded
+            )
+            print(f"\n✅ Download complete to: {output_dir}")
+            return
+        except Exception as e:
+            error_msg = str(e)
+            if "timed out" in error_msg.lower() or "timeout" in error_msg.lower() or "ReadTimeout" in error_msg:
+                wait = 10 * attempt
+                print(f"\n⚠️ Timeout on attempt {attempt}/{max_retries}. Waiting {wait}s before retry...")
+                print(f"   (Already-downloaded files are preserved)")
+                time.sleep(wait)
+            else:
+                print(f"\n❌ Download error: {e}")
+                if attempt < max_retries:
+                    wait = 10 * attempt
+                    print(f"   Retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
 
-    print(f"\n✅ Download complete to: {output_dir}")
+    print(f"\n⚠️ Download may be incomplete after {max_retries} attempts.")
+    print(f"   Run again — gdown will skip already-downloaded files.")
 
 
 def rename_to_everest_format(download_dir, output_dir):

@@ -1,0 +1,28 @@
+# requirements-stepaudio.txt
+# StepAudio TTS-3B - Dual-codebook TTS with emotion & dialect control
+# Provider: StepFun (阶跃星辰)
+# Setup: python -m venv envs/stepaudio && source envs/stepaudio/bin/activate && pip install -r requirements-stepaudio.txt
+# Note: Also requires cloning Step-Audio repo + downloading models (see README-stepaudio.md)
+
+# Core dependencies (from Step-Audio requirements.txt)
+torch>=2.3
+torchaudio
+transformers>=4.40.0
+huggingface-hub
+safetensors
+accelerate
+
+# Audio codec & vocoder
+encodec
+vocos
+
+# Audio processing
+pydub>=0.25.1
+soundfile
+numpy
+librosa
+
+# Utilities
+mutagen
+tqdm
+gradio

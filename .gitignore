@@ -23,6 +23,7 @@ __pycache__/
 # Virtual environments
 venv/
 env/
+envs/
 .env/
 
 # Logs and temporary files

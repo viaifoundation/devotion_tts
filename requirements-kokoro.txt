@@ -1,0 +1,18 @@
+# requirements-kokoro.txt
+# Kokoro TTS - Ultra-lightweight 82M TTS (CPU-friendly)
+# Provider: hexgrad
+# Setup: python -m venv envs/kokoro && source envs/kokoro/bin/activate && pip install -r requirements-kokoro.txt
+
+# Core Kokoro
+kokoro
+
+# Chinese phonemizer (required for Chinese support)
+misaki[zh]
+
+# Audio processing
+pydub>=0.25.1
+soundfile
+numpy
+
+# Utilities
+mutagen

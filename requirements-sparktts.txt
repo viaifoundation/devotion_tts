@@ -1,0 +1,22 @@
+# requirements-sparktts.txt
+# Spark-TTS - LLM-based BiCodec TTS with controllable pitch/speed/gender
+# Provider: SparkAudio (HKUST + SJTU + NPU + NTU + Mobvoi + NetEase)
+# Setup: python -m venv envs/sparktts && source envs/sparktts/bin/activate && pip install -r requirements-sparktts.txt
+# Note: Also requires cloning the Spark-TTS repo (see README-sparktts.md)
+
+# Core dependencies (from Spark-TTS repo requirements.txt)
+torch>=2.0
+torchaudio
+transformers>=4.40.0
+huggingface-hub
+safetensors
+
+# Audio processing
+pydub>=0.25.1
+soundfile
+numpy
+librosa
+
+# Utilities
+mutagen
+tqdm

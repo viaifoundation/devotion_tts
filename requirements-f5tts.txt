@@ -1,0 +1,15 @@
+# requirements-f5tts.txt
+# F5-TTS - Flow-matching DiT for zero-shot voice cloning
+# Provider: SJTU X-LANCE Lab (Shanghai Jiao Tong University)
+# Setup: python -m venv envs/f5tts && source envs/f5tts/bin/activate && pip install -r requirements-f5tts.txt
+
+# Core F5-TTS
+f5-tts
+
+# Audio processing
+pydub>=0.25.1
+soundfile
+numpy
+
+# Project utilities
+mutagen

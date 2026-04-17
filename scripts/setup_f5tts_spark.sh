@@ -6,12 +6,22 @@ set -e
 
 echo "=== Setting up F5-TTS on DGX Spark ==="
 
-# Install F5-TTS
-pip install f5-tts
+# Create venv
+VENV_DIR="envs/f5tts"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "[1/2] Creating virtual environment..."
+    python -m venv "$VENV_DIR"
+else
+    echo "[1/2] Virtual environment already exists."
+fi
 
-# Install pydub for audio processing
-pip install pydub
+source "$VENV_DIR/bin/activate"
+
+# Install dependencies
+echo "[2/2] Installing dependencies..."
+pip install -q -r requirements-f5tts.txt
 
 echo ""
 echo "=== F5-TTS Setup Complete ==="
-echo "Run: python gen_verse_devotion_f5tts.py --input sample.txt -d 1"
+echo "Activate: source envs/f5tts/bin/activate"
+echo "Run:      python gen_verse_devotion_f5tts.py --input sample.txt -d 1"

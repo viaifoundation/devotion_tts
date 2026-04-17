@@ -71,8 +71,13 @@ from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 DEFAULT_REF_TEXT = "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"
 MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"
 
-# Default voices for rotation
-DEFAULT_VOICES = "assets/ref_audio/ref_female.wav,assets/ref_audio/ref_male.wav"
+# Voice presets (Edge TTS-generated reference audio for CosyVoice zero-shot cloning)
+VOICE_MALE_PRO = "assets/ref_audio/ref_edge_zh_male_pro.wav"        # YunyangNeural - Professional
+VOICE_MALE_SUNSHINE = "assets/ref_audio/ref_edge_zh_male_sunshine.wav"  # YunxiNeural - Lively
+VOICE_MALE_PASSION = "assets/ref_audio/ref_edge_zh_male_passion.wav"  # YunjianNeural - Passion
+VOICE_FEMALE_WARM = "assets/ref_audio/ref_edge_zh_female_warm.wav"    # XiaoxiaoNeural - Warm
+VOICE_FEMALE_LIVELY = "assets/ref_audio/ref_edge_zh_female_lively.wav"  # XiaoyiNeural - Lively
+VOICE_MALE_CUTE = "assets/ref_audio/ref_edge_zh_male_cute.wav"        # YunxiaNeural - Cute
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CHAPTERS_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "audio", "chapters")
@@ -100,7 +105,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nOptions:")
     print("  --input FILE, -i     Text file to read input from")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
-    print("  --voice MODE         Voice mode: male, female, rotate (Default: rotate)")
+    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
     print("  --voices LIST        Custom voices (CSV, overrides --voice)")
     print("  --ref-text TEXT      Reference text for voice cloning")
     print("  --bgm                Enable background music for non-bible sections")
@@ -118,9 +123,11 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
-    print("  male    - Single male voice (ref_male.wav)")
-    print("  female  - Single female voice (ref_female.wav)")
-    print("  rotate  - Rotate male/female voices (Default)")
+    print("  male    - Single male voice (Professional)")
+    print("  female  - Single female voice (Warm)")
+    print("  two     - Rotate 2 voices (1 male + 1 female)")
+    print("  four    - Rotate 4 voices (2 male + 2 female)")
+    print("  six     - Rotate all 6 voices (Default)")
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i input.txt")
     print(f"  python {sys.argv[0]} -i input.txt --voice rotate --bgm")
@@ -130,8 +137,8 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
-parser.add_argument("--voice", type=str, default="rotate", choices=["male", "female", "rotate"],
-                    help="Voice mode: male, female, rotate")
+parser.add_argument("--voice", type=str, default="six", choices=["male", "female", "two", "four", "six"],
+                    help="Voice mode: male, female, two, four, six")
 parser.add_argument("--voices", type=str, default=None,
                     help="Custom voices (CSV format, overrides --voice)")
 parser.add_argument("--ref-text", type=str, default=DEFAULT_REF_TEXT, help="Reference text for voice cloning")
@@ -162,14 +169,20 @@ if args.voices:
     VOICES_STR = args.voices
     print(f"🎤 Custom voices: {args.voices}")
 elif args.voice == "male":
-    VOICES_STR = "assets/ref_audio/ref_male.wav"
-    print(f"🎤 Voice mode: male (ref_male.wav)")
+    VOICES_STR = VOICE_MALE_PRO
+    print(f"🎤 Voice mode: male (Professional)")
 elif args.voice == "female":
-    VOICES_STR = "assets/ref_audio/ref_female.wav"
-    print(f"🎤 Voice mode: female (ref_female.wav)")
-else:  # rotate (default)
-    VOICES_STR = DEFAULT_VOICES
-    print(f"🎤 Voice mode: rotate (male + female)")
+    VOICES_STR = VOICE_FEMALE_WARM
+    print(f"🎤 Voice mode: female (Warm)")
+elif args.voice == "two":
+    VOICES_STR = f"{VOICE_MALE_PRO},{VOICE_FEMALE_WARM}"
+    print(f"🎤 Voice mode: two (rotating 2 voices)")
+elif args.voice == "four":
+    VOICES_STR = f"{VOICE_MALE_PRO},{VOICE_FEMALE_WARM},{VOICE_MALE_SUNSHINE},{VOICE_FEMALE_LIVELY}"
+    print(f"🎤 Voice mode: four (rotating 4 voices)")
+else:  # six (default)
+    VOICES_STR = f"{VOICE_MALE_PRO},{VOICE_FEMALE_WARM},{VOICE_MALE_SUNSHINE},{VOICE_FEMALE_LIVELY},{VOICE_MALE_PASSION},{VOICE_MALE_CUTE}"
+    print(f"🎤 Voice mode: six (rotating 6 voices)")
 
 
 # ─── Input text loading ───

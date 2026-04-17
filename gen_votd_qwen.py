@@ -36,8 +36,11 @@ from mp3_to_mp4 import create_mp4, DEFAULT_BG
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CHAPTERS_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "audio", "chapters")
+CHAPTERS_DIR_EVEREST = os.path.join(SCRIPT_DIR, "assets", "bible", "audio", "chapters")
+CHAPTERS_DIR_DAVIDYEN = os.path.join(SCRIPT_DIR, "assets", "bible", "audio", "chapters_davidyen")
 BIBLE_BGM_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "bgm")
+
+_chapter_voice_rotation_idx = 0  # Global counter for rotation
 
 # ─── CLI Args ───
 if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
@@ -60,6 +63,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4                Generate MP4 video from audio")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
+    print("  --chapter-voice V    Chapter voice: everest, davidyen, rotate (Default: rotate)")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes (Qwen-TTS):")
     print("  male    - Single male voice (Ethan)")
@@ -95,6 +99,8 @@ parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sq
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
+parser.add_argument("--chapter-voice", type=str, default="rotate", choices=["everest", "davidyen", "rotate"],
+                    help="Chapter audio voice source (Default: rotate)")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -248,23 +254,49 @@ def _speedup_ffmpeg(seg: AudioSegment, speed: float) -> AudioSegment:
 
 
 def _load_chapter_audio(book_num: int, chapter_num: int, speed: float = 1.0) -> AudioSegment:
-    """Load pre-recorded chapter MP3 from assets/bible/audio/chapters/."""
+    """Load pre-recorded chapter MP3 from Everest or David Yen directories."""
+    global _chapter_voice_rotation_idx
+    
     fname = f"{book_num:03d}_{chapter_num:03d}.mp3"
-    path = os.path.join(CHAPTERS_DIR, fname)
+    
+    # Determine directory based on --chapter-voice
+    if args.chapter_voice == "everest":
+        path = os.path.join(CHAPTERS_DIR_EVEREST, fname)
+        v_name = "Everest"
+    elif args.chapter_voice == "davidyen":
+        path = os.path.join(CHAPTERS_DIR_DAVIDYEN, fname)
+        v_name = "David Yen"
+    else:  # rotate
+        if _chapter_voice_rotation_idx % 2 == 0:
+            path = os.path.join(CHAPTERS_DIR_DAVIDYEN, fname)
+            v_name = "David Yen"
+        else:
+            path = os.path.join(CHAPTERS_DIR_EVEREST, fname)
+            v_name = "Everest"
+        _chapter_voice_rotation_idx += 1
+
     if not os.path.exists(path):
-        print(f"  ⚠️ Chapter audio not found: {path}")
-        return None
+        # Fallback to the other one if not found
+        alt_path = os.path.join(CHAPTERS_DIR_EVEREST if v_name == "David Yen" else CHAPTERS_DIR_DAVIDYEN, fname)
+        if os.path.exists(alt_path):
+            print(f"  ⚠️ {v_name} audio not found for {fname}, falling back...")
+            path = alt_path
+            v_name = "Everest" if v_name == "David Yen" else "David Yen"
+        else:
+            print(f"  ⚠️ Chapter audio not found for {fname}")
+            return None, None
+
     try:
         seg = AudioSegment.from_mp3(path)
         orig_len = len(seg) / 1000
         # Apply speed change using ffmpeg atempo (preserves pitch)
         if speed != 1.0 and speed > 0:
             seg = _speedup_ffmpeg(seg, speed)
-        print(f"  📖 Loaded chapter audio: {fname} ({orig_len:.1f}s → {len(seg)/1000:.1f}s @ {speed}x)")
-        return seg
+        print(f"  📖 Loaded chapter audio: {fname} [{v_name}] ({orig_len:.1f}s → {len(seg)/1000:.1f}s @ {speed}x)")
+        return seg, v_name
     except Exception as e:
         print(f"  ❌ Error loading {fname}: {e}")
-        return None
+        return None, None
 
 
 def parse_input_sections(text: str) -> dict:
@@ -521,11 +553,15 @@ def main():
             chapter_num = block['chapter_num']
 
             # Collect chapter audio for Section 6
-            ch_seg = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
+            ch_seg, ch_voice_name = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
             if ch_seg is not None:
-                # Boost volume if needed (Everest audio is quiet)
-                if args.speech_volume != 0:
-                    ch_seg = ch_seg + args.speech_volume
+                # 7b1. Hardcoded boost based on source (math-based leveling)
+                # Everest: +6.0 dB, David Yen: +2.0 dB
+                base_boost = 6.0 if ch_voice_name == "Everest" else 2.0
+                total_boost = base_boost + args.speech_volume
+                
+                if total_boost != 0:
+                    ch_seg = ch_seg + total_boost
 
             # Collect chapter text for output.txt
             if block['chapter_text']:
@@ -545,6 +581,7 @@ def main():
             bible_audio_blocks.append({
                 'translations': block['translations'],
                 'chapter_seg': ch_seg,
+                'chapter_voice': ch_voice_name,
                 'block_idx': block_idx,
             })
 
@@ -611,21 +648,49 @@ def main():
             txt_lines.append(clean_text_basic(prayer_para))
             txt_lines.append("")
 
-    # ─── Section 6: Credits ───
-    print(f"\n--- Section 6: Credits ---")
+    # ─── Section 6: Automatic Footer & Credits ───
+    print(f"\n--- Section 6: Automatic Footer & Credits ---")
+    
+    # 1. Start with manual credits from input.txt (if any)
+    footer_lines = [c for c in sections['credits'] if c.strip()]
+    
+    # 2. Add Source Credit
+    footer_lines.append("內容取自 YouVersion「今日經文」(Verse of the Day)。")
+    
+    # 3. Add Dynamic Voice Attribution
+    attributed_voices = list(set([b['chapter_voice'] for b in bible_audio_blocks if b['chapter_seg']]))
+    if attributed_voices:
+        if "David Yen" in attributed_voices and "Everest" in attributed_voices:
+            footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
+        elif "David Yen" in attributed_voices:
+            footer_lines.append("聖經語音由 閻大衛 (男聲) 老師提供。")
+        else:
+            footer_lines.append("聖經語音由 Everest (女聲) 提供。" )
+            
+    # 4. Add Foundation Credit
+    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。官網：v o t d 點 v i 點 f y i")
+
+    # 5. End with the Title (thematic recap)
     if sections['title']:
-        sections['credits'].append(sections['title'])
+        footer_lines.append(sections['title'])
+
+    # Store footer_lines for reuse in Section 8
+    sections['footer_lines'] = footer_lines
 
     credits_audio_segments = []
-    for cr_idx, credit in enumerate(sections['credits']):
+    for cr_idx, credit in enumerate(footer_lines):
         voice = voices[global_voice_idx % len(voices)]
         global_voice_idx += 1
+        print(f"  🎙️ Footer Line {cr_idx+1}: {credit}")
         seg = generate_audio_segment(credit, voice)
         final_segments.append(SILENCE_SECTION)
         final_segments.append(seg)
         credits_audio_segments.append(SILENCE_SECTION)
         credits_audio_segments.append(seg)
-        txt_lines.append(clean_text_basic(credit))
+        
+        # In the text file, use the real URL
+        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi")
+        txt_lines.append(clean_text_basic(txt_credit))
         txt_lines.append("")
 
     # ─── Combine and Export Short Version ───
@@ -643,9 +708,9 @@ def main():
             intro_delay_ms=BGM_INTRO_DELAY
         )
 
-    PRODUCER = "VI AI Foundation"
+    PRODUCER = "唯愛 AI 基金會 (VI AI Foundation)"
     TITLE = sections['title']
-    ALBUM = "VOTD"
+    ALBUM = "今日經文 VOTD"
     bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
     COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
 
@@ -713,8 +778,11 @@ def main():
     print(f"\n--- Section 8: Final Credits (copy) ---")
     for seg in credits_audio_segments:
         final_segments.append(seg)
-    for credit in sections['credits']:
-        txt_lines.append(credit)
+    # Also repeat in txt_lines for the long version
+    for credit in sections.get('footer_lines', []):
+        # Use real URL for text file
+        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi")
+        txt_lines.append(clean_text_basic(txt_credit))
         txt_lines.append("")
 
     # ─── Combine and Export Long Version ───

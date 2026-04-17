@@ -185,22 +185,46 @@ def rename_to_everest_format(download_dir, output_dir):
 
             # Extract book number and chapter from filename
             # Pattern: 舊約聖經-【01】創世紀_第001章.mp3
-            # or:      新約聖經-【01】馬太福音_第001章.mp3
-            match = re.search(r'【(\d+)】.*第(\d+)章', fname)
-            if not match:
+            # or:      新約聖經-【04】約翰福音_第008（修改）.mp3 (missing '章')
+            # or:      舊約聖經-【19】詩篇_第090篇.mp3
+            book_match = re.search(r'【(\d+)】', fname)
+            chapter_match = re.search(r'第(\d+)', fname)
+
+            if book_match:
+                local_book_num = int(book_match.group(1))
+                if chapter_match:
+                    chapter_num = int(chapter_match.group(1))
+                else:
+                    # Books with only one chapter might not have "第" in the name
+                    # e.g., 舊約聖經-【31】俄巴底亞書.mp3 -> Chapter 1
+                    chapter_num = 1
+            else:
                 # Try alternate: folder name has "01 創世記" pattern
                 folder_name = os.path.basename(root)
                 folder_match = re.match(r'(\d+)\s+', folder_name)
-                chapter_match = re.search(r'(\d+)', fname)
-                if folder_match and chapter_match:
-                    local_book_num = int(folder_match.group(1))
-                    chapter_num = int(chapter_match.group(1))
+                # Look for chapter number after the book name or in "第...章" format
+                chapter_match = re.search(r'第(\d+)', fname)
+                if not chapter_match:
+                    # Last resort: find any number that ISN'T the book number
+                    nums = re.findall(r'(\d+)', fname)
+                    if folder_match and nums:
+                        local_book_num = int(folder_match.group(1))
+                        # Pick the first number that isn't the book number, or 1 if only book number exists
+                        chapter_num = 1
+                        for n in nums:
+                            if int(n) != local_book_num:
+                                chapter_num = int(n)
+                                break
+                    else:
+                        errors.append(f"Cannot parse: {fname}")
+                        continue
                 else:
-                    errors.append(f"Cannot parse: {fname}")
-                    continue
-            else:
-                local_book_num = int(match.group(1))
-                chapter_num = int(match.group(2))
+                    if folder_match:
+                        local_book_num = int(folder_match.group(1))
+                        chapter_num = int(chapter_match.group(1))
+                    else:
+                        errors.append(f"Cannot parse: {fname}")
+                        continue
 
             # Map to Bible book number
             bible_book_num = book_map.get(local_book_num)

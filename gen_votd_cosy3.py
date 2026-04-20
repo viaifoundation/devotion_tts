@@ -29,6 +29,7 @@ import re
 import warnings
 import argparse
 from datetime import datetime
+from typing import Optional, Tuple
 
 # Silence noisy libraries
 warnings.filterwarnings("ignore", category=FutureWarning, module="diffusers")
@@ -66,6 +67,8 @@ import filename_parser
 import audio_mixer
 from mp3_to_mp4 import create_mp4, DEFAULT_BG
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
+from chapter_narration_gain import CHAPTER_VOICE_CHOICES, boost_db_for_chapter_voice
+from votd_narration_chapter import load_narration_chapter_mp3
 
 # --- Configuration ---
 DEFAULT_REF_TEXT = "然而，靠着爱我们的主，在这一切的事上已经得胜有余了。"
@@ -123,7 +126,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4                Generate MP4 video from audio")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
-    print("  --chapter-voice V    Chapter voice: everest, davidyen, rotate (Default: rotate)")
+    print("  --chapter-voice V    everest | davidyen | rotate | rotate_male_first | rotate_female_first")
     print("  --debug, -d LEVEL    Debug level: 0=minimal, 1=progress, 2=full")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
@@ -152,14 +155,24 @@ parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in d
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 parser.add_argument("--bible-bgm-volume", type=int, default=-20, help="Bible chapter BGM volume in dB")
 parser.add_argument("--bible-bgm-intro", type=int, default=4000, help="Bible chapter BGM intro delay in ms")
-parser.add_argument("--speech-volume", type=int, default=4, help="Boost for chapter speech in dB (Everest is quiet)")
+parser.add_argument(
+    "--speech-volume",
+    type=int,
+    default=4,
+    help="Extra chapter speech gain in dB (after per-source leveling; default 4)",
+)
 parser.add_argument("--chapter-speed", type=float, default=1.5, help="Speed multiplier for Everest chapter audio (Default: 1.5)")
 parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sqlite")
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
-parser.add_argument("--chapter-voice", type=str, default="rotate", choices=["everest", "davidyen", "rotate"],
-                    help="Chapter audio voice source (Default: rotate)")
+parser.add_argument(
+    "--chapter-voice",
+    type=str,
+    default="rotate",
+    choices=CHAPTER_VOICE_CHOICES,
+    help="Recorded chapter: everest/davidyen fixed; rotate*=alternate male-first or female-first",
+)
 parser.add_argument("--debug", "-d", type=int, default=0, choices=[0, 1, 2], help="Debug level")
 
 args, unknown = parser.parse_known_args()
@@ -301,49 +314,22 @@ def _speedup_ffmpeg(seg: AudioSegment, speed: float) -> AudioSegment:
         Path(tmp_out).unlink(missing_ok=True)
 
 
-def _load_chapter_audio(book_num: int, chapter_num: int, speed: float = 1.0) -> AudioSegment:
+def _load_chapter_audio(
+    book_num: int, chapter_num: int, speed: float = 1.0
+) -> Tuple[Optional[AudioSegment], Optional[str]]:
     """Load pre-recorded chapter MP3 from Everest or David Yen directories."""
     global _chapter_voice_rotation_idx
-    
-    fname = f"{book_num:03d}_{chapter_num:03d}.mp3"
-    
-    # Determine directory based on --chapter-voice
-    if args.chapter_voice == "everest":
-        path = os.path.join(CHAPTERS_DIR_EVEREST, fname)
-        v_name = "Everest"
-    elif args.chapter_voice == "davidyen":
-        path = os.path.join(CHAPTERS_DIR_DAVIDYEN, fname)
-        v_name = "David Yen"
-    else:  # rotate
-        if _chapter_voice_rotation_idx % 2 == 0:
-            path = os.path.join(CHAPTERS_DIR_DAVIDYEN, fname)
-            v_name = "David Yen"
-        else:
-            path = os.path.join(CHAPTERS_DIR_EVEREST, fname)
-            v_name = "Everest"
-        _chapter_voice_rotation_idx += 1
-
-    if not os.path.exists(path):
-        # Fallback to the other one if not found
-        alt_path = os.path.join(CHAPTERS_DIR_EVEREST if v_name == "David Yen" else CHAPTERS_DIR_DAVIDYEN, fname)
-        if os.path.exists(alt_path):
-            print(f"  ⚠️ {v_name} audio not found for {fname}, falling back...")
-            path = alt_path
-            v_name = "Everest" if v_name == "David Yen" else "David Yen"
-        else:
-            print(f"  ⚠️ Chapter audio not found for {fname}")
-            return None, None
-
-    try:
-        seg = AudioSegment.from_mp3(path)
-        orig_len = len(seg) / 1000
-        if speed != 1.0 and speed > 0:
-            seg = _speedup_ffmpeg(seg, speed)
-        print(f"  📖 Loaded chapter audio: {fname} [{v_name}] ({orig_len:.1f}s → {len(seg)/1000:.1f}s @ {speed}x)")
-        return seg, v_name
-    except Exception as e:
-        print(f"  ❌ Error loading {fname}: {e}")
-        return None, None
+    seg, v_name, _chapter_voice_rotation_idx = load_narration_chapter_mp3(
+        args.chapter_voice,
+        book_num,
+        chapter_num,
+        CHAPTERS_DIR_EVEREST,
+        CHAPTERS_DIR_DAVIDYEN,
+        _chapter_voice_rotation_idx,
+        speed,
+        _speedup_ffmpeg,
+    )
+    return seg, v_name
 
 
 def parse_input_sections(text: str) -> dict:
@@ -609,9 +595,9 @@ def main():
 
             ch_seg, ch_voice_name = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
             if ch_seg is not None:
-                # 7b1. Hardcoded boost based on source (math-based leveling)
-                # Everest: +6.0 dB, David Yen: +2.0 dB
-                base_boost = 6.0 if ch_voice_name == "Everest" else 2.0
+                if not ch_voice_name:
+                    print("  ⚠️ Internal error: chapter audio present but voice label is empty")
+                base_boost = boost_db_for_chapter_voice(ch_voice_name)
                 total_boost = base_boost + args.speech_volume
                 
                 if total_boost != 0:

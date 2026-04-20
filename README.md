@@ -59,9 +59,25 @@ It supports automatic filename generation based on the Bible verse and date foun
 
 | Tool | Purpose | Usage |
 |------|---------|-------|
-| `gen_votd*.py` | VOTD audio: Exports both a Short version (essay+prayer) and Long version (includes multi-translation Bible audio + Everest chapters) | `python gen_votd_edge.py -i input.txt` |
+| `gen_votd*.py` | VOTD audio: Short + Long (multi-translation Bible audio + **recorded** CUV chapters). See **Recorded chapter audio** below. | `python gen_votd_edge.py -i input.txt` |
+| `chapter_narration_gain.py` | Shared dB offsets for **Everest vs David Yen** chapter MP3s (aligned with [ting](https://github.com/viaifoundation/ting) `concat_daily.py`). | Imported by `gen_votd_*.py` |
+| `votd_narration_chapter.py` | Loads narration chapters, rotation index only advances after a **successful** decode; fallback if one source missing. | Used by `gen_votd_edge.py`, `gen_votd_cosy3.py`, `gen_votd_qwen.py` |
 | `mp3_to_mp4.py` | Convert MP3 to MP4 for YouTube | `python mp3_to_mp4.py audio.mp3 --bg image.jpg` |
 | `gen_voice_samples_edge.py` | Generate voice samples for CosyVoice 3.0 | `python gen_voice_samples_edge.py --all` |
+
+#### Recorded chapter audio (`gen_votd_edge.py`, `gen_votd_cosy3.py`, `gen_votd_qwen.py`)
+
+Full-chapter MP3s come from `assets/bible/audio/chapters/` (Everest, female) and `assets/bible/audio/chapters_davidyen/` (David Yen, male). Per-source gain matches ting’s plan pipeline; extra boost: `--speech-volume` (default 4).
+
+`--chapter-voice` options:
+
+| Value | Behavior |
+|--------|-----------|
+| `everest` | Female (Everest) only |
+| `davidyen` | Male (David Yen) only |
+| `rotate` | Alternate male/female by chapter (male first); same as `rotate_male_first` |
+| `rotate_male_first` | Same as `rotate` |
+| `rotate_female_first` | Alternate with female first |
 
 ## Environment Setup (Recommended)
 

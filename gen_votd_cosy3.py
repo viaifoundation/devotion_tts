@@ -851,19 +851,32 @@ def main():
 
     # ─── Generate MP4 if requested ───
     if args.mp4:
-        mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
         bg_path = args.mp4_bg
         if not os.path.isabs(bg_path):
             bg_path = os.path.join(SCRIPT_DIR, bg_path)
+            
         if os.path.exists(bg_path):
-            success = create_mp4(
+            # 1. Long Version MP4
+            mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
+            print(f"\n🎬 Generating Long MP4...")
+            create_mp4(
                 input_mp3=OUTPUT_PATH,
                 bg_image=bg_path,
                 output_mp4=mp4_output,
                 resolution=args.mp4_res
             )
-            if not success:
-                print("⚠️ MP4 generation failed")
+            
+            # 2. Short Version MP4
+            short_mp3 = OUTPUT_PATH.replace(".mp3", "_short.mp3")
+            short_mp4 = OUTPUT_PATH.replace(".mp3", "_short.mp4")
+            if os.path.exists(short_mp3):
+                print(f"\n🎬 Generating Short MP4...")
+                create_mp4(
+                    input_mp3=short_mp3,
+                    bg_image=bg_path,
+                    output_mp4=short_mp4,
+                    resolution=args.mp4_res
+                )
         else:
             print(f"⚠️ Background image not found: {bg_path}")
             print(f"   Skipping MP4 generation.")

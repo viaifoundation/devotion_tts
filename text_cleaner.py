@@ -26,7 +26,9 @@ def remove_bracketed_emojis(text):
     """
     Removes bracketed emojis like [玫瑰], [爱心], [合十] and tags like [WH].
     """
-    return re.sub(r'\[(玫瑰|爱心|合十|WH)\]', '', text)
+    text = re.sub(r'\[(玫瑰|爱心|合十|WH)\]', '', text)
+    # Collapse double spaces that might result from tag removal
+    return re.sub(r' +', ' ', text)
 
 def convert_urls_to_speech(text):
     """
@@ -41,13 +43,14 @@ def convert_urls_to_speech(text):
     text = re.sub(r'https?://', '', text)
     
     # Step 2: Handle known domain patterns
-    # .vi.fyi should be pronounced as "点 v i 点 f y i" (spell out to avoid "six")
-    text = re.sub(r'\.vi\.fyi\b', ' 点 v i 点 f y i', text)
+    # Use '点' for periods in known domains, no extra spaces.
+    text = re.sub(r'\.vi\.fyi\b', '点vi点fyi', text)
     
-    # Step 3: Handle votd prefix (spell it out)
-    text = re.sub(r'\bvotd\b', 'v o t d', text)
+    # Step 3: Handle votd prefix
+    # Removed spelling spaces to avoid extra gaps.
+    text = re.sub(r'\bvotd\b', 'votd', text)
     
-    return text
+    return text.strip()
 
 
 def fix_pronunciation(text):
@@ -105,7 +108,7 @@ def clean_text_basic(text):
     text = remove_control_characters(text)
     text = remove_bracketed_emojis(text)
     text = remove_space_before_god(text)
-    return text
+    return text.strip()
 
 
 def clean_text_for_tts(text):
@@ -118,7 +121,9 @@ def clean_text_for_tts(text):
     text = handle_classical_punctuation(text)
     text = convert_urls_to_speech(text)
     text = fix_pronunciation(text)
-    return text
+    # Final pass to ensure no double spaces or trailing whitespace
+    text = re.sub(r' +', ' ', text)
+    return text.strip()
 
 
 def clean_text(text):

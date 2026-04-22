@@ -63,7 +63,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --speech-volume VOL  Boost for chapter speech in dB (Default: 4)")
     print("  --chapter-speed SPD  Speed multiplier for Everest chapter audio (Default: 1.5)")
     print("  --bible-db PATH      Path to bible.sqlite (Default: assets/bible/bible.sqlite)")
-    print("  --mp4                Generate MP4 video from audio")
+    print("  --mp4                Generate MP4 video from audio (both short and long versions)")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  --chapter-voice V    everest | davidyen | rotate | rotate_male_first | rotate_female_first")
@@ -104,7 +104,7 @@ parser.add_argument(
 )
 parser.add_argument("--chapter-speed", type=float, default=1.5, help="Speed multiplier for Everest chapter audio (Default: 1.5)")
 parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sqlite")
-parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
+parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio (both short and long versions)")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 parser.add_argument(

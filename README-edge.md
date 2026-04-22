@@ -52,7 +52,7 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--bgm-track` | BGM filename | `AmazingGrace.MP3` |
 | `--bgm-volume` | BGM volume in dB | -20 |
 | `--bgm-intro` | BGM intro delay in ms | 4000 |
-| `--mp4` | Generate MP4 video from audio | False |
+| `--mp4` | Generate MP4 video from audio (both short and long versions) | False |
 | `--mp4-bg` | Background image for MP4 | `assets/background/background.jpg` |
 | `--mp4-res` | MP4 resolution | `1920x1080` |
 

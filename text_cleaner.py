@@ -24,9 +24,9 @@ def remove_control_characters(text):
 
 def remove_bracketed_emojis(text):
     """
-    Removes bracketed emojis like [玫瑰], [爱心], [合十].
+    Removes bracketed emojis like [玫瑰], [爱心], [合十] and tags like [WH].
     """
-    return re.sub(r'\[(玫瑰|爱心|合十)\]', '', text)
+    return re.sub(r'\[(玫瑰|爱心|合十|WH)\]', '', text)
 
 def convert_urls_to_speech(text):
     """
@@ -72,6 +72,30 @@ def fix_pronunciation(text):
     return text
 
 
+def handle_classical_punctuation(text):
+    """
+    Handles classical Chinese punctuation (e.g. CUVC).
+    Replaces old-style marks with modern equivalents for correct TTS pauses.
+    """
+    # Circles (periods)
+    text = text.replace("○", "。")
+    text = text.replace("◯", "。")
+    
+    # Dots/Commas
+    # In CUVC, 、 acts as a general comma. 
+    # We replace it with ， for more consistent pause handling in some TTS.
+    text = text.replace("、", "，")
+    text = text.replace("．", "；")
+    
+    # Quotes
+    text = text.replace("『", "「").replace("』", "」")
+    
+    # Special marks (hyphenation/translator dots)
+    text = text.replace("‧", "")
+    
+    return text
+
+
 def clean_text_basic(text):
     """
     Basic cleaning for display and saving to text files.
@@ -87,9 +111,11 @@ def clean_text_basic(text):
 def clean_text_for_tts(text):
     """
     Full cleaning for TTS engines.
-    Includes basic cleaning plus URL-to-speech and pronunciation fixes.
+    Includes basic cleaning plus URL-to-speech, classical punctuation handling,
+    and pronunciation fixes.
     """
     text = clean_text_basic(text)
+    text = handle_classical_punctuation(text)
     text = convert_urls_to_speech(text)
     text = fix_pronunciation(text)
     return text

@@ -9,7 +9,7 @@ from text_cleaner import clean_text
 import filename_parser
 import re
 from datetime import datetime
-from mp3_to_mp4 import create_mp4, DEFAULT_BG
+from audio_to_mp4 import create_mp4, DEFAULT_BG
 
 TTS_RATE = "+0%"  # Default Speed (normal)
 

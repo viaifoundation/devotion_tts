@@ -33,7 +33,7 @@ from date_parser import convert_dates_in_text
 from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
-from mp3_to_mp4 import create_mp4, DEFAULT_BG
+from audio_to_mp4 import create_mp4, DEFAULT_BG
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 from chapter_narration_gain import CHAPTER_VOICE_CHOICES, boost_db_for_chapter_voice
 from votd_narration_chapter import load_narration_chapter_mp3

@@ -57,6 +57,8 @@ def convert_bible_reference(text):
             # Check suffixes
             for i in range(len(book_candidate)):
                 suffix = book_candidate[i:]
+                if i > 0 and len(suffix) < 2:
+                    continue
                 if suffix in CHINESE_TO_ENGLISH:
                     valid_book = suffix
                     prefix = book_candidate[:i]
@@ -94,6 +96,8 @@ def convert_bible_reference(text):
              # Suffix check
              for i in range(len(book_candidate)):
                  suffix = book_candidate[i:]
+                 if i > 0 and len(suffix) < 2:
+                     continue
                  if suffix in CHINESE_TO_ENGLISH and suffix in SINGLE_CHAPTER_BOOKS:
                      valid_book = suffix
                      prefix = book_candidate[:i]

@@ -84,6 +84,7 @@ CHINESE_TO_ENGLISH = {
     "傳道書": "Ecclesiastes", "傳": "Ecclesiastes", "雅歌": "SongOfSongs",
     "以賽亞書": "Isaiah", "賽": "Isaiah", "耶利米書": "Jeremiah", "耶利米哀歌": "Lamentations",
     "以西結書": "Ezekiel", "結": "Ezekiel", "但以理書": "Daniel",
+    "何西阿書": "Hosea", "約珥書": "Joel", "阿摩司書": "Amos",
     "俄巴底亞書": "Obadiah", "俄": "Obadiah", "俄巴底亞": "Obadiah",
     "約拿書": "Jonah", "拿": "Jonah",
     "彌迦書": "Micah", "彌": "Micah",
@@ -297,6 +298,8 @@ def extract_verse_from_text(text: str) -> str:
             # Optimization: Max book length is ~10 chars.
             for i in range(len(book_candidate)):
                 suffix = book_candidate[i:]
+                if i > 0 and len(suffix) < 2:
+                    continue
                 if suffix in CHINESE_TO_ENGLISH:
                     valid_book = suffix
                     break
@@ -322,6 +325,8 @@ def extract_verse_from_text(text: str) -> str:
             # Suffix check
             for i in range(len(book_candidate)):
                  suffix = book_candidate[i:]
+                 if i > 0 and len(suffix) < 2:
+                     continue
                  if suffix in CHINESE_TO_ENGLISH and suffix in SINGLE_CHAPTER_BOOKS:
                      valid_book = suffix
                      break

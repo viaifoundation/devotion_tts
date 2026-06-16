@@ -81,67 +81,51 @@ Full-chapter MP3s come from `assets/bible/audio/chapters/` (Everest, female) and
 
 ## Environment Setup (Recommended)
 
-It is highly recommended to use `pyenv` to manage Python versions and virtual environments to avoid conflicts.
+To avoid Python version and package dependency conflicts, we recommend using **Mise** (a modern, fast tool manager) and **uv** (an extremely fast virtual environment and package manager).
 
 ### A. macOS Setup Guide
 
-1.  **Install Prerequisites (Pyenv & FFmpeg)**:
+1.  **Install Prerequisites (Mise, uv, & FFmpeg)**:
     ```bash
     brew update
-    brew install pyenv ffmpeg
+    brew install mise uv ffmpeg
     ```
-    *Follow the instructions printed in your terminal to add pyenv to your shell profile (e.g., `~/.zshrc` or `~/.bash_profile`).*
+    *Make sure to add `eval "$(mise activate zsh)"` to your `~/.zshrc` (or equivalent shell profile).*
 
-2.  **Install Python 3.12.12**:
+2.  **Install Python 3.12**:
     ```bash
-    pyenv install 3.12.12
-    ```
-
-3.  **Set Local Python Version** (Optional but recommended):
-    ```bash
-    pyenv local 3.12.12
+    mise use --global python@3.12
     ```
 
-4.  **Create & Activate Virtual Environment**:
+3.  **Create & Activate Virtual Environment**:
+    Inside the repository directory, run:
     ```bash
-    # Create virtual env named ".venv"
-    python -m venv .venv
+    # Create virtual env named ".venv" using uv (takes ~10ms)
+    uv venv
     
     # Activate it
     source .venv/bin/activate
     ```
 
-5.  **Confirm Activation**:
-    You should see `(.venv)` in your prompt.
+### B. Traditional Setup Guide (Alternative)
 
-### B. Linux Setup Guide
+If you prefer using traditional tools (`pyenv` + `venv`):
 
-1.  **Install Prerequisites**:
+1.  **Install Pyenv & FFmpeg**:
     ```bash
-    # Install build dependencies & ffmpeg
-    sudo apt-get update; sudo apt-get install make build-essential libssl-dev zlib1g-dev \
-    libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ffmpeg
+    brew install pyenv ffmpeg
     ```
+    *Follow instructions to add pyenv hooks to your shell profile.*
 
-2.  **Install Pyenv**:
+2.  **Install & Set Python**:
     ```bash
-    curl https://pyenv.run | bash
-    ```
-    *Follow the on-screen instructions to add pyenv to your shell configuration.*
-
-3.  **Install Python & Create Environment**:
-    ```bash
-    # Install Python 3.12.12
     pyenv install 3.12.12
-    
-    # Set local version
     pyenv local 3.12.12
+    ```
 
-    # Create virtual env
+3.  **Create & Activate Virtual Environment**:
+    ```bash
     python -m venv .venv
-    
-    # Activate
     source .venv/bin/activate
     ```
 
@@ -151,14 +135,11 @@ It is highly recommended to use `pyenv` to manage Python versions and virtual en
 # Deactivate virtual env
 deactivate
 
-# List all pyenv versions
-pyenv versions
+# Install dependencies quickly with uv
+uv pip install -r requirements.txt
 
 # Remove the virtual env
 rm -rf .venv
-
-# Check current python path
-which python
 ```
 
 ## Quick Start
@@ -171,13 +152,13 @@ Clone the repo and install dependencies:
 git clone https://github.com/viaifoundation/devotion_tts.git
 cd devotion_tts
 # Install core dependencies (includes Edge TTS & Google)
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # OR install provider-specific requirements as needed:
-# pip install -r requirements-qwen.txt
-# pip install -r requirements-cosy.txt
-# pip install -r requirements-volc.txt
-# pip install -r requirements-vibe.txt
+# uv pip install -r requirements-qwen.txt
+# uv pip install -r requirements-cosy.txt
+# uv pip install -r requirements-volc.txt
+# uv pip install -r requirements-vibe.txt
 
 ```
 

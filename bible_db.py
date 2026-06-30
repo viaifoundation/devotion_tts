@@ -19,26 +19,26 @@ import re
 import sqlite3
 import filename_parser
 
-# Optional: opencc for simplified → traditional Chinese conversion
+# Optional: opencc for traditional → simplified Chinese conversion
 try:
     import opencc
-    _S2T = opencc.OpenCC('s2t')
-    def _s2t(text: str) -> str:
-        return _S2T.convert(text) if text else text
+    _T2S = opencc.OpenCC('t2s')
+    def _t2s(text: str) -> str:
+        return _T2S.convert(text) if text else text
 except ImportError:
-    _S2T = None
-    def _s2t(text: str) -> str:
+    _T2S = None
+    def _t2s(text: str) -> str:
         return text  # No conversion available
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DB = os.path.join(SCRIPT_DIR, "assets", "bible", "db", "bible.sqlite")
 
-# Translation codes → display labels (Traditional Chinese)
+# Translation codes → display labels (Simplified Chinese)
 TRANSLATION_LABELS = {
     "cuvt": "和合本",
-    "ncvs": "新譯本",
-    "lcvs": "呂振中譯本",
-    "clbs": "當代譯本",
+    "ncvs": "新译本",
+    "lcvs": "吕振中译本",
+    "clbs": "当代译本",
     "cuvc": "文理和合本",
 }
 
@@ -62,15 +62,15 @@ BOOK_NUMBER = {
     "1John": 62, "2John": 63, "3John": 64, "Jude": 65, "Revelation": 66,
 }
 
-# Reverse: book number → Traditional Chinese name
+# Reverse: book number → Simplified Chinese name
 # Built from filename_parser.CHINESE_TO_ENGLISH
-_ENGLISH_TO_CHINESE_TW = {}
+_ENGLISH_TO_CHINESE_CN = {}
 for cn_name, en_name in filename_parser.CHINESE_TO_ENGLISH.items():
     if en_name in BOOK_NUMBER:
         num = BOOK_NUMBER[en_name]
-        # Prefer Traditional Chinese (contains 書/記/音 etc.)
-        if num not in _ENGLISH_TO_CHINESE_TW or '書' in cn_name or '記' in cn_name or '音' in cn_name or '篇' in cn_name:
-            _ENGLISH_TO_CHINESE_TW[num] = cn_name
+        # Prefer Simplified Chinese (contains 书/记/音/篇 etc.)
+        if num not in _ENGLISH_TO_CHINESE_CN or '书' in cn_name or '记' in cn_name or '音' in cn_name or '篇' in cn_name:
+            _ENGLISH_TO_CHINESE_CN[num] = cn_name
 
 # Number of chapters per book (1-66)
 BOOK_CHAPTER_COUNT = [
@@ -95,8 +95,8 @@ def chinese_book_to_number(book_name: str) -> int:
 
 
 def book_number_to_chinese(book_num: int) -> str:
-    """Convert book number (1-66) to Traditional Chinese name."""
-    return _ENGLISH_TO_CHINESE_TW.get(book_num, str(book_num))
+    """Convert book number (1-66) to Simplified Chinese name."""
+    return _ENGLISH_TO_CHINESE_CN.get(book_num, str(book_num))
 
 
 def parse_verse_reference(ref_text: str):
@@ -142,15 +142,15 @@ _STRONGS_RE = re.compile(r'<W[HG]\w+>', re.IGNORECASE)
 _FORMAT_RE = re.compile(r'<FR>|<Fr>', re.IGNORECASE)
 
 def _clean_verse_text(text: str) -> str:
-    """Clean verse text: strip Strong's/formatting tags and convert simplified → traditional."""
+    """Clean verse text: strip Strong's/formatting tags and convert traditional → simplified."""
     if not text:
         return text
     # Strip formatting tags (FR/Fr)
     text = _FORMAT_RE.sub('', text)
     # Strip Strong's number tags
     text = _STRONGS_RE.sub('', text)
-    # Convert simplified → traditional Chinese
-    text = _s2t(text)
+    # Convert traditional → simplified Chinese
+    text = _t2s(text)
     return text.strip()
 
 

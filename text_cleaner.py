@@ -30,6 +30,17 @@ def remove_bracketed_emojis(text):
     # Collapse double spaces that might result from tag removal
     return re.sub(r' +', ' ', text)
 
+def remove_angle_bracket_tags(text):
+    """
+    Removes all angle bracket tags like <WH>, <WG>, <FR>, etc.
+    and strips any remaining '<' or '>' characters.
+    """
+    if not text:
+        return text
+    text = re.sub(r'<[^>]*>', '', text)
+    text = text.replace('<', '').replace('>', '')
+    return text
+
 def convert_urls_to_speech(text):
     """
     Convert URLs to TTS-friendly pronunciation.
@@ -107,6 +118,7 @@ def clean_text_basic(text):
     """
     text = remove_control_characters(text)
     text = remove_bracketed_emojis(text)
+    text = remove_angle_bracket_tags(text)
     text = remove_space_before_god(text)
     return text.strip()
 

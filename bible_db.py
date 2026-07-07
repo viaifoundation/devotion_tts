@@ -146,10 +146,9 @@ def _clean_verse_text(text: str) -> str:
     """Clean verse text: strip Strong's/formatting tags and convert traditional → simplified."""
     if not text:
         return text
-    # Strip formatting tags (FR/Fr)
-    text = _FORMAT_RE.sub('', text)
-    # Strip Strong's number tags
-    text = _STRONGS_RE.sub('', text)
+    # Strip any angle bracket tags like <WH>, <WG>, <FR>, etc. and any stray '<' or '>'
+    text = re.sub(r'<[^>]*>', '', text)
+    text = text.replace('<', '').replace('>', '')
     # Convert traditional → simplified Chinese
     text = _t2s(text)
     return text.strip()

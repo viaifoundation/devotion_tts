@@ -132,7 +132,8 @@ else:
 # Generate filename dynamically
 # 1. Extract Date
 TEXT = clean_text(TEXT)
-first_line = TEXT.strip().split('\n')[0]
+
+# Extract date for filename BEFORE stripping date from spoken text
 date_str_dash = extract_date_from_text(TEXT)
 
 if not date_str_dash:
@@ -157,8 +158,13 @@ if not os.path.exists(OUTPUT_DIR):
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
-# Strip standalone date headers from text so TTS does not pronounce explicit dates out loud
-TEXT = re.sub(r'^\s*(\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?|\d{1,2}月\d{1,2}日)\s*\n?', '', TEXT, flags=re.MULTILINE)
+# Strip calendar dates and day-of-week suffixes from text so TTS does NOT pronounce explicit dates out loud
+date_pattern = r'\s*(\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?|\d{1,2}[-/月]\d{1,2}([-/年]\d{4}|日))\s*([（(]?\s*(週|周|星期)[一二三四五六日七天]\s*[）)]?|Mon|Tue|Wed|Thu|Fri|Sat|Sun)?'
+TEXT = re.sub(date_pattern, '', TEXT, flags=re.IGNORECASE)
+
+# Extract first line for MP3 title after cleaning date
+TEXT = clean_text(TEXT)
+first_line = TEXT.strip().split('\n')[0] if TEXT.strip() else "SOH Prayer"
 
 # Convert Bible references in the text
 TEXT = convert_bible_reference(TEXT)

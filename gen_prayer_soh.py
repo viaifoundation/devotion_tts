@@ -15,7 +15,7 @@ import argparse
 import sys
 
 VERSION = "1.0.0"
-ENABLE_BGM = False
+ENABLE_BGM = True
 BGM_FILE = "AmazingGrace.MP3"
 TTS_RATE = "+0%"  # Default Speed (normal)
 BGM_VOLUME = -20   # Default dB
@@ -59,7 +59,8 @@ parser.add_argument("--voice", type=str, default="two", choices=["male", "female
 parser.add_argument("--voices", type=str, default=None,
                     help="Custom voices (CSV format, overrides --voice)")
 parser.add_argument("--speed", type=str, default=None, help="Speech rate (e.g. +10%%)")
-parser.add_argument("--bgm", action="store_true", help="Enable background music")
+parser.add_argument("--bgm", action="store_true", default=True, help="Enable background music (Default: True)")
+parser.add_argument("--no-bgm", action="store_true", help="Disable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
@@ -67,7 +68,9 @@ parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay
 args, unknown = parser.parse_known_args()
 
 # Update global config based on CLI
-if args.bgm:
+if args.no_bgm:
+    ENABLE_BGM = False
+else:
     ENABLE_BGM = True
 
 # Speed parsing

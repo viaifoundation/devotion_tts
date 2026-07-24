@@ -55,3 +55,31 @@ def extract_date_from_text(text):
         return f"{y}-{int(m):02d}-{int(d):02d}"
 
     return None
+
+
+def strip_all_dates(text):
+    """
+    Strips all explicit calendar dates and weekday labels from text.
+    Handles YYYY年MM月DD日, YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD, MM月DD日, MM/DD,
+    and associated weekday markers like (周六), 周一~周日, 星期一~星期日, Mon~Sun.
+    """
+    if not text:
+        return text
+
+    # 1. Full dates: 2026年7月25日, 2026-07-25, 2026/07/25, 2026.07.25, 2026-7-25, etc.
+    text = re.sub(r'\d{4}\s*[-/年\.]\s*\d{1,2}\s*[-/月\.]\s*\d{1,2}\s*日?', '', text)
+    
+    # 2. Month-Day dates: 7月25日
+    text = re.sub(r'\d{1,2}\s*月\s*\d{1,2}\s*日?', '', text)
+
+    # 3. Weekdays: (週六), (周六), (星期六), 周一~周日, 週一~週日, Mon-Sun
+    text = re.sub(r'[（(]?\s*(週|周|星期)[一二三四五六日七天]\s*[）)]?', '', text)
+    text = re.sub(r'[（(]?\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*[）)]?', '', text, flags=re.IGNORECASE)
+
+    # Clean up line spacing
+    lines = []
+    for line in text.split('\n'):
+        line_clean = re.sub(r' +', ' ', line).strip()
+        lines.append(line_clean)
+    
+    return '\n'.join(lines)

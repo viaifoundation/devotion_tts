@@ -174,6 +174,15 @@ TEXT = clean_text(TEXT)
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 
+# Save cleaned text output to prayer_output.txt
+TXT_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "prayer_output.txt")
+ROOT_TXT_OUTPUT_PATH = os.path.join(os.getcwd(), "prayer_output.txt")
+with open(TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(TEXT)
+with open(ROOT_TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(TEXT)
+print(f"📄 Saved cleaned text output to: {ROOT_TXT_OUTPUT_PATH}")
+
 # Use VOICES array from --voice option
 voices = VOICES
 

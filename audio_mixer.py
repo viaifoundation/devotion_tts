@@ -22,22 +22,25 @@ def mix_bgm(speech_audio: AudioSegment, bgm_dir: str = "assets/bgm", volume_db: 
         return speech_audio
 
     # Select track
-    bgm_file = None
+    bgm_path = None
     if specific_filename:
-        # Check if specific file exists
-        if os.path.exists(os.path.join(bgm_dir, specific_filename)):
-             bgm_file = specific_filename
+        if os.path.exists(specific_filename):
+            bgm_path = specific_filename
+        elif os.path.exists(os.path.join(bgm_dir, specific_filename)):
+            bgm_path = os.path.join(bgm_dir, specific_filename)
+        elif os.path.exists(os.path.join(bgm_dir, os.path.basename(specific_filename))):
+            bgm_path = os.path.join(bgm_dir, os.path.basename(specific_filename))
         else:
-             print(f"⚠️ Specific BGM file {specific_filename} not found in {bgm_dir}. Falling back to random.")
+            print(f"⚠️ Specific BGM file {specific_filename} not found. Falling back to random track.")
 
-    if not bgm_file:
+    if not bgm_path:
         files = [f for f in os.listdir(bgm_dir) if f.lower().endswith(('.mp3', '.wav', '.m4a'))]
         if not files:
             print(f"⚠️ No music files found in {bgm_dir}. Skipping BGM.")
             return speech_audio
-        bgm_file = random.choice(files)
+        bgm_path = os.path.join(bgm_dir, random.choice(files))
         
-    bgm_path = os.path.join(bgm_dir, bgm_file)
+    bgm_file = os.path.basename(bgm_path)
     print(f"🎵 Adding background music: {bgm_file}")
 
     try:

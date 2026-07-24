@@ -136,7 +136,12 @@ first_line = TEXT.strip().split('\n')[0]
 date_str_dash = extract_date_from_text(TEXT)
 
 if not date_str_dash:
-    date_str_dash = datetime.today().strftime("%Y-%m-%d")
+    try:
+        import zoneinfo
+        target_tz = zoneinfo.ZoneInfo("Asia/Shanghai")
+        date_str_dash = datetime.now(target_tz).strftime("%Y-%m-%d")
+    except Exception:
+        date_str_dash = datetime.today().strftime("%Y-%m-%d")
 
 # Convert YYYY-MM-DD to YYYYMMDD
 date_obj = datetime.strptime(date_str_dash, "%Y-%m-%d")
@@ -151,6 +156,9 @@ if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
+
+# Strip standalone date headers from text so TTS does not pronounce explicit dates out loud
+TEXT = re.sub(r'^\s*(\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?|\d{1,2}月\d{1,2}日)\s*\n?', '', TEXT, flags=re.MULTILINE)
 
 # Convert Bible references in the text
 TEXT = convert_bible_reference(TEXT)

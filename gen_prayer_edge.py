@@ -4,7 +4,7 @@ import edge_tts
 from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
-from date_parser import convert_dates_in_text, extract_date_from_text
+from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates
 from text_cleaner import clean_text
 import filename_parser
 import re
@@ -169,8 +169,8 @@ OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
 # Convert Bible references in the text
+TEXT = strip_all_dates(TEXT)
 TEXT = convert_bible_reference(TEXT)
-TEXT = convert_dates_in_text(TEXT)
 TEXT = clean_text(TEXT)
 
 # Split the text into paragraphs

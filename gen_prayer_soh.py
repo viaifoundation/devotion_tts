@@ -18,7 +18,7 @@ VERSION = "1.0.0"
 ENABLE_BGM = True
 BGM_FILE = "AmazingGrace.MP3"
 TTS_RATE = "+0%"  # Default Speed (normal)
-BGM_VOLUME = -20   # Default dB
+BGM_VOLUME = -10   # Default dB relative to speech (audible & balanced)
 BGM_INTRO_DELAY = 4000 # Default ms
 
 # ——————————————————————————————————————————————————————————————————————————
@@ -38,7 +38,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --speed SPEED        Speech rate: +10%, --speed=-10% (Default: +0%)")
     print("  --bgm                Enable background music")
     print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
-    print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
+    print("  --bgm-volume VOL     BGM volume in dB relative to speech (Default: -10)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
@@ -62,7 +62,7 @@ parser.add_argument("--speed", type=str, default=None, help="Speech rate (e.g. +
 parser.add_argument("--bgm", action="store_true", default=True, help="Enable background music (Default: True)")
 parser.add_argument("--no-bgm", action="store_true", help="Disable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
-parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
+parser.add_argument("--bgm-volume", type=int, default=-10, help="BGM volume in dB relative to speech")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 
 args, unknown = parser.parse_known_args()

@@ -50,12 +50,16 @@ def mix_bgm(speech_audio: AudioSegment, bgm_dir: str = "assets/bgm", volume_db: 
         return speech_audio
 
     # Adjust volume relative to speech audio (e.g. volume_db = -10 dB below speech)
+    rel_vol = volume_db
+    if rel_vol <= -18:
+        rel_vol = -10
+
     if len(speech_audio) > 0 and speech_audio.dBFS > -60:
-        target_bgm_dBFS = speech_audio.dBFS + volume_db
+        target_bgm_dBFS = speech_audio.dBFS + rel_vol
         gain_needed = target_bgm_dBFS - bgm.dBFS
         bgm = bgm.apply_gain(gain_needed)
     else:
-        bgm = bgm + volume_db
+        bgm = bgm + rel_vol
 
     # Calculate total duration required
     speech_len = len(speech_audio)

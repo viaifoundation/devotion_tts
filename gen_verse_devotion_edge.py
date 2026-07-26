@@ -196,11 +196,20 @@ TEMP_THIRD = os.path.join(OUTPUT_DIR, "temp_third_verse.mp3")
 
 # Alias for backward compatibility with main()
 OUTPUT = OUTPUT_PATH
-async def generate_audio(text, voice, output_file):
+async def generate_audio(text, voice, output_file, retries=5, backoff_factor=2):
     print(f"DEBUG: Text to read: {text[:100]}...")
-    # print(f"DEBUG: Generating audio for text: '{text[:50]}...' (len={len(text)})")
-    communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
-    await communicate.save(output_file)
+    for attempt in range(1, retries + 1):
+        try:
+            communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
+            await communicate.save(output_file)
+            return
+        except Exception as e:
+            if attempt == retries:
+                print(f"❌ TTS Error on final attempt {attempt}/{retries}: {e}")
+                raise
+            wait_time = backoff_factor ** attempt
+            print(f"⚠️ TTS attempt {attempt}/{retries} failed ({e}). Retrying in {wait_time}s...")
+            await asyncio.sleep(wait_time)
 async def main():
     # Group paragraphs
     if len(paragraphs) < 5:

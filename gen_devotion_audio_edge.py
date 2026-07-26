@@ -55,9 +55,19 @@ TEMP_DIR = "/Users/mhuo/Downloads/"  # For temp files
 TEMP_FIRST = "/Users/mhuo/Downloads/temp_first_devotion.mp3"
 TEMP_SECOND = "/Users/mhuo/Downloads/temp_second_devotion.mp3"
 
-async def generate_audio(text, voice, output_file):
-    communicate = edge_tts.Communicate(text=text, voice=voice)
-    await communicate.save(output_file)
+async def generate_audio(text, voice, output_file, retries=5, backoff_factor=2):
+    for attempt in range(1, retries + 1):
+        try:
+            communicate = edge_tts.Communicate(text=text, voice=voice)
+            await communicate.save(output_file)
+            return
+        except Exception as e:
+            if attempt == retries:
+                print(f"❌ TTS Error on final attempt {attempt}/{retries}: {e}")
+                raise
+            wait_time = backoff_factor ** attempt
+            print(f"⚠️ TTS attempt {attempt}/{retries} failed ({e}). Retrying in {wait_time}s...")
+            await asyncio.sleep(wait_time)
 
 async def main():
     # Generate and collect first voice audio segments (for first paragraph)

@@ -697,7 +697,7 @@ def main():
             footer_lines.append("聖經語音由 Everest (女聲) 提供。" )
             
     # 4. Add Foundation Credit
-    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。官網：v o t d 點 v i 點 f y i")
+    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。官網：v o t d 點 v i 點 f y i，Shema 聆聽：t i n g 點 w e i a i 點 a i")
 
     # 5. End with the Title (thematic recap)
     if sections['title']:
@@ -723,7 +723,7 @@ def main():
                 os.remove(temp_file)
         
         # In the text file, use the real URL
-        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi")
+        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 w e i a i 點 a i", "https://ting.weiai.ai")
         txt_lines.append(txt_credit)
         txt_lines.append("")
 
@@ -813,7 +813,7 @@ def main():
     # Also repeat in txt_lines for the long version
     for credit in sections.get('footer_lines', []):
         # Use real URL for text file
-        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi")
+        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 w e i a i 點 a i", "https://ting.weiai.ai")
         txt_lines.append(txt_credit)
         txt_lines.append("")
 

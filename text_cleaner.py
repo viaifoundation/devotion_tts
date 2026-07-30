@@ -56,10 +56,12 @@ def convert_urls_to_speech(text):
     # Step 2: Handle known domain patterns
     # Use '点' for periods in known domains, no extra spaces.
     text = re.sub(r'\.vi\.fyi\b', '点vi点fyi', text)
+    text = re.sub(r'\.weiai\.ai\b', '点weiai点ai', text)
     
-    # Step 3: Handle votd prefix
+    # Step 3: Handle votd/ting prefixes
     # Removed spelling spaces to avoid extra gaps.
     text = re.sub(r'\bvotd\b', 'votd', text)
+    text = re.sub(r'\bting\b', 'ting', text)
     
     return text.strip()
 

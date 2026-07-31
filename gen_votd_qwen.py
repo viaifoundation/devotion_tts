@@ -642,8 +642,8 @@ def main():
     # 2. Add Source Credit
     footer_lines.append("內容取自 YouVersion「今日經文」與「讀經計劃」。")
     
-    # 3. Add Voice Attribution (Unisex credit)
-    footer_lines.append("聖經語音由 Everest 與 閻大衛 老師提供。")
+    # 3. Add Voice Attribution (Always credit both Everest (女聲) and 閻大衛 (男聲))
+    footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
             
     # 4. Add Foundation Credit
     footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")

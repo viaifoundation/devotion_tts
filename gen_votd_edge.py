@@ -626,17 +626,10 @@ async def main():
     footer_lines = [c for c in sections['credits'] if c.strip()]
     
     # 2. Add Source Credit
-    footer_lines.append("內容取自 YouVersion「今日經文」(Verse of the Day)。")
+    footer_lines.append("內容取自 YouVersion「今日經文」與「讀經計劃」。")
     
-    # 3. Add Dynamic Voice Attribution
-    attributed_voices = list(set([b['chapter_voice'] for b in bible_audio_blocks if b['chapter_seg']]))
-    if attributed_voices:
-        if "David Yen" in attributed_voices and "Everest" in attributed_voices:
-            footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
-        elif "David Yen" in attributed_voices:
-            footer_lines.append("聖經語音由 閻大衛 (男聲) 老師提供。")
-        else:
-            footer_lines.append("聖經語音由 Everest (女聲) 提供。" )
+    # 3. Add Voice Attribution (Unisex credit)
+    footer_lines.append("聖經語音由 Everest 與 閻大衛 老師提供。")
             
     # 4. Add Foundation Credit
     footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")

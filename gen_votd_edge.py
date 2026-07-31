@@ -639,7 +639,7 @@ async def main():
             footer_lines.append("聖經語音由 Everest (女聲) 提供。" )
             
     # 4. Add Foundation Credit
-    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。官網：v o t d 點 v i 點 f y i，Shema 聆聽：t i n g 點 v i 點 f y i")
+    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。網址：v o t d 點 v i 點 f y i，Shema 聆聽：t i n g 點 v i 點 f y i")
 
     # 5. End with the Title (thematic recap)
     if sections['title']:

@@ -247,6 +247,7 @@ python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file s
 | `--output`, `-o` | Output MP4 file or directory | Auto (`<audio>.mp4`) |
 | `--resolution`, `-r` | Video resolution (WxH) | `1920x1080` |
 | `--caption` | Burn hard captions into video (`true`/`false`) | `false` |
+| `--caption-large` | 3x larger caption font size for mobile/social screens (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT file | Auto-detect `<audio>.srt`/`.txt` |
 
 ## Requirements

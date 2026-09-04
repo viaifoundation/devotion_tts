@@ -367,6 +367,77 @@ def get_chinese_font(size: int):
     return ImageFont.load_default()
 
 
+def wrap_caption_text(text: str, font, max_w: int, draw) -> str:
+    """
+    Wrap caption text intelligently:
+    1. If text already fits within max_w, return as is.
+    2. Try breaking at natural boundaries (punctuation, quotes, spaces, brackets).
+    3. If still exceeding max_w, break cleanly at character boundary avoiding
+       starting lines with closing punctuation, and avoid orphaned closing punctuation.
+    """
+    closing_punc = set("，。！？；：、）》」”’.,!?;:)]}")
+    raw_lines = [l.strip() for l in text.split("\n") if l.strip()]
+    processed_lines = []
+
+    for raw in raw_lines:
+        bbox = draw.textbbox((0, 0), raw, font=font)
+        if (bbox[2] - bbox[0]) <= max_w:
+            processed_lines.append(raw)
+            continue
+
+        break_chars = "」）』”'\"，。！？；：、 "
+        best_break = -1
+        mid = len(raw) // 2
+        for offset in range(len(raw) // 2):
+            right = mid + offset
+            left = mid - offset
+            if right < len(raw) - 1 and raw[right] in break_chars:
+                best_break = right + 1
+                break
+            if left > 1 and raw[left] in break_chars:
+                best_break = left + 1
+                break
+
+        if best_break > 0 and best_break < len(raw):
+            part1 = raw[:best_break].strip()
+            part2 = raw[best_break:].strip()
+            sub1 = wrap_caption_text(part1, font, max_w, draw)
+            sub2 = wrap_caption_text(part2, font, max_w, draw)
+            processed_lines.extend(sub1.split("\n"))
+            processed_lines.extend(sub2.split("\n"))
+            continue
+
+        cur = ""
+        for ch in raw:
+            test = cur + ch
+            bb = draw.textbbox((0, 0), test, font=font)
+            if (bb[2] - bb[0]) <= max_w:
+                cur = test
+            else:
+                if ch in closing_punc and len(cur) > 1:
+                    prev_ch = cur[-1]
+                    processed_lines.append(cur[:-1])
+                    cur = prev_ch + ch
+                else:
+                    if cur:
+                        processed_lines.append(cur)
+                    cur = ch
+        if cur:
+            processed_lines.append(cur)
+
+    cleaned_lines = []
+    for line in processed_lines:
+        s = line.strip()
+        if not s:
+            continue
+        if len(s) <= 2 and all(c in closing_punc for c in s) and cleaned_lines:
+            cleaned_lines[-1] += s
+        else:
+            cleaned_lines.append(s)
+
+    return "\n".join(cleaned_lines)
+
+
 def render_hardsub_video(
     input_mp3: str,
     bg_image: str,
@@ -378,13 +449,14 @@ def render_hardsub_video(
     font_size: int = 54,
     margin_bottom: int = 140,
     box_alpha: int = 160, # ~63% opacity dark pill
+    caption_large: bool = False,
 ) -> bool:
     """
     Renders burned-in captions directly on video frames using Pillow + FFmpeg concat.
     
     Styling features:
     - Clean Chinese typography (e.g. Hiragino Sans GB / STHeiti)
-    - High-visibility font size (54px) & safe bottom margin (140px) for WeChat & mobile players
+    - High-visibility font size (54px standard, or 162px with caption_large=True [3x])
     - Semi-transparent rounded backdrop box (pill) that guarantees 100% legibility
       against ANY background image (white, dark, or textured)
     - Full WeChat & YouTube compatibility (CFR 25fps, Main profile, keyframes every 2s, faststart)
@@ -394,6 +466,18 @@ def render_hardsub_video(
 
     width, height = [int(v) for v in resolution.split("x")]
     
+    # 3x larger font mode
+    if caption_large:
+        font_size = font_size * 3
+        margin_bottom = 90
+        pad_x = 48
+        pad_y = 24
+        box_radius = 24
+    else:
+        pad_x = 32
+        pad_y = 16
+        box_radius = 16
+
     # Open and prepare background image
     try:
         base_bg = Image.open(bg_image).convert("RGBA")
@@ -423,7 +507,8 @@ def render_hardsub_video(
         timeline.append((current_time, total_audio_sec, ""))
 
     try:
-        print(f"🎨 Rendering {len(timeline)} caption cues with semi-transparent pill backdrop...")
+        mode_str = " [3x Large Font]" if caption_large else ""
+        print(f"🎨 Rendering {len(timeline)} caption cues with semi-transparent pill backdrop{mode_str}...")
         last_frame_path = None
 
         for idx, (start_sec, end_sec, text) in enumerate(timeline):
@@ -433,12 +518,10 @@ def render_hardsub_video(
             if text.strip():
                 overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
                 draw = ImageDraw.Draw(overlay)
-                
-                # Wrap long text if needed
-                clean_text = text.strip()
-                if len(clean_text) > 22 and not "\n" in clean_text:
-                    mid = len(clean_text) // 2
-                    clean_text = clean_text[:mid] + "\n" + clean_text[mid:]
+
+                # Dynamically wrap text so it comfortably fits within usable screen width
+                max_w = width - (2 * (pad_x + 40))
+                clean_text = wrap_caption_text(text.strip(), font, max_w, draw)
 
                 bbox = draw.textbbox((0, 0), clean_text, font=font, align="center")
                 tw = bbox[2] - bbox[0]
@@ -447,12 +530,10 @@ def render_hardsub_video(
                 x = (width - tw) // 2
                 y = height - margin_bottom - th
 
-                pad_x = 32
-                pad_y = 16
                 pill_box = [x - pad_x, y - pad_y, x + tw + pad_x, y + th + pad_y]
 
                 # Draw rounded rectangle pill backdrop
-                draw.rounded_rectangle(pill_box, radius=16, fill=(0, 0, 0, box_alpha))
+                draw.rounded_rectangle(pill_box, radius=box_radius, fill=(0, 0, 0, box_alpha))
                 # Draw sharp white text
                 draw.text((x, y), clean_text, font=font, fill=(255, 255, 255, 255), align="center")
 

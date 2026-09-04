@@ -56,6 +56,7 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--mp4-bg` | Background image for MP4 (auto-searches `assets/background/` and `assets/bgm/`) | `assets/background/background_soh.jpg` for SOH (fallback: `background.jpg`) |
 | `--mp4-res` | MP4 resolution | `1920x1080` |
 | `--caption` | Enable burned-in hard captions on MP4 (`true`/`false`) | `false` |
+| `--caption-large` | 3x larger caption font size for mobile/social screens (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT caption file (auto-detects if omitted) | (none) |
 
 ## MP4 Video Generation & Captions
@@ -66,16 +67,19 @@ Generate YouTube- and WeChat-ready MP4 videos with a static background image and
 # Generate MP4 without captions (uses default background; SOH scripts auto-select background_soh.jpg)
 python gen_prayer_soh.py -i input.txt --mp4
 
-# Generate MP4 with burned-in hard captions
+# Generate MP4 with burned-in hard captions (standard 54px font)
 python gen_prayer_soh.py -i input.txt --mp4 --caption true
+
+# Generate MP4 with 3x larger burned-in captions (162px font, high visibility on mobile)
+python gen_prayer_soh.py -i input.txt --mp4 --caption true --caption-large
 
 # Specify background image by filename (searched in assets/background/ and assets/bgm/) or full path
 python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg background_soh.jpg
 python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg background.jpg
 python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg ~/imgs/banner.jpg --mp4-res 1280x720
 
-# Full pipeline: audio with BGM + MP4 video with burned-in captions
-python gen_prayer_soh.py -i input.txt --bgm --mp4 --caption true
+# Full pipeline: audio with BGM + MP4 video with 3x large burned-in captions
+python gen_prayer_soh.py -i input.txt --bgm --mp4 --caption true --caption-large
 ```
 
 > [!NOTE]

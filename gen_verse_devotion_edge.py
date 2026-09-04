@@ -10,7 +10,7 @@ import filename_parser
 import re
 from datetime import datetime
 from audio_to_mp4 import create_mp4, DEFAULT_BG
-from caption_generator import parse_caption_flag, generate_srt_from_paragraphs
+from caption_generator import parse_caption_flag, parse_caption_scale, generate_srt_from_paragraphs
 
 TTS_RATE = "+0%"  # Default Speed (normal)
 
@@ -36,6 +36,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4-bg IMAGE       Background image for MP4 (Default: assets/background/background.jpg)")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  --caption [true/false]       Enable burned-in captions on video (Default: false)")
+    print("  --caption-scale SCALE        Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
     print("  --caption-large [true/false] Make burned-in caption font size 3x larger (Default: false)")
     print("  --caption-file FILE          Explicit SRT/VTT caption file for MP4")
     print("  -?, -h, --help               Show this help")
@@ -69,6 +70,8 @@ parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background i
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
                     help="Enable burned-in captions on MP4 video (true/false, default: false)")
+parser.add_argument("--caption-scale", "--caption-size", type=str, default="1x",
+                    help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
 parser.add_argument("--caption-large", "--large-caption", "--caption-3x", nargs="?", const="true", default="false",
                     help="Make burned-in caption font size 3x larger (true/false, default: false)")
 parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file for MP4")
@@ -330,6 +333,10 @@ async def main():
         try:
             enable_caption = parse_caption_flag(args.caption)
             enable_caption_large = parse_caption_flag(args.caption_large)
+            scale_val = parse_caption_scale(args.caption_scale)
+            if enable_caption_large and scale_val == 1.0:
+                scale_val = 3.0
+            caption_scale_str = f"{scale_val:g}x"
         except ValueError as e:
             print(f"❌ {e}")
             sys.exit(1)
@@ -347,6 +354,7 @@ async def main():
                 resolution=args.mp4_res,
                 caption=enable_caption,
                 caption_file=args.caption_file or srt_output_path,
+                caption_scale=caption_scale_str,
                 caption_large=enable_caption_large,
             )
             if not success:

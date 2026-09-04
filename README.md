@@ -229,11 +229,17 @@ Create YouTube- and WeChat-ready MP4 videos from audio files using a background 
 # Convert single MP3 to MP4 (without captions)
 python audio_to_mp4.py audio.mp3
 
-# Convert with burned-in captions (auto-detects audio.srt or audio.txt)
+# Convert with standard 1x captions (auto-detects audio.srt or audio.txt)
 python audio_to_mp4.py audio.mp3 --caption true
 
-# Batch convert a directory
-python audio_to_mp4.py output/ --caption true
+# Convert with 2x captions (108px font - ideal for WeChat / mobile)
+python audio_to_mp4.py audio.mp3 --caption true --caption-scale 2x
+
+# Convert with 3x captions (162px font)
+python audio_to_mp4.py audio.mp3 --caption true --caption-scale 3x
+
+# Batch convert a directory with 2x captions
+python audio_to_mp4.py output/ --caption true --caption-scale 2x
 
 # Custom background and explicit subtitle file
 python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file subtitles.srt
@@ -247,7 +253,8 @@ python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file s
 | `--output`, `-o` | Output MP4 file or directory | Auto (`<audio>.mp4`) |
 | `--resolution`, `-r` | Video resolution (WxH) | `1920x1080` |
 | `--caption` | Burn hard captions into video (`true`/`false`) | `false` |
-| `--caption-large` | 3x larger caption font size for mobile/social screens (`true`/`false`) | `false` |
+| `--caption-scale` | Caption font scale multiplier (`1x`, `2x`, `3x`, `4x`, etc.) | `1x` |
+| `--caption-large` | Shortcut for 3x caption font size for mobile/social screens (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT file | Auto-detect `<audio>.srt`/`.txt` |
 
 ## Requirements

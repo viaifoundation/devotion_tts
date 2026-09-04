@@ -44,6 +44,32 @@ def parse_caption_flag(val: Union[str, bool, None]) -> bool:
     )
 
 
+def parse_caption_scale(val: Union[str, float, int, None]) -> float:
+    """
+    Parse command-line caption scale into a multiplier float.
+    Accepts: '1x', '2x', '3x', '4x', '1', '2', '3', '4', 1, 2, 3, etc.
+    Defaults to 1.0 (1x) if None, False, or empty.
+    """
+    if val is None or val is False or str(val).strip().lower() in ("", "none", "false", "default"):
+        return 1.0
+    if val is True:
+        return 3.0
+    if isinstance(val, (int, float)):
+        return max(0.5, min(float(val), 6.0))
+
+    s = str(val).strip().lower()
+    if s.endswith("x"):
+        s = s[:-1].strip()
+
+    try:
+        scale = float(s)
+        return max(0.5, min(scale, 6.0))
+    except ValueError:
+        raise ValueError(
+            f"Invalid caption scale: '{val}'. Expected format like '1x', '2x', '3x', '4x', etc."
+        )
+
+
 # ——————————————————————————————————————————————————————————————————————————
 # 2. SRT Timestamps & Sentence Segmentation
 # ——————————————————————————————————————————————————————————————————————————
@@ -449,6 +475,7 @@ def render_hardsub_video(
     font_size: int = 54,
     margin_bottom: int = 140,
     box_alpha: int = 160, # ~63% opacity dark pill
+    caption_scale: Union[str, float] = "1x",
     caption_large: bool = False,
 ) -> bool:
     """
@@ -456,7 +483,7 @@ def render_hardsub_video(
     
     Styling features:
     - Clean Chinese typography (e.g. Hiragino Sans GB / STHeiti)
-    - High-visibility font size (54px standard, or 162px with caption_large=True [3x])
+    - Proportional font scaling via caption_scale ('1x', '2x', '3x', '4x', etc.)
     - Semi-transparent rounded backdrop box (pill) that guarantees 100% legibility
       against ANY background image (white, dark, or textured)
     - Full WeChat & YouTube compatibility (CFR 25fps, Main profile, keyframes every 2s, faststart)
@@ -466,17 +493,16 @@ def render_hardsub_video(
 
     width, height = [int(v) for v in resolution.split("x")]
     
-    # 3x larger font mode
-    if caption_large:
-        font_size = font_size * 3
-        margin_bottom = 90
-        pad_x = 48
-        pad_y = 24
-        box_radius = 24
-    else:
-        pad_x = 32
-        pad_y = 16
-        box_radius = 16
+    # Calculate scale factor (1x, 2x, 3x, 4x, etc.)
+    scale = parse_caption_scale(caption_scale)
+    if caption_large and scale == 1.0:
+        scale = 3.0
+
+    font_size = int(round(font_size * scale))
+    pad_x = int(round(24 + 8 * scale))
+    pad_y = int(round(12 + 4 * scale))
+    box_radius = int(round(12 + 4 * scale))
+    margin_bottom = max(50, int(round(160 - 20 * scale)))
 
     # Open and prepare background image
     try:
@@ -507,7 +533,7 @@ def render_hardsub_video(
         timeline.append((current_time, total_audio_sec, ""))
 
     try:
-        mode_str = " [3x Large Font]" if caption_large else ""
+        mode_str = f" [{scale:g}x Font: {font_size}px]" if scale != 1.0 else ""
         print(f"🎨 Rendering {len(timeline)} caption cues with semi-transparent pill backdrop{mode_str}...")
         last_frame_path = None
 
@@ -528,7 +554,7 @@ def render_hardsub_video(
                 th = bbox[3] - bbox[1]
 
                 x = (width - tw) // 2
-                y = height - margin_bottom - th
+                y = max(20, height - margin_bottom - th)
 
                 pill_box = [x - pad_x, y - pad_y, x + tw + pad_x, y + th + pad_y]
 

@@ -10,7 +10,7 @@ import filename_parser
 import re
 from datetime import datetime
 import audio_mixer
-from caption_generator import parse_caption_flag, generate_srt_from_paragraphs, create_subtitles_from_edge_cues
+from caption_generator import parse_caption_flag, parse_caption_scale, generate_srt_from_paragraphs, create_subtitles_from_edge_cues
 from audio_to_mp4 import create_mp4, DEFAULT_BG, DEFAULT_SOH_BG
 
 import argparse
@@ -46,6 +46,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"  --mp4-bg IMAGE       Background image for MP4 (Default: {DEFAULT_SOH_BG})")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  --caption [true/false]       Enable burned-in captions on video (Default: false)")
+    print("  --caption-scale SCALE        Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
     print("  --caption-large [true/false] Make burned-in caption font size 3x larger (Default: false)")
     print("  --caption-file FILE          Explicit SRT/VTT caption file")
     print("  -?, -h, --help       Show this help")
@@ -58,7 +59,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i input.txt --voice male")
     print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
-    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true")
+    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true --caption-scale 2x")
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS (SOH Version)", add_help=False)
@@ -78,6 +79,8 @@ parser.add_argument("--mp4-bg", type=str, default=DEFAULT_SOH_BG, help=f"Backgro
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
                     help="Enable burned-in captions on video (true/false, default: false)")
+parser.add_argument("--caption-scale", "--caption-size", type=str, default="1x",
+                    help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
 parser.add_argument("--caption-large", "--large-caption", "--caption-3x", nargs="?", const="true", default="false",
                     help="Make burned-in caption font size 3x larger (true/false, default: false)")
 parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file")
@@ -294,6 +297,10 @@ async def main():
         try:
             enable_caption = parse_caption_flag(args.caption)
             enable_caption_large = parse_caption_flag(args.caption_large)
+            scale_val = parse_caption_scale(args.caption_scale)
+            if enable_caption_large and scale_val == 1.0:
+                scale_val = 3.0
+            caption_scale_str = f"{scale_val:g}x"
         except ValueError as e:
             print(f"❌ {e}")
             sys.exit(1)
@@ -307,6 +314,7 @@ async def main():
             caption=enable_caption,
             caption_file=args.caption_file or srt_output_path,
             is_soh=True,
+            caption_scale=caption_scale_str,
             caption_large=enable_caption_large,
         )
 

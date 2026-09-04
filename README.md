@@ -243,9 +243,9 @@ python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file s
 | Argument | Description | Default Value |
 | :--- | :--- | :--- |
 | `input` | Input audio file or directory | (Required) |
-| `--bg` | Background image file | `assets/background/background.jpg` |
+| `--bg`, `-b` | Background image file or filename (auto-searched in `assets/background/` and `assets/bgm/`) | `background_soh.jpg` for SOH (fallback: `background.jpg` / `.png`) |
 | `--output`, `-o` | Output MP4 file or directory | Auto (`<audio>.mp4`) |
-| `--res` | Video resolution (WxH) | `1920x1080` |
+| `--resolution`, `-r` | Video resolution (WxH) | `1920x1080` |
 | `--caption` | Burn hard captions into video (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT file | Auto-detect `<audio>.srt`/`.txt` |
 

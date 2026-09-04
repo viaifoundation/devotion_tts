@@ -15,13 +15,34 @@ from caption_generator import (
     render_hardsub_video,
 )
 
-# Default background image (prefer .jpg, fallback to .png)
+# Default background images (prefer specific, fallback to standard)
 _BG_DIR = "assets/background"
 DEFAULT_BG = (
     os.path.join(_BG_DIR, "background.jpg")
     if os.path.exists(os.path.join(_BG_DIR, "background.jpg"))
     else os.path.join(_BG_DIR, "background.png")
 )
+
+def find_soh_background() -> str:
+    """Find SOH background image (background_soh.jpg/png), falling back to DEFAULT_BG."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(_BG_DIR, "background_soh.jpg"),
+        os.path.join(_BG_DIR, "background_soh.png"),
+        os.path.join(script_dir, _BG_DIR, "background_soh.jpg"),
+        os.path.join(script_dir, _BG_DIR, "background_soh.png"),
+        os.path.join("assets/bgm", "background_soh.jpg"),
+        os.path.join("assets/bgm", "background_soh.png"),
+        os.path.join(script_dir, "assets/bgm", "background_soh.jpg"),
+        os.path.join(script_dir, "assets/bgm", "background_soh.png"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return DEFAULT_BG
+
+DEFAULT_SOH_BG = find_soh_background()
+
 
 # CLI Help
 if "-?" in sys.argv:
@@ -31,7 +52,7 @@ if "-?" in sys.argv:
     print("\nArguments:")
     print("  input                  Audio file OR folder (batch mode)")
     print("\nOptions:")
-    print(f"  --bg, -b FILE          Background image (Default: {DEFAULT_BG})")
+    print(f"  --bg, -b FILE          Background image (Default: {DEFAULT_BG}, SOH: {DEFAULT_SOH_BG})")
     print("  --resolution RES       Output resolution (Default: 1920x1080)")
     print("  --bitrate BR           Audio bitrate (Default: 192k)")
     print("  --no-meta              Skip embedding default ClawBible metadata")
@@ -61,26 +82,35 @@ def generate_output_filename(input_mp3: str, output: str = None) -> str:
     base = os.path.splitext(input_mp3)[0]
     return f"{base}.mp4"
 
-def create_mp4(input_mp3: str, bg_image: str, output_mp4: str, 
+def create_mp4(input_mp3: str, bg_image: str = None, output_mp4: str = None, 
                resolution: str = "1920x1080", audio_bitrate: str = "192k",
                metadata: dict = None, caption: bool = False,
-               caption_file: str = None) -> bool:
+               caption_file: str = None, is_soh: bool = False) -> bool:
     """
     Create MP4 video from MP3 audio with static background image.
     
     Args:
         input_mp3: Path to input audio file
-        bg_image: Path to background image file
+        bg_image: Path or filename of background image (auto-resolves, falls back to SOH/default)
         output_mp4: Path to output MP4 video file
         resolution: Output video resolution (default: 1920x1080)
         audio_bitrate: Audio bitrate (default: 192k)
         metadata: Dict of ffmpeg metadata tags to embed (default: None)
         caption: Whether to add captions to the video (default: False)
         caption_file: Optional explicit path to .srt or .vtt subtitle file
+        is_soh: Whether this is an SOH prayer video (defaults to auto-detection from filename)
     
     Returns:
         True if successful, False otherwise
     """
+    is_soh = is_soh or ("soh" in os.path.basename(input_mp3).lower() or "乡音" in os.path.basename(input_mp3))
+    bg_image = resolve_bg_image(bg_image, is_soh=is_soh)
+    if not bg_image or not os.path.exists(bg_image):
+        print(f"❌ Background image not found: {bg_image}")
+        return False
+
+    output_mp4 = output_mp4 or generate_output_filename(input_mp3)
+
     # Parse resolution
     width, height = resolution.split("x")
 
@@ -198,15 +228,48 @@ DEFAULT_METADATA = {
 AUDIO_EXTENSIONS = {".mp3", ".m4a", ".wav", ".aac", ".flac", ".ogg", ".opus"}
 
 
-def resolve_bg_image(bg_arg: str) -> str:
-    """Resolve background image path, trying relative to CWD then script dir."""
+def resolve_bg_image(bg_arg: str = None, is_soh: bool = False) -> str:
+    """
+    Resolve background image path.
+    Supports:
+      - Direct path (absolute or relative to current working directory)
+      - Path relative to script directory
+      - Search by filename in assets/background or assets/bgm
+      - If bg_arg is None or empty: returns DEFAULT_SOH_BG if is_soh else DEFAULT_BG
+      - If specified file not found, falls back gracefully to DEFAULT_SOH_BG / DEFAULT_BG
+    """
+    fallback = find_soh_background() if is_soh else DEFAULT_BG
+
+    if not bg_arg:
+        return fallback
+
+    # Check direct path
     if os.path.exists(bg_arg):
         return bg_arg
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    alt = os.path.join(script_dir, bg_arg)
-    if os.path.exists(alt):
-        return alt
-    return None
+
+    # Check relative to script dir
+    script_rel = os.path.join(script_dir, bg_arg)
+    if os.path.exists(script_rel):
+        return script_rel
+
+    # Search candidate directories by filename or basename
+    fname = os.path.basename(bg_arg)
+    candidate_dirs = [
+        _BG_DIR,
+        os.path.join(script_dir, _BG_DIR),
+        "assets/bgm",
+        os.path.join(script_dir, "assets/bgm"),
+    ]
+    for d in candidate_dirs:
+        candidate_path = os.path.join(d, fname)
+        if os.path.exists(candidate_path):
+            return candidate_path
+
+    # If specified file not found, warn and fallback
+    print(f"⚠️ Background image '{bg_arg}' not found. Falling back to default: {fallback}")
+    return fallback
 
 
 def batch_convert(folder: str, bg_image: str, resolution: str, bitrate: str,
@@ -271,8 +334,8 @@ def main():
     )
     parser.add_argument("input", type=str,
                         help="Input audio file OR folder for batch mode")
-    parser.add_argument("--bg", "-b", type=str, default=DEFAULT_BG, 
-                        help=f"Background image (Default: {DEFAULT_BG})")
+    parser.add_argument("--bg", "-b", type=str, default=None, 
+                        help=f"Background image (Default: {DEFAULT_BG}, SOH auto-selects: {DEFAULT_SOH_BG})")
     parser.add_argument("--output", "-o", type=str, default=None,
                         help="Output MP4 file or directory (Default: auto)")
     parser.add_argument("--resolution", "-r", type=str, default="1920x1080",
@@ -296,9 +359,12 @@ def main():
         sys.exit(1)
     
     # Resolve background image
-    bg_path = resolve_bg_image(args.bg)
-    if not bg_path:
-        print(f"❌ Background image not found: {args.bg}")
+    is_soh = False
+    if not os.path.isdir(args.input):
+        is_soh = "soh" in os.path.basename(args.input).lower() or "乡音" in args.input
+    bg_path = resolve_bg_image(args.bg, is_soh=is_soh)
+    if not bg_path or not os.path.exists(bg_path):
+        print(f"❌ Background image not found: {args.bg or 'default'}")
         print(f"   Create: mkdir -p assets/background && cp your_image.jpg {DEFAULT_BG}")
         sys.exit(1)
 

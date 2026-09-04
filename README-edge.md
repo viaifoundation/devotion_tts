@@ -53,7 +53,7 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--bgm-volume` | BGM volume in dB | -20 |
 | `--bgm-intro` | BGM intro delay in ms | 4000 |
 | `--mp4` | Generate MP4 video from audio (both short and long versions) | False |
-| `--mp4-bg` | Background image for MP4 | `assets/background/background.jpg` |
+| `--mp4-bg` | Background image for MP4 (auto-searches `assets/background/` and `assets/bgm/`) | `assets/background/background_soh.jpg` for SOH (fallback: `background.jpg`) |
 | `--mp4-res` | MP4 resolution | `1920x1080` |
 | `--caption` | Enable burned-in hard captions on MP4 (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT caption file (auto-detects if omitted) | (none) |
@@ -63,17 +63,19 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 Generate YouTube- and WeChat-ready MP4 videos with a static background image and optional burned-in subtitles:
 
 ```bash
-# Generate MP4 without captions (default)
-python gen_verse_devotion_edge.py -i input.txt --mp4
+# Generate MP4 without captions (uses default background; SOH scripts auto-select background_soh.jpg)
+python gen_prayer_soh.py -i input.txt --mp4
 
 # Generate MP4 with burned-in hard captions
-python gen_verse_devotion_edge.py -i input.txt --mp4 --caption true
+python gen_prayer_soh.py -i input.txt --mp4 --caption true
 
-# Custom background and resolution
-python gen_verse_devotion_edge.py -i input.txt --mp4 --mp4-bg ~/imgs/banner.jpg --mp4-res 1280x720
+# Specify background image by filename (searched in assets/background/ and assets/bgm/) or full path
+python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg background_soh.jpg
+python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg background.jpg
+python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg ~/imgs/banner.jpg --mp4-res 1280x720
 
 # Full pipeline: audio with BGM + MP4 video with burned-in captions
-python gen_verse_devotion_edge.py -i input.txt --bgm --mp4 --caption true
+python gen_prayer_soh.py -i input.txt --bgm --mp4 --caption true
 ```
 
 > [!NOTE]

@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 import audio_mixer
 from caption_generator import parse_caption_flag, generate_srt_from_paragraphs, create_subtitles_from_edge_cues
-from audio_to_mp4 import create_mp4, DEFAULT_BG
+from audio_to_mp4 import create_mp4, DEFAULT_BG, DEFAULT_SOH_BG
 
 import argparse
 import sys
@@ -43,7 +43,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --bgm-volume VOL     BGM volume in dB relative to speech (Default: -10)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
     print("  --mp4                Generate MP4 video from audio")
-    print("  --mp4-bg IMAGE       Background image for MP4 (Default: assets/background/background.jpg)")
+    print(f"  --mp4-bg IMAGE       Background image for MP4 (Default: {DEFAULT_SOH_BG})")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  --caption [true/false] Enable burned-in captions on video (Default: false)")
     print("  --caption-file FILE  Explicit SRT/VTT caption file")
@@ -73,7 +73,7 @@ parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="B
 parser.add_argument("--bgm-volume", type=int, default=-10, help="BGM volume in dB relative to speech")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
-parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
+parser.add_argument("--mp4-bg", type=str, default=DEFAULT_SOH_BG, help=f"Background image for MP4 (Default: {DEFAULT_SOH_BG})")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
                     help="Enable burned-in captions on video (true/false, default: false)")
@@ -302,6 +302,7 @@ async def main():
             resolution=args.mp4_res,
             caption=enable_caption,
             caption_file=args.caption_file or srt_output_path,
+            is_soh=True,
         )
 
 if __name__ == "__main__":

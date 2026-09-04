@@ -361,13 +361,13 @@ def main():
                         help="Audio bitrate (Default: 192k)")
     parser.add_argument("--no-meta", action="store_true",
                         help="Skip embedding default ClawBible metadata")
-    parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
+    parser.add_argument("--caption", "--captions", nargs="?", const="true", default=None,
                         help="Enable burned-in captions on video (true/false, default: false)")
-    parser.add_argument("--caption-scale", "--caption-size", type=str, default="1x",
-                        help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
+    parser.add_argument("--caption-scale", "--caption-size", type=str, default=None,
+                        help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x, auto-enables captions)")
     parser.add_argument("--caption-large", "--large-caption", "--caption-3x",
-                        nargs="?", const="true", default="false",
-                        help="Make burned-in caption font size 3x larger (true/false, default: false)")
+                        nargs="?", const="true", default=None,
+                        help="Make burned-in caption font size 3x larger (true/false, default: false, auto-enables captions)")
     parser.add_argument("--caption-file", type=str, default=None,
                         help="Explicit SRT/VTT caption file (Default: auto-detect <audio>.srt/.txt)")
     
@@ -393,9 +393,13 @@ def main():
     metadata = {} if args.no_meta else DEFAULT_METADATA.copy()
 
     try:
-        enable_caption = parse_caption_flag(args.caption)
-        enable_caption_large = parse_caption_flag(args.caption_large)
-        scale_val = parse_caption_scale(args.caption_scale)
+        if args.caption is not None:
+            enable_caption = parse_caption_flag(args.caption)
+        else:
+            enable_caption = bool(args.caption_scale is not None or args.caption_large is not None)
+
+        enable_caption_large = parse_caption_flag(args.caption_large) if args.caption_large is not None else False
+        scale_val = parse_caption_scale(args.caption_scale) if args.caption_scale is not None else (3.0 if enable_caption_large else 1.0)
         if enable_caption_large and scale_val == 1.0:
             scale_val = 3.0
         caption_scale_str = f"{scale_val:g}x"

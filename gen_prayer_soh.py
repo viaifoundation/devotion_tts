@@ -77,12 +77,12 @@ parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_SOH_BG, help=f"Background image for MP4 (Default: {DEFAULT_SOH_BG})")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
-parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
+parser.add_argument("--caption", "--captions", nargs="?", const="true", default=None,
                     help="Enable burned-in captions on video (true/false, default: false)")
-parser.add_argument("--caption-scale", "--caption-size", type=str, default="1x",
-                    help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x)")
-parser.add_argument("--caption-large", "--large-caption", "--caption-3x", nargs="?", const="true", default="false",
-                    help="Make burned-in caption font size 3x larger (true/false, default: false)")
+parser.add_argument("--caption-scale", "--caption-size", type=str, default=None,
+                    help="Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 1x, auto-enables captions)")
+parser.add_argument("--caption-large", "--large-caption", "--caption-3x", nargs="?", const="true", default=None,
+                    help="Make burned-in caption font size 3x larger (true/false, default: false, auto-enables captions)")
 parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file")
 
 args, unknown = parser.parse_known_args()
@@ -295,9 +295,13 @@ async def main():
     # Generate MP4 Video (Optional)
     if args.mp4:
         try:
-            enable_caption = parse_caption_flag(args.caption)
-            enable_caption_large = parse_caption_flag(args.caption_large)
-            scale_val = parse_caption_scale(args.caption_scale)
+            if args.caption is not None:
+                enable_caption = parse_caption_flag(args.caption)
+            else:
+                enable_caption = bool(args.caption_scale is not None or args.caption_large is not None)
+
+            enable_caption_large = parse_caption_flag(args.caption_large) if args.caption_large is not None else False
+            scale_val = parse_caption_scale(args.caption_scale) if args.caption_scale is not None else (3.0 if enable_caption_large else 1.0)
             if enable_caption_large and scale_val == 1.0:
                 scale_val = 3.0
             caption_scale_str = f"{scale_val:g}x"

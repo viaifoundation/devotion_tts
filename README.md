@@ -221,6 +221,34 @@ python mix_bgm.py --input speech.mp3 [OPTIONS]
 python mix_bgm.py --input output/my_audio.mp3 --bgm-track OHolyNight.mp3 --bgm-volume -10
 ```
 
+### MP4 Video & Hard Caption Generator (`audio_to_mp4.py`)
+Create YouTube- and WeChat-ready MP4 videos from audio files using a background image, with support for burned-in hard captions.
+
+**Usage:**
+```bash
+# Convert single MP3 to MP4 (without captions)
+python audio_to_mp4.py audio.mp3
+
+# Convert with burned-in captions (auto-detects audio.srt or audio.txt)
+python audio_to_mp4.py audio.mp3 --caption true
+
+# Batch convert a directory
+python audio_to_mp4.py output/ --caption true
+
+# Custom background and explicit subtitle file
+python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file subtitles.srt
+```
+
+**Parameters & Defaults:**
+| Argument | Description | Default Value |
+| :--- | :--- | :--- |
+| `input` | Input audio file or directory | (Required) |
+| `--bg` | Background image file | `assets/background/background.jpg` |
+| `--output`, `-o` | Output MP4 file or directory | Auto (`<audio>.mp4`) |
+| `--res` | Video resolution (WxH) | `1920x1080` |
+| `--caption` | Burn hard captions into video (`true`/`false`) | `false` |
+| `--caption-file` | Explicit SRT/VTT file | Auto-detect `<audio>.srt`/`.txt` |
+
 ## Requirements
 
 Global requirements are listed in `requirements.txt`. Specific providers may have additional needs:

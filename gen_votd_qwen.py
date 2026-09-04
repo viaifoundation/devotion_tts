@@ -34,6 +34,7 @@ from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
 from audio_to_mp4 import create_mp4, DEFAULT_BG
+from caption_generator import parse_caption_flag
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 from chapter_narration_gain import CHAPTER_VOICE_CHOICES, boost_db_for_chapter_voice
 from votd_narration_chapter import load_narration_chapter_mp3
@@ -66,6 +67,8 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4                Generate MP4 video from audio (both short and long versions)")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
+    print("  --caption [true/false] Enable burned-in captions on video (Default: false)")
+    print("  --caption-file FILE  Explicit SRT/VTT caption file for MP4")
     print("  --chapter-voice V    everest | davidyen | rotate | rotate_male_first | rotate_female_first")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes (Qwen-TTS):")
@@ -78,6 +81,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"  python {sys.argv[0]} -i input.txt")
     print(f"  python {sys.argv[0]} -i input.txt --voice six --bgm")
     print(f"  python {sys.argv[0]} -i input.txt --bible-bgm-volume -18")
+    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true")
     sys.exit(0)
 
 import argparse
@@ -107,6 +111,9 @@ parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sq
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio (both short and long versions)")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
+parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
+                    help="Enable burned-in captions on MP4 video (true/false, default: false)")
+parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file for MP4")
 parser.add_argument(
     "--chapter-voice",
     type=str,
@@ -794,6 +801,12 @@ def main():
 
     # ─── Generate MP4 if requested ───
     if args.mp4:
+        try:
+            enable_caption = parse_caption_flag(args.caption)
+        except ValueError as e:
+            print(f"❌ {e}")
+            sys.exit(1)
+
         bg_path = args.mp4_bg
         if not os.path.isabs(bg_path):
             bg_path = os.path.join(SCRIPT_DIR, bg_path)
@@ -806,7 +819,9 @@ def main():
                 input_mp3=OUTPUT_PATH,
                 bg_image=bg_path,
                 output_mp4=mp4_output,
-                resolution=args.mp4_res
+                resolution=args.mp4_res,
+                caption=enable_caption,
+                caption_file=args.caption_file,
             )
             
             # 2. Short Version MP4
@@ -818,7 +833,8 @@ def main():
                     input_mp3=short_mp3,
                     bg_image=bg_path,
                     output_mp4=short_mp4,
-                    resolution=args.mp4_res
+                    resolution=args.mp4_res,
+                    caption=enable_caption,
                 )
         else:
             print(f"⚠️ Background image not found: {bg_path}")

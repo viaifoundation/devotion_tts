@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 .Python
 *.python-version
+.mise*.toml
 
 # Audio files
 *.mp3
@@ -22,6 +23,9 @@ __pycache__/
 
 # Virtual environments
 venv/
+*venv*/
+*-venv/
+.venv/
 env/
 envs/
 .env/

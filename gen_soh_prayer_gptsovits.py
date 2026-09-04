@@ -14,7 +14,7 @@ import audio_mixer
 import filename_parser
 from text_cleaner import clean_text
 from bible_parser import convert_bible_reference
-from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates
+from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates, strip_date_from_title
 
 # --- GPT-SoVITS Setup ---
 # Assuming standard container path
@@ -200,8 +200,9 @@ def main():
     print(f"Target Output: {output_path_abs}")
 
     # Process Text content
-    TEXT = strip_all_dates(TEXT)
+    TEXT = strip_date_from_title(TEXT)
     TEXT = convert_bible_reference(TEXT)
+    TEXT = convert_dates_in_text(TEXT)
     TEXT = clean_text(TEXT)
     
     # Split for TTS processing (simple paragraph split)

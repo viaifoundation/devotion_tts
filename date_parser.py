@@ -83,3 +83,22 @@ def strip_all_dates(text):
         lines.append(line_clean)
     
     return '\n'.join(lines)
+
+
+def strip_date_from_title(text):
+    """
+    Strips explicit calendar dates and weekday labels ONLY from the first non-empty line (title line) of the text.
+    Leaves all subsequent lines/paragraphs intact so dates in prayer/scripture body are preserved.
+    """
+    if not text:
+        return text
+
+    lines = text.split('\n')
+    for i, line in enumerate(lines):
+        if line.strip():
+            # Apply date stripping only to the first non-empty line
+            lines[i] = strip_all_dates(line)
+            break
+
+    return '\n'.join(lines)
+

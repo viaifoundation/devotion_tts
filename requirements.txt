@@ -1,6 +1,8 @@
 # Core Dependencies
 pydub
 requests
+pillow>=10.0.0
+opencc-python-reimplemented
 
 # Edge TTS
 edge-tts

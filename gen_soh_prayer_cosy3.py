@@ -35,7 +35,7 @@ except ImportError as e:
     sys.exit(1)
 
 from bible_parser import convert_bible_reference
-from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates
+from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates, strip_date_from_title
 from text_cleaner import clean_text
 import filename_parser
 import audio_mixer
@@ -226,8 +226,9 @@ if not os.path.exists(OUTPUT_DIR):
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
-TEXT = strip_all_dates(TEXT)
+TEXT = strip_date_from_title(TEXT)
 TEXT = convert_bible_reference(TEXT)
+TEXT = convert_dates_in_text(TEXT)
 TEXT = clean_text(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]

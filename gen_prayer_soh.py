@@ -4,17 +4,19 @@ import edge_tts
 from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
-from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates
+from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates, strip_date_from_title
 from text_cleaner import clean_text
 import filename_parser
 import re
 from datetime import datetime
 import audio_mixer
+from caption_generator import parse_caption_flag, generate_srt_from_paragraphs, create_subtitles_from_edge_cues
+from audio_to_mp4 import create_mp4, DEFAULT_BG
 
 import argparse
 import sys
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 ENABLE_BGM = True
 BGM_FILE = "AmazingGrace.MP3"
 TTS_RATE = "+0%"  # Default Speed (normal)
@@ -40,6 +42,11 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume in dB relative to speech (Default: -10)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
+    print("  --mp4                Generate MP4 video from audio")
+    print("  --mp4-bg IMAGE       Background image for MP4 (Default: assets/background/background.jpg)")
+    print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
+    print("  --caption [true/false] Enable burned-in captions on video (Default: false)")
+    print("  --caption-file FILE  Explicit SRT/VTT caption file")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
     print("  male    - Single male voice (YunyangNeural)")
@@ -50,6 +57,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i input.txt --voice male")
     print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
+    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true")
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS (SOH Version)", add_help=False)
@@ -64,6 +72,12 @@ parser.add_argument("--no-bgm", action="store_true", help="Disable background mu
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-10, help="BGM volume in dB relative to speech")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
+parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
+parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
+parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
+parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
+                    help="Enable burned-in captions on video (true/false, default: false)")
+parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file")
 
 args, unknown = parser.parse_known_args()
 
@@ -161,8 +175,8 @@ if not os.path.exists(OUTPUT_DIR):
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
-# Strip calendar dates and day-of-week suffixes from text so TTS does NOT pronounce explicit dates out loud
-TEXT = strip_all_dates(TEXT)
+# Strip calendar dates ONLY from the first line (title), keeping all body text dates intact
+TEXT = strip_date_from_title(TEXT)
 
 # Extract first line for MP3 title after cleaning date
 TEXT = clean_text(TEXT)
@@ -170,6 +184,7 @@ first_line = TEXT.strip().split('\n')[0] if TEXT.strip() else "SOH Prayer"
 
 # Convert Bible references in the text
 TEXT = convert_bible_reference(TEXT)
+TEXT = convert_dates_in_text(TEXT)
 TEXT = clean_text(TEXT)
 
 # Split the text into paragraphs
@@ -192,11 +207,20 @@ TEMP_DIR = OUTPUT_DIR + os.sep
 async def generate_audio(text, voice, output_file):
     print(f"DEBUG: Text to read: {text[:100]}...")
     communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
-    await communicate.save(output_file)
+    submaker = edge_tts.SubMaker()
+    with open(output_file, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                submaker.feed(chunk)
+    return submaker
 
 async def main():
     final_audio = AudioSegment.empty()
     silence = AudioSegment.silent(duration=800) 
+    paragraph_durations = []
+    paragraph_submakers = []
 
     print(f"Processing {len(paragraphs)} paragraphs with voice rotation...")
     
@@ -205,10 +229,12 @@ async def main():
         print(f"  > Para {i+1} ({len(para)} chars) - {voice}")
         
         temp_file = f"{TEMP_DIR}temp_prayer_p{i}.mp3"
-        await generate_audio(para, voice, temp_file)
+        submaker = await generate_audio(para, voice, temp_file)
+        paragraph_submakers.append(submaker)
         
         try:
             segment = AudioSegment.from_mp3(temp_file)
+            paragraph_durations.append(len(segment))
             final_audio += segment
             if i < len(paragraphs) - 1:
                 final_audio += silence
@@ -247,6 +273,36 @@ async def main():
         'comments': COMMENTS
     })
     print(f"✅ Saved: {OUTPUT_PATH}")
+
+    # Generate subtitles (.srt) using frame-accurate Edge-TTS timestamps
+    srt_output_path = OUTPUT_PATH.replace(".mp3", ".srt")
+    intro_offset = BGM_INTRO_DELAY if ENABLE_BGM else 0
+    create_subtitles_from_edge_cues(
+        paragraph_submakers=paragraph_submakers,
+        output_path=srt_output_path,
+        intro_delay_ms=intro_offset,
+        silence_ms=800,
+        show_title_during_intro=True,
+    )
+    print(f"📄 Saved frame-accurate subtitles to: {srt_output_path}")
+
+    # Generate MP4 Video (Optional)
+    if args.mp4:
+        try:
+            enable_caption = parse_caption_flag(args.caption)
+        except ValueError as e:
+            print(f"❌ {e}")
+            sys.exit(1)
+
+        mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
+        create_mp4(
+            input_mp3=OUTPUT_PATH,
+            bg_image=args.mp4_bg,
+            output_mp4=mp4_output,
+            resolution=args.mp4_res,
+            caption=enable_caption,
+            caption_file=args.caption_file or srt_output_path,
+        )
 
 if __name__ == "__main__":
     asyncio.run(main())

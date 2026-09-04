@@ -10,6 +10,7 @@ import filename_parser
 import re
 from datetime import datetime
 from audio_to_mp4 import create_mp4, DEFAULT_BG
+from caption_generator import parse_caption_flag, generate_srt_from_paragraphs
 
 TTS_RATE = "+0%"  # Default Speed (normal)
 
@@ -34,6 +35,8 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --mp4                Generate MP4 video from audio")
     print("  --mp4-bg IMAGE       Background image for MP4 (Default: assets/background/background.jpg)")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
+    print("  --caption [true/false] Enable burned-in captions on video (Default: false)")
+    print("  --caption-file FILE  Explicit SRT/VTT caption file for MP4")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
     print("  male    - Single male voice (YunyangNeural)")
@@ -45,6 +48,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"  python {sys.argv[0]} -i input.txt --voice male")
     print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
     print(f"  python {sys.argv[0]} -i input.txt --voice six --speed +10%")
+    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true")
     sys.exit(0)
 
 parser = argparse.ArgumentParser(add_help=False)
@@ -62,6 +66,9 @@ parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay
 parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
+parser.add_argument("--caption", "--captions", nargs="?", const="true", default="false",
+                    help="Enable burned-in captions on MP4 video (true/false, default: false)")
+parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT/VTT caption file for MP4")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
@@ -237,6 +244,8 @@ async def main():
     print(f"Processing {len(logical_sections)} logical sections...")
     final_segments = []
     global_p_index = 0
+    all_paras = []
+    all_durations = []
 
     for i, section_paras in enumerate(logical_sections):
         title = section_titles[i] if i < len(section_titles) else f"Section {i+1}"
@@ -256,6 +265,8 @@ async def main():
             
             try:
                 segment = AudioSegment.from_mp3(temp_file)
+                all_paras.append(para)
+                all_durations.append(len(segment))
                 section_audio += segment
                 if j < len(section_paras) - 1:
                     section_audio += silence_between_paras
@@ -299,8 +310,26 @@ async def main():
     })
     print(f"✅ Combined audio saved: {OUTPUT}")
 
+    # Generate subtitles (.srt)
+    srt_output_path = OUTPUT.replace(".mp3", ".srt")
+    intro_offset = BGM_INTRO_DELAY if ENABLE_BGM else 0
+    generate_srt_from_paragraphs(
+        paragraphs=all_paras,
+        durations_ms=all_durations,
+        output_path=srt_output_path,
+        intro_delay_ms=intro_offset,
+        silence_ms=700
+    )
+    print(f"📄 Saved subtitles to: {srt_output_path}")
+
     # Generate MP4 video if requested
     if args.mp4:
+        try:
+            enable_caption = parse_caption_flag(args.caption)
+        except ValueError as e:
+            print(f"❌ {e}")
+            sys.exit(1)
+
         mp4_output = OUTPUT.replace(".mp3", ".mp4")
         script_dir = os.path.dirname(os.path.abspath(__file__))
         bg_path = args.mp4_bg
@@ -311,7 +340,9 @@ async def main():
                 input_mp3=OUTPUT,
                 bg_image=bg_path,
                 output_mp4=mp4_output,
-                resolution=args.mp4_res
+                resolution=args.mp4_res,
+                caption=enable_caption,
+                caption_file=args.caption_file or srt_output_path,
             )
             if not success:
                 print("⚠️ MP4 generation failed")

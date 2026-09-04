@@ -55,24 +55,29 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--mp4` | Generate MP4 video from audio (both short and long versions) | False |
 | `--mp4-bg` | Background image for MP4 | `assets/background/background.jpg` |
 | `--mp4-res` | MP4 resolution | `1920x1080` |
+| `--caption` | Enable burned-in hard captions on MP4 (`true`/`false`) | `false` |
+| `--caption-file` | Explicit SRT/VTT caption file (auto-detects if omitted) | (none) |
 
-## MP4 Video Generation
+## MP4 Video Generation & Captions
 
-Generate YouTube-ready MP4 videos with a static background image:
+Generate YouTube- and WeChat-ready MP4 videos with a static background image and optional burned-in subtitles:
 
 ```bash
-# Generate MP4 with default background
+# Generate MP4 without captions (default)
 python gen_verse_devotion_edge.py -i input.txt --mp4
+
+# Generate MP4 with burned-in hard captions
+python gen_verse_devotion_edge.py -i input.txt --mp4 --caption true
 
 # Custom background and resolution
 python gen_verse_devotion_edge.py -i input.txt --mp4 --mp4-bg ~/imgs/banner.jpg --mp4-res 1280x720
 
-# Full pipeline: audio with BGM + MP4 video
-python gen_verse_devotion_edge.py -i input.txt --bgm --mp4
+# Full pipeline: audio with BGM + MP4 video with burned-in captions
+python gen_verse_devotion_edge.py -i input.txt --bgm --mp4 --caption true
 ```
 
 > [!NOTE]
-> Requires `ffmpeg` installed. The MP4 file is created alongside the MP3 with the same name.
+> Captions are hard-coded (burned-in) onto the video frames inside a modern semi-transparent dark rounded pill box. This ensures full visual compatibility across YouTube, WeChat, and native mobile players where soft subtitle tracks are often stripped or ignored. Requires `ffmpeg` and `pillow`.
 
 ## Voice Modes
 

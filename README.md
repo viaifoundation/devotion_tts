@@ -227,22 +227,21 @@ Create YouTube- and WeChat-ready MP4 videos from audio files using a background 
 **Usage:**
 ```bash
 # Convert single MP3 to MP4 (without captions)
+# Convert audio to MP4 with burned-in 2x captions (on by default if .srt/.txt exists)
 python audio_to_mp4.py audio.mp3
 
-# Convert with standard 1x captions (auto-detects audio.srt or audio.txt)
-python audio_to_mp4.py audio.mp3 --caption true
+# Convert without captions
+python audio_to_mp4.py audio.mp3 --no-caption
 
-# Convert with 2x captions (108px font - ideal for WeChat / mobile)
-python audio_to_mp4.py audio.mp3 --caption true --caption-scale 2x
+# Custom caption scaling (1x standard, 3x large)
+python audio_to_mp4.py audio.mp3 --caption-scale 1x
+python audio_to_mp4.py audio.mp3 --caption-scale 3x
 
-# Convert with 3x captions (162px font)
-python audio_to_mp4.py audio.mp3 --caption true --caption-scale 3x
-
-# Batch convert a directory with 2x captions
-python audio_to_mp4.py output/ --caption true --caption-scale 2x
+# Batch convert a directory (2x captions by default)
+python audio_to_mp4.py output/
 
 # Custom background and explicit subtitle file
-python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file subtitles.srt
+python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption-file subtitles.srt
 ```
 
 **Parameters & Defaults:**
@@ -252,8 +251,9 @@ python audio_to_mp4.py audio.mp3 --bg custom.jpg --caption true --caption-file s
 | `--bg`, `-b` | Background image file or filename (auto-searched in `assets/background/` and `assets/bgm/`) | `background_soh.jpg` for SOH (fallback: `background.jpg` / `.png`) |
 | `--output`, `-o` | Output MP4 file or directory | Auto (`<audio>.mp4`) |
 | `--resolution`, `-r` | Video resolution (WxH) | `1920x1080` |
-| `--caption` | Burn hard captions into video (`true`/`false`) | `false` |
-| `--caption-scale` | Caption font scale multiplier (`1x`, `2x`, `3x`, `4x`, etc.) | `1x` |
+| `--caption` | Burn hard captions into video (`true`/`false`) | `true` |
+| `--no-caption` | Disable burned-in captions on video | False |
+| `--caption-scale` | Caption font scale multiplier (`1x`, `2x`, `3x`, `4x`, etc.) | `2x` |
 | `--caption-large` | Shortcut for 3x caption font size for mobile/social screens (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT file | Auto-detect `<audio>.srt`/`.txt` |
 

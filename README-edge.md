@@ -55,28 +55,27 @@ python gen_verse_devotion_edge.py -i input.txt --voices "zh-CN-YunyangNeural,zh-
 | `--mp4` | Generate MP4 video from audio (both short and long versions) | False |
 | `--mp4-bg` | Background image for MP4 (auto-searches `assets/background/` and `assets/bgm/`) | `assets/background/background_soh.jpg` for SOH (fallback: `background.jpg`) |
 | `--mp4-res` | MP4 resolution | `1920x1080` |
-| `--caption` | Enable burned-in hard captions on MP4 (`true`/`false`) | `false` |
-| `--caption-scale` | Caption font scale multiplier (`1x`, `2x`, `3x`, `4x`, etc.) | `1x` |
+| `--caption` | Enable burned-in hard captions on MP4 (`true`/`false`) | `true` |
+| `--no-caption` | Disable burned-in captions on MP4 video | False |
+| `--caption-scale` | Caption font scale multiplier (`1x`, `2x`, `3x`, `4x`, etc.) | `2x` |
 | `--caption-large` | Shortcut for 3x caption font size for mobile/social screens (`true`/`false`) | `false` |
 | `--caption-file` | Explicit SRT/VTT caption file (auto-detects if omitted) | (none) |
 
 ## MP4 Video Generation & Captions
 
-Generate YouTube- and WeChat-ready MP4 videos with a static background image and optional burned-in subtitles:
+Generate YouTube- and WeChat-ready MP4 videos with a static background image and burned-in subtitles (on by default, 2x font):
 
 ```bash
-# Generate MP4 without captions (uses default background; SOH scripts auto-select background_soh.jpg)
+# Generate MP4 with default 2x burned-in captions (108px font - ideal for WeChat / mobile)
 python gen_prayer_soh.py -i input.txt --mp4
 
-# Generate MP4 with standard 1x captions (54px font)
-python gen_prayer_soh.py -i input.txt --mp4 --caption true
+# Generate MP4 without captions
+python gen_prayer_soh.py -i input.txt --mp4 --no-caption
 
-# Generate MP4 with 2x captions (108px font - ideal for WeChat / mobile)
-python gen_prayer_soh.py -i input.txt --mp4 --caption true --caption-scale 2x
-
-# Generate MP4 with 3x captions (162px font)
-python gen_prayer_soh.py -i input.txt --mp4 --caption true --caption-scale 3x
-# (or use the shortcut: --caption-large)
+# Custom caption sizes
+python gen_prayer_soh.py -i input.txt --mp4 --caption-scale 1x   # Standard 54px font
+python gen_prayer_soh.py -i input.txt --mp4 --caption-scale 3x   # 3x font (or: --caption-large)
+python gen_prayer_soh.py -i input.txt --mp4 --caption-scale 0.5  # Compact font
 
 # Specify background image by filename (searched in assets/background/ and assets/bgm/) or full path
 python gen_prayer_soh.py -i input.txt --mp4 --mp4-bg background_soh.jpg

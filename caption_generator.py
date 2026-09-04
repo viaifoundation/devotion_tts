@@ -21,14 +21,17 @@ from typing import Any, List, Optional, Tuple, Union
 # 1. CLI Flag Parsing
 # ——————————————————————————————————————————————————————————————————————————
 
-def parse_caption_flag(val: Union[str, bool, None]) -> bool:
+def parse_caption_flag(val: Union[str, bool, None], default: bool = True) -> bool:
     """
     Parse command-line caption option into a boolean.
     Accepts:
       True:  'true', 't', '1', 'yes', True, None (flag passed without argument)
       False: 'false', 'f', '0', 'no', False
+    Defaults to True (captions on by default).
     """
-    if val is None or val is True:
+    if val is None:
+        return default
+    if val is True:
         return True
     if val is False:
         return False
@@ -44,14 +47,14 @@ def parse_caption_flag(val: Union[str, bool, None]) -> bool:
     )
 
 
-def parse_caption_scale(val: Union[str, float, int, None]) -> float:
+def parse_caption_scale(val: Union[str, float, int, None], default: float = 2.0) -> float:
     """
     Parse command-line caption scale into a multiplier float.
     Accepts: '1x', '2x', '3x', '4x', '1', '2', '3', '4', 1, 2, 3, etc.
-    Defaults to 1.0 (1x) if None, False, or empty.
+    Defaults to 2.0 (2x) if None, False, or empty.
     """
     if val is None or val is False or str(val).strip().lower() in ("", "none", "false", "default"):
-        return 1.0
+        return default
     if val is True:
         return 3.0
     if isinstance(val, (int, float)):
@@ -475,7 +478,7 @@ def render_hardsub_video(
     font_size: int = 54,
     margin_bottom: int = 140,
     box_alpha: int = 160, # ~63% opacity dark pill
-    caption_scale: Union[str, float] = "1x",
+    caption_scale: Union[str, float] = "2x",
     caption_large: bool = False,
 ) -> bool:
     """
@@ -493,9 +496,9 @@ def render_hardsub_video(
 
     width, height = [int(v) for v in resolution.split("x")]
     
-    # Calculate scale factor (1x, 2x, 3x, 4x, etc.)
-    scale = parse_caption_scale(caption_scale)
-    if caption_large and scale == 1.0:
+    # Calculate scale factor (1x, 2x, 3x, 4x, etc., default: 2x)
+    scale = parse_caption_scale(caption_scale, default=2.0)
+    if caption_large:
         scale = 3.0
 
     font_size = int(round(font_size * scale))

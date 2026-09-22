@@ -5,7 +5,7 @@ from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates, strip_date_from_title
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts, clean_text
 import filename_parser
 import re
 from datetime import datetime
@@ -34,6 +34,9 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
     print("  --input FILE, -i     Text file to read input from")
+    print("  --lang LANG, -l      Caption language: tw (zh_TW) or cn (zh_CN) (Default: tw)")
+    print("  --tw                 Shortcut for --lang tw (Traditional Chinese captions, Default)")
+    print("  --cn                 Shortcut for --lang cn (Simplified Chinese captions)")
     print("  --voice MODE         Voice mode: male, female, two, four, six (Default: two)")
     print("  --voices LIST        Custom voices (CSV, overrides --voice)")
     print("                       e.g. zh-CN-YunyangNeural,zh-CN-XiaoxiaoNeural")
@@ -54,19 +57,24 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nVoice Modes:")
     print("  male    - Single male voice (YunyangNeural)")
     print("  female  - Single female voice (XiaoxiaoNeural)")
-    print("  two     - Rotate 2 voices (1 male + 1 female)")
+    print("  two     - Rotate 2 voices (1 male + 1 female) (Default)")
     print("  four    - Rotate 4 voices (2 male + 2 female)")
-    print("  six     - Rotate all 6 zh-CN voices (Default)")
+    print("  six     - Rotate all 6 voices")
     print("\nExamples:")
-    print(f"  python {sys.argv[0]} -i input.txt --voice male")
-    print(f"  python {sys.argv[0]} -i input.txt --voice two --bgm")
-    print(f"  python {sys.argv[0]} -i input.txt --mp4                                  # Video with 2x captions (default)")
+    print(f"  python {sys.argv[0]} -i input.txt --tw                                  # Traditional Chinese captions (default)")
+    print(f"  python {sys.argv[0]} -i input.txt --cn                                  # Simplified Chinese captions")
+    print(f"  python {sys.argv[0]} -i input.txt -l tw --voice two --bgm")
+    print(f"  python {sys.argv[0]} -i input.txt --mp4                                  # Video with date on thumb & 2x captions")
     print(f"  python {sys.argv[0]} -i input.txt --mp4 --no-caption                     # Video without captions")
     print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption-scale 3x              # 3x larger captions")
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description="Generate Prayer Audio with Edge TTS (SOH Version)", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file")
+parser.add_argument("--lang", "-l", type=str, default="zh_TW",
+                    help="Language: tw (zh_TW) or cn (zh_CN) (Default: zh_TW)")
+parser.add_argument("--tw", "-tw", action="store_true", help="Shortcut for --lang tw (Traditional Chinese, Default)")
+parser.add_argument("--cn", "-cn", action="store_true", help="Shortcut for --lang cn (Simplified Chinese)")
 parser.add_argument("--voice", type=str, default="two", choices=["male", "female", "two", "four", "six"],
                     help="Voice mode: male, female, two, four, six")
 parser.add_argument("--voices", type=str, default=None,
@@ -109,7 +117,24 @@ BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
 BGM_FILE = args.bgm_track
 
-# Voice presets
+# Language Normalization
+def normalize_lang(lang_arg: str, is_tw: bool = False, is_cn: bool = False) -> str:
+    if is_cn:
+        return "zh_CN"
+    if is_tw:
+        return "zh_TW"
+    if not lang_arg:
+        return "zh_TW"
+    s = str(lang_arg).strip().lower().replace("-", "_")
+    if s in ("cn", "zh_cn", "simplified", "s", "chs", "hans"):
+        return "zh_CN"
+    return "zh_TW"
+
+TARGET_LANG = normalize_lang(args.lang, args.tw, args.cn)
+lang_desc = "Traditional Chinese (zh_TW)" if TARGET_LANG == "zh_TW" else "Simplified Chinese (zh_CN)"
+print(f"🌐 Caption Language: {lang_desc}")
+
+# Voice presets (Consistent SOH standard voices)
 VOICE_MALE_1 = "zh-CN-YunyangNeural"    # Professional, Reliable
 VOICE_MALE_2 = "zh-CN-YunxiNeural"      # Lively, Sunshine
 VOICE_MALE_3 = "zh-CN-YunjianNeural"    # Passion
@@ -130,7 +155,7 @@ elif args.voice == "female":
     print(f"🎤 Voice mode: female ({VOICE_FEMALE_1})")
 elif args.voice == "two":
     VOICES = [VOICE_MALE_1, VOICE_FEMALE_1]
-    print(f"🎤 Voice mode: two (rotating 2 voices)")
+    print(f"🎤 Voice mode: two ({VOICE_MALE_1}, {VOICE_FEMALE_1})")
 elif args.voice == "four":
     VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
     print(f"🎤 Voice mode: four (rotating 4 voices)")
@@ -157,9 +182,14 @@ else:
 (约翰福音 3:16-18)
 """
 
+# Extract raw org name from original text BEFORE it is cleaned (so it preserves Simplified/Traditional)
+raw_title_line = TEXT.strip().splitlines()[0] if TEXT.strip() else ""
+m_raw = re.search(r"(\d{4})[年\-](\d{1,2})[月\-](\d{1,2})[日]*\s*(.*)", raw_title_line)
+raw_org_name = m_raw.group(4).strip() if m_raw and m_raw.group(4).strip() else None
+
 # Generate filename dynamically
 # 1. Extract Date
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 
 # Extract date for filename BEFORE stripping date from spoken text
 date_str_dash = extract_date_from_text(TEXT)
@@ -185,47 +215,79 @@ if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
+# Convert script according to TARGET_LANG (zh_TW -> Traditional, zh_CN -> Simplified)
+try:
+    import opencc
+    if TARGET_LANG == "zh_TW":
+        cc = opencc.OpenCC('s2tw')
+        TEXT = cc.convert(TEXT)
+    else:
+        cc = opencc.OpenCC('t2s')
+        TEXT = cc.convert(TEXT)
+except Exception as e:
+    print(f"⚠️ OpenCC conversion notice: {e}")
 
-# Strip calendar dates ONLY from the first line (title), keeping all body text dates intact
-TEXT = strip_date_from_title(TEXT)
+# Note: Date of title line is retained as requested (do not strip date from title)
+# TEXT = strip_date_from_title(TEXT)
 
-# Extract first line for MP3 title after cleaning date
-TEXT = clean_text(TEXT)
-first_line = TEXT.strip().split('\n')[0] if TEXT.strip() else "SOH Prayer"
+# Extract first line for MP3 title (retaining date as requested)
+TEXT_DISPLAY = clean_text_basic(TEXT)
+first_line = TEXT_DISPLAY.strip().split('\n')[0] if TEXT_DISPLAY.strip() else "SOH Prayer"
 
-# Convert Bible references in the text
-TEXT = convert_bible_reference(TEXT)
-TEXT = convert_dates_in_text(TEXT)
-TEXT = clean_text(TEXT)
+# Convert Bible references and dates with RAG/phonetic pronunciation fixes for TTS
+TEXT_TTS = convert_bible_reference(TEXT_DISPLAY)
+TEXT_TTS = convert_dates_in_text(TEXT_TTS)
+TEXT_TTS = clean_text_for_tts(TEXT_TTS)
 
-# Split the text into paragraphs
-paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
+# Split the text into paragraphs for TTS
+paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT_TTS.strip()) if p.strip()]
 
-# Save cleaned text output to prayer_output.txt
-TXT_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "prayer_output.txt")
-ROOT_TXT_OUTPUT_PATH = os.path.join(os.getcwd(), "prayer_output.txt")
+# Save companion text output for TTS with RAG (matching VOTD convention)
+# Note: prayer_output.txt is no longer generated as requested
+TXT_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".txt")
 with open(TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
-    f.write(TEXT)
-with open(ROOT_TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
-    f.write(TEXT)
-print(f"📄 Saved cleaned text output to: {ROOT_TXT_OUTPUT_PATH}")
+    f.write(TEXT_TTS)
+print(f"📄 Saved TTS RAG text output to: {TXT_OUTPUT_PATH}")
+
+# Clean up legacy prayer_output.txt if present
+for legacy_path in [os.path.join(OUTPUT_DIR, "prayer_output.txt"), os.path.join(os.getcwd(), "prayer_output.txt")]:
+    if os.path.exists(legacy_path):
+        try:
+            os.remove(legacy_path)
+        except Exception:
+            pass
 
 # Use VOICES array from --voice option
 voices = VOICES
 
 TEMP_DIR = OUTPUT_DIR + os.sep 
 
-async def generate_audio(text, voice, output_file):
+async def generate_audio(text, voice, output_file, max_retries=3):
     print(f"DEBUG: Text to read: {text[:100]}...")
-    communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
-    submaker = edge_tts.SubMaker()
-    with open(output_file, "wb") as f:
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                f.write(chunk["data"])
-            elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
-                submaker.feed(chunk)
-    return submaker
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
+            submaker = edge_tts.SubMaker()
+            has_audio = False
+            with open(output_file, "wb") as f:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        f.write(chunk["data"])
+                        has_audio = True
+                    elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                        submaker.feed(chunk)
+            if has_audio and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                return submaker
+            else:
+                raise RuntimeError("Empty audio output received.")
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                wait_sec = attempt * 1.5
+                print(f"⚠️ TTS error on attempt {attempt}/{max_retries} ({e}). Retrying in {wait_sec:.1f}s...")
+                await asyncio.sleep(wait_sec)
+    raise last_error
 
 async def main():
     final_audio = AudioSegment.empty()
@@ -274,7 +336,7 @@ async def main():
     ALBUM = "SOH Prayer"
     
     # Extract Verse for metadata
-    verse_ref = filename_parser.extract_verse_from_text(TEXT)
+    verse_ref = filename_parser.extract_verse_from_text(TEXT_DISPLAY)
     COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info_str}"
 
     final_audio.export(OUTPUT_PATH, format="mp3", tags={
@@ -317,6 +379,8 @@ async def main():
             sys.exit(1)
 
         mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
+        date_display = f"{date_obj.year} 年 {date_obj.month} 月 {date_obj.day} 日"
+        
         create_mp4(
             input_mp3=OUTPUT_PATH,
             bg_image=args.mp4_bg,
@@ -327,6 +391,8 @@ async def main():
             is_soh=True,
             caption_scale=caption_scale_str,
             caption_large=enable_caption_large,
+            date_text=date_display,
+            org_name_text=raw_org_name,
         )
 
 if __name__ == "__main__":

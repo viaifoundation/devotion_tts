@@ -46,6 +46,192 @@ def find_soh_background() -> str:
 DEFAULT_SOH_BG = find_soh_background()
 
 
+def extract_date_from_filename_or_text(audio_path: str):
+    """Extract date string formatted as 'YYYY 年 M 月 D 日' and org/name from filename or companion srt/txt."""
+    import re
+    import os
+    base = os.path.basename(audio_path)
+    
+    # Check companion .txt or .srt first for date AND org/name
+    base_no_ext = os.path.splitext(audio_path)[0]
+    for ext in [".txt", ".srt"]:
+        cand = f"{base_no_ext}{ext}"
+        if os.path.exists(cand):
+            try:
+                with open(cand, "r", encoding="utf-8") as f:
+                    content_file = f.read(500)
+                m = re.search(r"(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日\s*(.*)", content_file)
+                if m:
+                    dt = f"{m.group(1)} 年 {int(m.group(2))} 月 {int(m.group(3))} 日"
+                    org = m.group(4).strip()
+                    return (dt, org if org else None)
+            except Exception:
+                pass
+                
+    # Fallback YYYYMMDD (e.g. 乡音情_20260906.mp3)
+    m = re.search(r"(\d{4})(\d{2})(\d{2})", base)
+    if m:
+        return (f"{m.group(1)} 年 {int(m.group(2))} 月 {int(m.group(3))} 日", None)
+
+    # Fallback YYYY-MM-DD
+    m = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", base)
+    if m:
+        return (f"{m.group(1)} 年 {int(m.group(2))} 月 {int(m.group(3))} 日", None)
+
+    return (None, None)
+
+
+def generate_soh_dated_background(
+    base_bg_path: str = None,
+    date_text: str = None,
+    output_path: str = None,
+    resolution: str = "1920x1080",
+    org_name_text: str = None,
+) -> str:
+    """
+    Generates an elegant, professional SOH background image stamped with the date
+    in a frosted glass pill badge with golden border.
+    Also serves as the video cover / companion thumbnail page.
+    """
+    import re
+    import tempfile
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    from caption_generator import get_chinese_font
+
+    if not base_bg_path or not os.path.exists(base_bg_path):
+        base_bg_path = find_soh_background()
+
+    width, height = [int(v) for v in resolution.split("x")]
+    im = Image.open(base_bg_path).convert("RGBA").resize((width, height), Image.Resampling.LANCZOS)
+
+    if date_text:
+        scale = height / 1080.0
+        font_size = int(round(50 * scale))
+
+        # Try literary Songti/Mingti font first for cultural elegance, fallback to standard Chinese font
+        font = None
+        for font_candidate in [
+            "/System/Library/Fonts/Supplemental/Songti.ttc",
+            "/System/Library/Fonts/Songti.ttc",
+            "/Library/Fonts/Songti.ttc",
+        ]:
+            if os.path.exists(font_candidate):
+                try:
+                    font = ImageFont.truetype(font_candidate, font_size)
+                    break
+                except Exception:
+                    pass
+        if font is None:
+            font = get_chinese_font(font_size)
+
+        clean_date = date_text.strip()
+        m = re.match(r"^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$", clean_date)
+        if m:
+            clean_date = f"{m.group(1)} 年 {int(m.group(2))} 月 {int(m.group(3))} 日"
+
+        overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+
+        bbox = draw.textbbox((0, 0), clean_date, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+
+        # Placed in the top-left corner directly under the '2026' artwork
+        # Leaves safe clearance before the center '每日禱告' text (starts at x=482)
+        center_x = int(round(225 * (width / 1920)))
+        center_y = int(round(255 * scale))
+
+        pad_x = int(round(28 * scale))
+        pad_y = int(round(12 * scale))
+
+        box = (
+            center_x - tw // 2 - pad_x,
+            center_y - th // 2 - pad_y,
+            center_x + tw // 2 + pad_x,
+            center_y + th // 2 + pad_y + int(round(3 * scale))
+        )
+        radius = (box[3] - box[1]) // 2
+
+        # 1. Soft diffused shadow beneath pill badge
+        shadow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        s_draw = ImageDraw.Draw(shadow_layer)
+        s_draw.rounded_rectangle(
+            (box[0], box[1] + int(round(5 * scale)), box[2], box[3] + int(round(5 * scale))),
+            radius=radius,
+            fill=(40, 20, 10, 45)
+        )
+        shadow_blur = max(2, int(round(10 * scale)))
+        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(shadow_blur))
+        overlay = Image.alpha_composite(overlay, shadow_layer)
+        draw = ImageDraw.Draw(overlay)
+
+        # 2. Warm ivory-white frosted glass fill
+        draw.rounded_rectangle(box, radius=radius, fill=(255, 253, 248, 230))
+
+        # 3. Refined warm golden border
+        border_width = max(2, int(round(2 * scale)))
+        draw.rounded_rectangle(box, radius=radius, outline=(210, 165, 95, 205), width=border_width)
+
+        # 4. Subtle inner highlight reflection
+        draw.rounded_rectangle(
+            (box[0] + 2, box[1] + 2, box[2] - 2, box[3] - 2),
+            radius=max(1, radius - 2),
+            outline=(255, 255, 255, 140),
+            width=1
+        )
+
+        # 5. Deep royal navy typography
+        tx = center_x - tw // 2
+        ty = center_y - th // 2 - int(round(2 * scale))
+        draw.text((tx, ty), clean_date, font=font, fill=(16, 52, 115, 255))
+        
+        # Merge shadow and overlay
+        out = Image.alpha_composite(im, overlay)
+        
+        # 6. Draw org and name (if available) below the pill badge
+        if org_name_text:
+            print("DRAWING ORG NAME:", org_name_text)
+            org_font_size = int(round(38 * scale))
+            org_font = None
+            for font_candidate in [
+                "/System/Library/Fonts/Supplemental/Songti.ttc",
+                "/System/Library/Fonts/Songti.ttc",
+                "/Library/Fonts/Songti.ttc",
+            ]:
+                if os.path.exists(font_candidate):
+                    try:
+                        org_font = ImageFont.truetype(font_candidate, org_font_size)
+                        break
+                    except Exception:
+                        pass
+            if org_font is None:
+                org_font = get_chinese_font(org_font_size)
+            
+            org_bbox = ImageDraw.Draw(out).textbbox((0, 0), org_name_text, font=org_font)
+            org_tw = org_bbox[2] - org_bbox[0]
+            org_th = org_bbox[3] - org_bbox[1]
+            org_tx = center_x - org_tw // 2
+            org_ty = box[3] + int(round(15 * scale))
+            
+            final_draw = ImageDraw.Draw(out)
+            # Subtle drop shadow for readability
+            final_draw.text((org_tx + 2, org_ty + 2), org_name_text, font=org_font, fill=(0, 0, 0, 150))
+            final_draw.text((org_tx, org_ty), org_name_text, font=org_font, fill=(255, 255, 255, 255))
+            
+        out = out.convert("RGB")
+    else:
+        out = im.convert("RGB")
+
+    if not output_path:
+        temp_file = tempfile.NamedTemporaryFile(suffix="_soh_bg.jpg", delete=False)
+        output_path = temp_file.name
+        temp_file.close()
+
+    out.save(output_path, quality=95)
+    return output_path
+
+
+
 # CLI Help
 if "-?" in sys.argv:
     print(f"Usage: python {sys.argv[0]} <audio_file_or_folder> [--bg image.jpg]")
@@ -90,7 +276,9 @@ def create_mp4(input_mp3: str, bg_image: str = None, output_mp4: str = None,
                metadata: dict = None, caption: bool = True,
                caption_file: str = None, is_soh: bool = False,
                caption_scale: Union[str, float] = "2x",
-               caption_large: bool = False) -> bool:
+               caption_large: bool = False,
+               date_text: str = None,
+               org_name_text: str = None) -> bool:
     """
     Create MP4 video from MP3 audio with static background image.
     
@@ -106,17 +294,42 @@ def create_mp4(input_mp3: str, bg_image: str = None, output_mp4: str = None,
         is_soh: Whether this is an SOH prayer video (defaults to auto-detection from filename)
         caption_scale: Caption font scale multiplier: '1x', '2x', '3x', '4x', etc. (default: '2x')
         caption_large: Shortcut for 3x font (default: False)
+        date_text: Optional explicit date string (e.g. '2026年9月6日') to stamp on SOH background
     
     Returns:
         True if successful, False otherwise
     """
-    is_soh = is_soh or ("soh" in os.path.basename(input_mp3).lower() or "乡音" in os.path.basename(input_mp3))
+    is_soh = is_soh or ("soh" in os.path.basename(input_mp3).lower() or "乡音" in os.path.basename(input_mp3) or "鄉音" in os.path.basename(input_mp3))
     bg_image = resolve_bg_image(bg_image, is_soh=is_soh)
     if not bg_image or not os.path.exists(bg_image):
         print(f"❌ Background image not found: {bg_image}")
         return False
 
     output_mp4 = output_mp4 or generate_output_filename(input_mp3)
+
+    # Automatically extract date for SOH if not explicitly passed
+    if is_soh and not date_text:
+        date_text, extracted_org = extract_date_from_filename_or_text(input_mp3)
+        if not org_name_text:
+            org_name_text = extracted_org
+
+    # For SOH videos using the standard SOH background template, generate date-stamped background & thumbnail
+    if is_soh and date_text and ("background_soh" in os.path.basename(bg_image) or bg_image == DEFAULT_SOH_BG):
+        thumb_path = os.path.splitext(output_mp4)[0] + "_thumb.jpg"
+        thumb_copy = os.path.splitext(output_mp4)[0] + ".jpg"
+        bg_image = generate_soh_dated_background(
+            base_bg_path=bg_image,
+            date_text=date_text,
+            output_path=thumb_path,
+            resolution=resolution,
+            org_name_text=org_name_text,
+        )
+        try:
+            import shutil
+            shutil.copyfile(bg_image, thumb_copy)
+        except Exception:
+            pass
+        print(f"🖼️ Generated SOH thumbnail cover: {thumb_path}")
 
     # Parse resolution
     width, height = resolution.split("x")

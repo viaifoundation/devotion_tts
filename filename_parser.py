@@ -48,7 +48,7 @@ CHINESE_TO_ENGLISH = {
     "马可福音": "Mark",   "可": "Mark",
     "路加福音": "Luke",   "路": "Luke",
     "约翰福音": "John",   "约": "John",
-    "使徒行传": "Acts",   "徒": "Acts",
+    "使徒行传": "Acts",   "使徒行赚": "Acts", "使徒行转": "Acts", "行传": "Acts", "行赚": "Acts", "行转": "Acts", "徒": "Acts",
     "罗马书": "Romans",   "罗": "Romans",
     "哥林多前书": "1Corinthians", "林前": "1Cor",
     "哥林多后书": "2Corinthians", "林后": "2Cor",
@@ -95,7 +95,7 @@ CHINESE_TO_ENGLISH = {
     "撒迦利亞書": "Zechariah", "亞": "Zechariah", "撒迦利亞": "Zechariah",
     "瑪拉基書": "Malachi", "瑪": "Malachi",
     "馬太福音": "Matthew", "馬可福音": "Mark", "路加福音": "Luke",
-    "約翰福音": "John", "約": "John", "使徒行傳": "Acts", "羅馬書": "Romans", "羅": "Romans",
+    "約翰福音": "John", "約": "John", "使徒行傳": "Acts", "使徒行賺": "Acts", "使徒行轉": "Acts", "行傳": "Acts", "行賺": "Acts", "行轉": "Acts", "羅馬書": "Romans", "羅": "Romans",
     "哥林多前書": "1Corinthians", "哥林多後書": "2Corinthians", "林後": "2Cor",
     "加拉太書": "Galatians", "以弗所書": "Ephesians", "腓立比書": "Philippians",
     "歌羅西書": "Colossians", "帖撒羅尼迦前書": "1Thessalonians",
@@ -183,9 +183,59 @@ CHINESE_TO_FULL_NAME = {
     "启示录": "啟示錄", "啟示錄": "啟示錄", "启": "啟示錄", "啟": "啟示錄",
 }
 
+CHINESE_SIMPLIFIED_BOOKS = {
+    "创世记", "出埃及记", "利未记", "民数记", "申命记",
+    "约书亚记", "士师记", "路得记", "撒母耳记上", "撒母耳记下",
+    "列王纪上", "列王纪下", "历代志上", "历代志下", "以斯拉记",
+    "尼希米记", "以斯帖记", "约伯记", "诗篇", "箴言",
+    "传道书", "雅歌", "以赛亚书", "耶利米书", "耶利米哀歌",
+    "以西结书", "但以理书", "何西阿书", "约珥书", "阿摩司书",
+    "俄巴底亚书", "约拿书", "弥迦书", "那鸿书", "哈巴谷书",
+    "西番雅书", "哈该书", "撒迦利亚书", "玛拉基书",
+    "马太福音", "马可福音", "路加福音", "约翰福音",
+    "使徒行传", "罗马书", "哥林多前书", "哥林多后书",
+    "加拉太书", "以弗所书", "腓立比书", "歌罗西书",
+    "帖撒罗尼迦前书", "帖撒罗尼迦后书", "提摩太前书", "提摩太后书",
+    "提多书", "腓利门书", "希伯来书", "雅各书",
+    "彼得前书", "彼得后书", "约翰一书", "约翰二书",
+    "约翰三书", "犹大书", "启示录"
+}
+
+CHINESE_TRADITIONAL_BOOKS = {
+    "創世記", "出埃及記", "利未記", "民數記", "申命記",
+    "約書亞記", "士師記", "路得記", "撒母耳記上", "撒母耳記下",
+    "列王紀上", "列王紀下", "歷代志上", "歷代志下", "以斯拉記",
+    "尼希米記", "以斯帖記", "約伯記", "詩篇", "箴言",
+    "傳道書", "雅歌", "以賽亞書", "耶利米書", "耶利米哀歌",
+    "以西結書", "但以理書", "何西阿書", "約珥書", "阿摩司書",
+    "俄巴底亞書", "約拿書", "彌迦書", "那鴻書", "哈巴谷書",
+    "西番雅書", "哈該書", "撒迦利亞書", "瑪拉基書",
+    "馬太福音", "馬可福音", "路加福音", "約翰福音",
+    "使徒行傳", "羅馬書", "哥林多前書", "哥林多後書",
+    "加拉太書", "以弗所書", "腓立比書", "歌羅西書",
+    "帖撒羅尼迦前書", "帖撒羅尼迦後書", "提摩太前書", "提摩太後書",
+    "提多書", "腓利門書", "希伯來書", "雅各書",
+    "彼得前書", "彼得後書", "約翰一書", "約翰二書",
+    "約翰三書", "猶大書", "啟示錄"
+}
+
+ACTS_VARIANTS_MAP = {
+    "使徒行赚": "使徒行传", "使徒行转": "使徒行传",
+    "行传": "使徒行传", "行赚": "使徒行传", "行转": "使徒行传",
+    "使徒行賺": "使徒行傳", "使徒行轉": "使徒行傳",
+    "行傳": "使徒行傳", "行賺": "使徒行傳", "行轉": "使徒行傳",
+}
+
 def expand_to_full_book_name(book_candidate: str) -> str:
-    """Return the Traditional Chinese full name if input is a shorthand or variant."""
-    return CHINESE_TO_FULL_NAME.get(book_candidate.strip(), book_candidate)
+    """Return canonical full book name, preserving Simplified/Traditional if already full."""
+    b = book_candidate.strip()
+    if b in ACTS_VARIANTS_MAP:
+        return ACTS_VARIANTS_MAP[b]
+    if b in CHINESE_SIMPLIFIED_BOOKS:
+        return b
+    if b in CHINESE_TRADITIONAL_BOOKS:
+        return b
+    return CHINESE_TO_FULL_NAME.get(b, b)
 
 def translate_chinese_book(book_name: str) -> str:
     """Return English book name if input is Chinese, otherwise return original."""

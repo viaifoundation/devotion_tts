@@ -16,6 +16,12 @@ import tempfile
 from datetime import timedelta
 from typing import Any, List, Optional, Tuple, Union
 
+try:
+    from text_cleaner import restore_pronunciation_for_display
+except ImportError:
+    def restore_pronunciation_for_display(t):
+        return t
+
 
 # ——————————————————————————————————————————————————————————————————————————
 # 1. CLI Flag Parsing
@@ -236,7 +242,7 @@ def generate_srt_from_paragraphs(
             cue_dur = dur * cue_weight
             cue_start = para_start + elapsed_in_para
             cue_end = cue_start + cue_dur
-            timed_segments.append((cue_start, cue_end, cue))
+            timed_segments.append((cue_start, cue_end, restore_pronunciation_for_display(cue)))
             elapsed_in_para += cue_dur
 
         current_time = para_start + dur + (silence_ms if idx < len(paragraphs) - 1 else 0)
@@ -275,7 +281,7 @@ def create_subtitles_from_edge_cues(
         p_dur_ms = p_cues[-1].end.total_seconds() * 1000.0
 
         for c_idx, cue in enumerate(p_cues):
-            cue_text = cue.content.strip()
+            cue_text = restore_pronunciation_for_display(cue.content.strip())
             if not cue_text:
                 continue
 
@@ -290,7 +296,10 @@ def create_subtitles_from_edge_cues(
                 raw_start_ms = 500.0
 
             # If cue_text is long, split by comma / punctuation
-            if len(cue_text) > max_chars:
+            # Keep title unified if within reasonable length (<= 32 chars)
+            is_title = (p_idx == 0 and c_idx == 0 and show_title_during_intro)
+            effective_max = 32 if is_title else max_chars
+            if len(cue_text) > effective_max:
                 parts = split_text_into_cues(cue_text, max_chars=max_chars)
                 total_c = sum(len(p) for p in parts) or 1
                 clause_dur = raw_end_ms - raw_start_ms

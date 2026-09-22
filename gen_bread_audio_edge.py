@@ -6,9 +6,7 @@ from pydub import AudioSegment
 import os
 import re
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
-
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts, clean_text
 
 import argparse
 import audio_mixer
@@ -135,7 +133,7 @@ else:
 
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
@@ -148,7 +146,7 @@ import re
 
 # Generate filename dynamically
 # 1. Try to find date in text like "12月15日" or "12/15"
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 date_match = re.search(r"(\d{1,2})月(\d{1,2})日", TEXT)
 if date_match:
     m, d = date_match.groups()

@@ -12,7 +12,7 @@ from pydub import AudioSegment
 import numpy as np
 import audio_mixer
 import filename_parser
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts, clean_text
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text, extract_date_from_text, strip_all_dates, strip_date_from_title
 
@@ -173,7 +173,7 @@ def main():
 """
 
     # --- SOH Filename Logic ---
-    TEXT = clean_text(TEXT)
+    TEXT = clean_text_basic(TEXT)
     first_line = TEXT.strip().split('\n')[0]
     
     # Extract date
@@ -200,10 +200,10 @@ def main():
     print(f"Target Output: {output_path_abs}")
 
     # Process Text content
-    TEXT = strip_date_from_title(TEXT)
+    # TEXT = strip_date_from_title(TEXT)  # Retain date in title line
     TEXT = convert_bible_reference(TEXT)
     TEXT = convert_dates_in_text(TEXT)
-    TEXT = clean_text(TEXT)
+    TEXT = clean_text_for_tts(TEXT)
     
     # Split for TTS processing (simple paragraph split)
     paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]

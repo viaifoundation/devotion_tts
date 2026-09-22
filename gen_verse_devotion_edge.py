@@ -5,7 +5,7 @@ from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text_basic, clean_text_for_tts, clean_text
 import filename_parser
 import re
 from datetime import datetime
@@ -145,7 +145,7 @@ else:
 
 # Generate filename dynamically
 # 1. Extract Date
-TEXT = clean_text(TEXT)
+TEXT = clean_text_basic(TEXT)
 first_line = TEXT.strip().split('\n')[0]
 date_match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", first_line)
 if date_match:
@@ -197,7 +197,7 @@ print(f"Target Output: {OUTPUT_PATH}")
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 first_paragraphs = [paragraphs[0]] # First paragraph (introduction)

@@ -81,6 +81,49 @@ def extract_date_from_filename_or_text(audio_path: str):
     return (None, None)
 
 
+def get_cjk_font_for_text(text: str, font_size: int):
+    """
+    Finds a font that supports all characters in text (both Simplified and Traditional).
+    Tries Songti with TC/SC indices first, then system CJK fonts.
+    """
+    from PIL import ImageFont
+    from caption_generator import get_chinese_font
+
+    candidates = [
+        ("/System/Library/Fonts/Supplemental/Songti.ttc", 1),
+        ("/System/Library/Fonts/Supplemental/Songti.ttc", 2),
+        ("/System/Library/Fonts/Songti.ttc", 1),
+        ("/System/Library/Fonts/Songti.ttc", 2),
+        ("/System/Library/Fonts/Hiragino Sans GB.ttc", 0),
+        ("/System/Library/Fonts/STHeiti Medium.ttc", 0),
+        ("/System/Library/Fonts/STHeiti Light.ttc", 0),
+        ("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", 0),
+        ("/Library/Fonts/Arial Unicode.ttf", 0),
+        ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0),
+        ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", 0),
+    ]
+    for path, idx in candidates:
+        if os.path.exists(path):
+            try:
+                f = ImageFont.truetype(path, font_size, index=idx)
+                if text:
+                    valid = True
+                    for ch in text.strip():
+                        if ch.isspace():
+                            continue
+                        bb = f.getbbox(ch)
+                        if not bb or (bb[3] - bb[1] <= 1):
+                            valid = False
+                            break
+                    if not valid:
+                        continue
+                return f
+            except Exception:
+                continue
+
+    return get_chinese_font(font_size)
+
+
 def generate_soh_dated_background(
     base_bg_path: str = None,
     date_text: str = None,
@@ -96,7 +139,6 @@ def generate_soh_dated_background(
     import re
     import tempfile
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
-    from caption_generator import get_chinese_font
 
     if not base_bg_path or not os.path.exists(base_bg_path):
         base_bg_path = find_soh_background()
@@ -108,26 +150,12 @@ def generate_soh_dated_background(
         scale = height / 1080.0
         font_size = int(round(50 * scale))
 
-        # Try literary Songti/Mingti font first for cultural elegance, fallback to standard Chinese font
-        font = None
-        for font_candidate in [
-            "/System/Library/Fonts/Supplemental/Songti.ttc",
-            "/System/Library/Fonts/Songti.ttc",
-            "/Library/Fonts/Songti.ttc",
-        ]:
-            if os.path.exists(font_candidate):
-                try:
-                    font = ImageFont.truetype(font_candidate, font_size)
-                    break
-                except Exception:
-                    pass
-        if font is None:
-            font = get_chinese_font(font_size)
-
         clean_date = date_text.strip()
         m = re.match(r"^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$", clean_date)
         if m:
             clean_date = f"{m.group(1)} 年 {int(m.group(2))} 月 {int(m.group(3))} 日"
+
+        font = get_cjk_font_for_text(clean_date, font_size)
 
         overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
@@ -191,32 +219,39 @@ def generate_soh_dated_background(
         # 6. Draw org and name (if available) below the pill badge
         if org_name_text:
             print("DRAWING ORG NAME:", org_name_text)
-            org_font_size = int(round(38 * scale))
-            org_font = None
-            for font_candidate in [
-                "/System/Library/Fonts/Supplemental/Songti.ttc",
-                "/System/Library/Fonts/Songti.ttc",
-                "/Library/Fonts/Songti.ttc",
-            ]:
-                if os.path.exists(font_candidate):
-                    try:
-                        org_font = ImageFont.truetype(font_candidate, org_font_size)
-                        break
-                    except Exception:
-                        pass
-            if org_font is None:
-                org_font = get_chinese_font(org_font_size)
-            
-            org_bbox = ImageDraw.Draw(out).textbbox((0, 0), org_name_text, font=org_font)
-            org_tw = org_bbox[2] - org_bbox[0]
-            org_th = org_bbox[3] - org_bbox[1]
-            org_tx = center_x - org_tw // 2
-            org_ty = box[3] + int(round(15 * scale))
-            
+            org_font_size = int(round(36 * scale))
+            org_font = get_cjk_font_for_text(org_name_text, org_font_size)
+
+            # Split into lines by whitespace if available (e.g. "遠東廣播電台 凌雲牧師")
+            if ' ' in org_name_text.strip():
+                lines = [p.strip() for p in org_name_text.strip().split() if p.strip()]
+            else:
+                lines = [org_name_text.strip()]
+
+            # Max allowed width for each line to avoid collisions with center artwork
+            max_allowed_w = int(round(400 * scale))
+            for line in lines:
+                line_bb = ImageDraw.Draw(out).textbbox((0, 0), line, font=org_font)
+                line_w = line_bb[2] - line_bb[0]
+                if line_w > max_allowed_w:
+                    ratio = max_allowed_w / line_w
+                    org_font_size = max(int(round(20 * scale)), int(round(org_font_size * ratio)))
+                    org_font = get_cjk_font_for_text(org_name_text, org_font_size)
+                    break
+
+            curr_y = box[3] + int(round(14 * scale))
             final_draw = ImageDraw.Draw(out)
-            # Subtle drop shadow for readability
-            final_draw.text((org_tx + 2, org_ty + 2), org_name_text, font=org_font, fill=(0, 0, 0, 150))
-            final_draw.text((org_tx, org_ty), org_name_text, font=org_font, fill=(255, 255, 255, 255))
+            for line in lines:
+                line_bb = final_draw.textbbox((0, 0), line, font=org_font)
+                line_w = line_bb[2] - line_bb[0]
+                line_h = line_bb[3] - line_bb[1]
+                line_x = center_x - line_w // 2
+                if line_x < int(round(15 * scale)):
+                    line_x = int(round(15 * scale))
+                # Subtle drop shadow for readability
+                final_draw.text((line_x + 2, curr_y + 2), line, font=org_font, fill=(0, 0, 0, 160))
+                final_draw.text((line_x, curr_y), line, font=org_font, fill=(255, 255, 255, 255))
+                curr_y += line_h + int(round(10 * scale))
             
         out = out.convert("RGB")
     else:

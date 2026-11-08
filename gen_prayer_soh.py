@@ -4,6 +4,7 @@ import edge_tts
 from pydub import AudioSegment
 import os
 import json
+import difflib
 import subprocess
 import urllib.parse
 from pathlib import Path
@@ -84,6 +85,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --upload                     Upload image, MP3, MP4 & prayer text to prayer.tianlumusic.org (Default: True)")
     print("  --no-upload, --skip-upload   Skip uploading to WordPress")
     print("  --upload-only                Skip TTS/MP4 generation and only upload existing files for the date")
+    print("  --seq N, --part N            Prayer sequence number within the same day (1, 2, 3...; auto-detected)")
     print("  -?, -h, --help       Show this help")
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i prayer.txt                       # Generate image, MP3, MP4 & auto-upload to prayer.tianlumusic.org")
@@ -123,6 +125,7 @@ parser.add_argument("--caption-file", type=str, default=None, help="Explicit SRT
 parser.add_argument("--upload", action="store_true", default=True, help="Upload to prayer.tianlumusic.org (Default: True)")
 parser.add_argument("--no-upload", "--skip-upload", dest="no_upload", action="store_true", help="Skip uploading to WordPress")
 parser.add_argument("--upload-only", action="store_true", help="Skip TTS/MP4 generation and only upload existing files")
+parser.add_argument("--seq", "--part", dest="seq", type=int, default=None, help="Prayer sequence number within the same day (1, 2, 3...)")
 
 args, unknown = parser.parse_known_args()
 
@@ -237,17 +240,9 @@ date_obj = datetime.strptime(date_str_dash, "%Y-%m-%d")
 date_str_compact = date_obj.strftime("%Y%m%d")
 date_display = f"{date_obj.year} 年 {date_obj.month} 月 {date_obj.day} 日"
 
-# SOH Convention: 乡音情_{yyyymmdd}.mp3
-filename = f"乡音情_{date_str_compact}.mp3"
-
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
-IMAGE_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".jpg")
-THUMB_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_thumb.jpg")
-MP4_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".mp4")
-print(f"Target Output: {OUTPUT_PATH}")
 
 # Convert script according to TARGET_LANG (zh_TW -> Traditional, zh_CN -> Simplified)
 try:
@@ -273,26 +268,9 @@ TEXT_TTS = clean_text_for_tts(TEXT_TTS)
 # Split the text into paragraphs for TTS
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT_TTS.strip()) if p.strip()]
 
-# Save companion text output for TTS with RAG (matching VOTD convention)
-TXT_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".txt")
-with open(TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
-    f.write(TEXT_TTS)
-print(f"📄 Saved TTS RAG text output to: {TXT_OUTPUT_PATH}")
-
-# Clean up legacy prayer_output.txt if present
-for legacy_path in [os.path.join(OUTPUT_DIR, "prayer_output.txt"), os.path.join(os.getcwd(), "prayer_output.txt")]:
-    if os.path.exists(legacy_path):
-        try:
-            os.remove(legacy_path)
-        except Exception:
-            pass
-
-voices = VOICES
-TEMP_DIR = OUTPUT_DIR + os.sep 
-
 
 # ——————————————————————————————————————————————————————————————————————————
-# WordPress Auto-Uploader for prayer.tianlumusic.org
+# Multi-Prayer-Per-Day Slot & WordPress Helpers
 # ——————————————————————————————————————————————————————————————————————————
 def _resolve_host_ip(hostname: str) -> str | None:
     """Resolve hostname via 1.1.1.1 if local DNS cache has stale NXDOMAIN."""
@@ -359,19 +337,157 @@ def _wp_curl_json(method: str, url: str, user: str, password: str,
         return None
 
 
+def _normalize_prayer_body(text: str, drop_first_line: bool = False) -> str:
+    """Normalize prayer text (strip HTML, captions, whitespace, punctuation) for similarity checks."""
+    if not text:
+        return ""
+    s = re.sub(r"<figcaption[^>]*>.*?</figcaption>", "", text, flags=re.DOTALL)
+    s = re.sub(r"<[^>]+>", "\n", s)
+    lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+    if drop_first_line and len(lines) > 1:
+        lines = lines[1:]
+    joined = "".join(lines)
+    try:
+        import opencc
+        joined = opencc.OpenCC("t2s").convert(joined)
+    except Exception:
+        pass
+    joined = re.sub(r"[\s\W_]+", "", joined, flags=re.UNICODE)
+    return joined
+
+
+def _is_same_prayer_text(candidate_text: str, target_display: str, target_tts: str) -> bool:
+    """Return True if candidate_text represents the same prayer (even with minor edits or TTS conversion)."""
+    norm_cand_full = _normalize_prayer_body(candidate_text, drop_first_line=False)
+    norm_cand_body = _normalize_prayer_body(candidate_text, drop_first_line=True)
+    if not norm_cand_full:
+        return False
+
+    for ref_text in (target_display, target_tts):
+        norm_ref_full = _normalize_prayer_body(ref_text, drop_first_line=False)
+        norm_ref_body = _normalize_prayer_body(ref_text, drop_first_line=True)
+        for a, b in ((norm_cand_full, norm_ref_full), (norm_cand_full, norm_ref_body), (norm_cand_body, norm_ref_body)):
+            if a and b and difflib.SequenceMatcher(None, a, b).ratio() >= 0.75:
+                return True
+    return False
+
+
+def _fetch_wp_posts_for_date(wp_url: str, wp_user: str, wp_pass: str, date_str_compact: str) -> list[dict]:
+    """Fetch all WordPress posts on the given date by exact slug candidates (up to 10 prayers/day)."""
+    slug_candidates = [f"soh-prayer-{date_str_compact}"] + [
+        f"soh-prayer-{date_str_compact}-{i}" for i in range(2, 11)
+    ]
+    slug_param = ",".join(slug_candidates)
+    posts = _wp_curl_json(
+        "GET",
+        f"{wp_url}/posts?slug={slug_param}&status=any&per_page=20",
+        wp_user,
+        wp_pass,
+        timeout=20,
+    )
+    if isinstance(posts, list):
+        return [p for p in posts if isinstance(p, dict)]
+    return []
+
+
+def resolve_prayer_slot(date_str_compact: str, text_display: str, text_tts: str, explicit_seq: int | None = None) -> int:
+    """
+    Determine which sequence slot (1, 2, 3...) to use for this prayer on the given date.
+    - If an existing local file or WordPress post on that date matches the same prayer text, reuse its slot.
+    - If different prayer(s) already exist on that date, advance to the next slot (max_slot + 1) so nothing is overwritten.
+    """
+    if explicit_seq is not None and explicit_seq >= 1:
+        return explicit_seq
+
+    local_slots: dict[int, str] = {}
+    for fname in os.listdir(OUTPUT_DIR):
+        m = re.match(rf"^乡音情_{re.escape(date_str_compact)}(?:_(\d+))?\.txt$", fname)
+        if m:
+            slot = int(m.group(1)) if m.group(1) else 1
+            try:
+                with open(os.path.join(OUTPUT_DIR, fname), "r", encoding="utf-8") as f:
+                    local_slots[slot] = f.read()
+            except Exception:
+                local_slots[slot] = ""
+
+    wp_slots: dict[int, str] = {}
+    if ENABLE_UPLOAD:
+        wp_url, wp_user, wp_pass = load_soh_wp_credentials()
+        if wp_pass:
+            posts = _fetch_wp_posts_for_date(wp_url, wp_user, wp_pass, date_str_compact)
+            for p in posts:
+                slug_val = p.get("slug", "")
+                m = re.match(rf"^soh-prayer-{re.escape(date_str_compact)}(?:-(\d+))?$", slug_val)
+                if m:
+                    slot = int(m.group(1)) if m.group(1) else 1
+                    rendered = p.get("content", {}).get("rendered", "") if isinstance(p.get("content"), dict) else ""
+                    wp_slots[slot] = rendered
+
+    # 1. Check if any WordPress slot already holds this exact prayer
+    for slot in sorted(wp_slots.keys()):
+        if _is_same_prayer_text(wp_slots[slot], text_display, text_tts):
+            return slot
+
+    # 2. Check if any local slot holds this exact prayer (and does not collide with a different WP post)
+    for slot in sorted(local_slots.keys()):
+        if _is_same_prayer_text(local_slots[slot], text_display, text_tts):
+            if slot not in wp_slots or _is_same_prayer_text(wp_slots[slot], text_display, text_tts):
+                return slot
+
+    # 3. Otherwise, assign the next available slot on that date
+    all_existing_slots = set(local_slots.keys()) | set(wp_slots.keys())
+    if not all_existing_slots:
+        return 1
+    return max(all_existing_slots) + 1
+
+
+PRAYER_SEQ = resolve_prayer_slot(date_str_compact, TEXT_DISPLAY, TEXT_TTS, args.seq)
+SLOT_SUFFIX_UNDERSCORE = "" if PRAYER_SEQ == 1 else f"_{PRAYER_SEQ}"
+SLOT_SUFFIX_DASH = "" if PRAYER_SEQ == 1 else f"-{PRAYER_SEQ}"
+FILE_DATE_KEY = f"{date_str_compact}{SLOT_SUFFIX_UNDERSCORE}"
+
+# SOH Convention: 乡音情_{yyyymmdd}.mp3 (or 乡音情_{yyyymmdd}_{seq}.mp3 when >1 prayer in one day)
+filename = f"乡音情_{FILE_DATE_KEY}.mp3"
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
+IMAGE_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".jpg")
+THUMB_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_thumb.jpg")
+MP4_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".mp4")
+if PRAYER_SEQ > 1:
+    print(f"📌 Detected Prayer #{PRAYER_SEQ} on {date_str_dash} -> using slot '{FILE_DATE_KEY}'")
+print(f"Target Output: {OUTPUT_PATH}")
+
+# Save companion text output for TTS with RAG (matching VOTD convention)
+TXT_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".txt")
+with open(TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(TEXT_TTS)
+print(f"📄 Saved TTS RAG text output to: {TXT_OUTPUT_PATH}")
+
+# Clean up legacy prayer_output.txt if present
+for legacy_path in [os.path.join(OUTPUT_DIR, "prayer_output.txt"), os.path.join(os.getcwd(), "prayer_output.txt")]:
+    if os.path.exists(legacy_path):
+        try:
+            os.remove(legacy_path)
+        except Exception:
+            pass
+
+voices = VOICES
+TEMP_DIR = OUTPUT_DIR + os.sep 
+
+
 def _upload_wp_media(wp_url: str, user: str, password: str,
                      file_path: str, mime_type: str, ascii_filename: str,
                      title: str) -> tuple[int | None, str | None]:
-    """Upload a media file (image, mp3, or mp4) to WordPress, replacing any prior copy with the same filename."""
+    """Upload a media file (image, mp3, or mp4) to WordPress, replacing only prior copies of the exact same slot filename."""
     if not file_path or not os.path.exists(file_path):
         print(f"⚠️ Media file not found, skipping: {file_path}")
         return None, None
 
-    # Clean up any prior media items with the same base filename to avoid -1/-2 duplicates
-    stem = os.path.splitext(ascii_filename)[0]
+    # Clean up any prior media items with the exact same slot filename (or WP's -1/-2 collision suffix)
+    stem, ext = os.path.splitext(ascii_filename)
+    exact_media_re = re.compile(rf"/{re.escape(stem)}(?:-\d+)?{re.escape(ext)}$", re.IGNORECASE)
     existing_media = _wp_curl_json(
         "GET",
-        f"{wp_url}/media?search={stem}&per_page=20",
+        f"{wp_url}/media?search={stem}&per_page=30",
         user,
         password,
     )
@@ -381,7 +497,7 @@ def _upload_wp_media(wp_url: str, user: str, password: str,
                 continue
             src = item.get("source_url", "")
             mid = item.get("id")
-            if mid and (ascii_filename in src or f"{stem}-" in src):
+            if mid and exact_media_re.search(src):
                 _wp_curl_json("DELETE", f"{wp_url}/media/{mid}?force=true", user, password)
 
     size_mb = os.path.getsize(file_path) / (1024 * 1024)
@@ -475,15 +591,21 @@ def upload_prayer_to_wordpress(date_str_compact: str,
                                prayer_text_display: str,
                                image_path: str,
                                mp3_path: str,
-                               mp4_path: str) -> bool:
+                               mp4_path: str,
+                               seq_num: int = 1) -> bool:
     """Upload image, MP3, MP4 and publish/update the prayer post on prayer.tianlumusic.org."""
     wp_url, wp_user, wp_pass = load_soh_wp_credentials()
     if not wp_pass:
         print("❌ SOH_WP_APP_PASSWORD is not set in environment or ~/.secrets. Cannot upload to WordPress.")
         return False
 
+    slot_underscore = "" if seq_num <= 1 else f"_{seq_num}"
+    slot_dash = "" if seq_num <= 1 else f"-{seq_num}"
+    media_key = f"{date_str_compact}{slot_underscore}"
+    slug = f"soh-prayer-{date_str_compact}{slot_dash}"
+
     print("\n" + "═" * 68)
-    print(f"🌐 Uploading SOH Prayer ({date_str_compact}) to {wp_url}")
+    print(f"🌐 Uploading SOH Prayer ({media_key}, slug: {slug}) to {wp_url}")
     print("═" * 68)
 
     # Ensure cover image exists even if --no-mp4 was used
@@ -498,22 +620,22 @@ def upload_prayer_to_wordpress(date_str_compact: str,
                 org_name_text=raw_org_name,
             )
 
-    # 1. Upload Image, MP3, MP4
+    # 1. Upload Image, MP3, MP4 using slot-aware filenames
     img_id, img_url = _upload_wp_media(
         wp_url, wp_user, wp_pass,
-        image_path, "image/jpeg", f"soh_prayer_{date_str_compact}.jpg",
+        image_path, "image/jpeg", f"soh_prayer_{media_key}.jpg",
         f"{post_title} - Cover"
     )
     mp3_id, mp3_url = _upload_wp_media(
         wp_url, wp_user, wp_pass,
-        mp3_path, "audio/mpeg", f"soh_prayer_{date_str_compact}.mp3",
+        mp3_path, "audio/mpeg", f"soh_prayer_{media_key}.mp3",
         f"{post_title} - Audio"
     )
     mp4_id, mp4_url = (None, None)
     if os.path.exists(mp4_path):
         mp4_id, mp4_url = _upload_wp_media(
             wp_url, wp_user, wp_pass,
-            mp4_path, "video/mp4", f"soh_prayer_{date_str_compact}.mp4",
+            mp4_path, "video/mp4", f"soh_prayer_{media_key}.mp4",
             f"{post_title} - Video"
         )
 
@@ -525,27 +647,34 @@ def upload_prayer_to_wordpress(date_str_compact: str,
         mp4_id=mp4_id, mp4_url=mp4_url,
     )
 
-    slug = f"soh-prayer-{date_str_compact}"
-    post_date_iso = f"{date_obj.strftime('%Y-%m-%d')}T08:00:00"
+    # Offset publish minute by (seq_num - 1) so multiple prayers on the same day have distinct timestamps
+    minute_offset = min(max(seq_num - 1, 0), 59)
+    post_date_iso = f"{date_obj.strftime('%Y-%m-%d')}T08:{minute_offset:02d}:00"
+
+    # 3. Check if post with this slug already exists, and check if other posts on the same day share the exact title
+    same_day_posts = _fetch_wp_posts_for_date(wp_url, wp_user, wp_pass, date_str_compact)
+    existing_id = None
+    other_titles_same_day = set()
+    for p in same_day_posts:
+        p_slug = p.get("slug", "")
+        if p_slug == slug:
+            existing_id = p.get("id")
+        elif p_slug.startswith(f"soh-prayer-{date_str_compact}"):
+            t_rend = p.get("title", {}).get("rendered", "") if isinstance(p.get("title"), dict) else ""
+            if t_rend:
+                other_titles_same_day.add(t_rend.strip())
+
+    final_title = post_title
+    if seq_num > 1 and final_title.strip() in other_titles_same_day:
+        final_title = f"{post_title} ({seq_num})"
 
     payload = {
-        "title": post_title,
+        "title": final_title,
         "slug": slug,
         "content": post_html,
         "status": "publish",
         "date": post_date_iso,
     }
-
-    # 3. Check if post with this slug already exists
-    existing = _wp_curl_json(
-        "GET",
-        f"{wp_url}/posts?slug={slug}&status=any",
-        wp_user,
-        wp_pass,
-    )
-    existing_id = None
-    if isinstance(existing, list) and len(existing) > 0 and isinstance(existing[0], dict):
-        existing_id = existing[0].get("id")
 
     headers = ["Content-Type: application/json; charset=utf-8"]
 
@@ -732,7 +861,7 @@ async def main():
                 org_name_text=raw_org_name,
             )
     else:
-        print(f"⏭️ --upload-only specified: skipping TTS/MP4 generation and using existing files for {date_str_compact}.")
+        print(f"⏭️ --upload-only specified: skipping TTS/MP4 generation and using existing files for {FILE_DATE_KEY}.")
 
     # Auto-Upload to prayer.tianlumusic.org
     if ENABLE_UPLOAD:
@@ -744,6 +873,7 @@ async def main():
             image_path=IMAGE_OUTPUT_PATH,
             mp3_path=OUTPUT_PATH,
             mp4_path=MP4_OUTPUT_PATH,
+            seq_num=PRAYER_SEQ,
         )
     else:
         print("\n⏭️ Skipping WordPress upload (--no-upload specified).")

@@ -572,16 +572,6 @@ def build_prayer_post_html(prayer_text_display: str,
 
     blocks.extend(html_paras)
 
-    # 4. Cover Image at bottom if not already shown as theme featured image
-    if image_url:
-        id_attr = f' {{"id":{image_id},"sizeSlug":"large","linkDestination":"none"}}' if image_id else ''
-        img_class = f' class="wp-image-{image_id}"' if image_id else ''
-        blocks.append(
-            f'<!-- wp:image{id_attr} -->\n'
-            f'<figure class="wp-block-image size-large"><img src="{image_url}" alt="為鄉音禱告"{img_class}/></figure>\n'
-            f'<!-- /wp:image -->'
-        )
-
     return "\n\n".join(blocks)
 
 

@@ -61,9 +61,9 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
     print("  --input FILE, -i     Text file to read input from (Default: prayer.txt)")
-    print("  --lang LANG, -l      Caption language: tw (zh_TW) or cn (zh_CN) (Default: tw)")
-    print("  --tw                 Shortcut for --lang tw (Traditional Chinese captions, Default)")
-    print("  --cn                 Shortcut for --lang cn (Simplified Chinese captions)")
+    print("  --lang LANG, -l      Language: cn (zh_CN) or tw (zh_TW) (Default: cn)")
+    print("  --cn                 Shortcut for --lang cn (Simplified Chinese, Default)")
+    print("  --tw                 Shortcut for --lang tw (Traditional Chinese)")
     print("  --voice MODE         Voice mode: male, female, two, four, six (Default: two)")
     print("  --voices LIST        Custom voices (CSV, overrides --voice)")
     print("                       e.g. zh-CN-YunyangNeural,zh-CN-XiaoxiaoNeural")
@@ -95,10 +95,10 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
 
 parser = argparse.ArgumentParser(description="Generate Prayer Audio/Video with Edge TTS & Auto-Upload to prayer.tianlumusic.org", add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file (Default: prayer.txt)")
-parser.add_argument("--lang", "-l", type=str, default="zh_TW",
-                    help="Language: tw (zh_TW) or cn (zh_CN) (Default: zh_TW)")
-parser.add_argument("--tw", "-tw", action="store_true", help="Shortcut for --lang tw (Traditional Chinese, Default)")
-parser.add_argument("--cn", "-cn", action="store_true", help="Shortcut for --lang cn (Simplified Chinese)")
+parser.add_argument("--lang", "-l", type=str, default="zh_CN",
+                    help="Language: cn (zh_CN) or tw (zh_TW) (Default: zh_CN)")
+parser.add_argument("--cn", "-cn", action="store_true", help="Shortcut for --lang cn (Simplified Chinese, Default)")
+parser.add_argument("--tw", "-tw", action="store_true", help="Shortcut for --lang tw (Traditional Chinese)")
 parser.add_argument("--voice", type=str, default="two", choices=["male", "female", "two", "four", "six"],
                     help="Voice mode: male, female, two, four, six")
 parser.add_argument("--voices", type=str, default=None,
@@ -152,11 +152,11 @@ def normalize_lang(lang_arg: str, is_tw: bool = False, is_cn: bool = False) -> s
     if is_tw:
         return "zh_TW"
     if not lang_arg:
-        return "zh_TW"
-    s = str(lang_arg).strip().lower().replace("-", "_")
-    if s in ("cn", "zh_cn", "simplified", "s", "chs", "hans"):
         return "zh_CN"
-    return "zh_TW"
+    s = str(lang_arg).strip().lower().replace("-", "_")
+    if s in ("tw", "zh_tw", "traditional", "t", "cht", "hant"):
+        return "zh_TW"
+    return "zh_CN"
 
 TARGET_LANG = normalize_lang(args.lang, args.tw, args.cn)
 lang_desc = "Traditional Chinese (zh_TW)" if TARGET_LANG == "zh_TW" else "Simplified Chinese (zh_CN)"
@@ -250,15 +250,25 @@ try:
     if TARGET_LANG == "zh_TW":
         cc = opencc.OpenCC('s2tw')
         TEXT = cc.convert(TEXT)
+        if raw_org_name:
+            raw_org_name = cc.convert(raw_org_name)
     else:
         cc = opencc.OpenCC('t2s')
         TEXT = cc.convert(TEXT)
+        if raw_org_name:
+            raw_org_name = cc.convert(raw_org_name)
 except Exception as e:
     print(f"⚠️ OpenCC conversion notice: {e}")
 
 # Extract first line for MP3/Post title (retaining date as requested)
 TEXT_DISPLAY = clean_text_basic(TEXT)
-first_line = TEXT_DISPLAY.strip().split('\n')[0] if TEXT_DISPLAY.strip() else f"天路音樂「鄉音情」為鄉音禱告 {date_str_dash}"
+_disp_lines = TEXT_DISPLAY.strip().split('\n')
+if _disp_lines and _disp_lines[0]:
+    _disp_lines[0] = re.sub(r'(祷告|禱告)(\d{4}[年\-])', r'\1 \2', _disp_lines[0])
+    TEXT_DISPLAY = '\n'.join(_disp_lines)
+first_line = _disp_lines[0] if _disp_lines and _disp_lines[0] else (
+    f"天路音樂「鄉音情」為鄉音禱告 {date_str_dash}" if TARGET_LANG == "zh_TW" else f"天路音乐「乡音情」为乡音祷告 {date_str_dash}"
+)
 
 # Convert Bible references and dates with RAG/phonetic pronunciation fixes for TTS
 TEXT_TTS = convert_bible_reference(TEXT_DISPLAY)
@@ -338,12 +348,19 @@ def _wp_curl_json(method: str, url: str, user: str, password: str,
 
 
 def _normalize_prayer_body(text: str, drop_first_line: bool = False) -> str:
-    """Normalize prayer text (strip HTML, captions, whitespace, punctuation) for similarity checks."""
+    """Normalize prayer text (strip HTML, captions, footer credits, whitespace, punctuation) for similarity checks."""
     if not text:
         return ""
     s = re.sub(r"<figcaption[^>]*>.*?</figcaption>", "", text, flags=re.DOTALL)
     s = re.sub(r"<[^>]+>", "\n", s)
-    lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+    raw_lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+    lines = []
+    for ln in raw_lines:
+        if any(k in ln for k in ("阅读聆听", "閱讀聆聽", "唯爱智能基金会", "唯愛智能基金會", "https://tianlumusic.org", "https://weiai.ai")):
+            continue
+        if ln in ("天路音乐「乡音情」为乡音祷告", "天路音樂「鄉音情」為鄉音禱告"):
+            continue
+        lines.append(ln)
     if drop_first_line and len(lines) > 1:
         lines = lines[1:]
     joined = "".join(lines)
@@ -560,12 +577,23 @@ def _upload_wp_media(wp_url: str, user: str, password: str,
         return None, None
 
 
+def _linkify_html_line(text: str) -> str:
+    """Turn bare http(s) URLs into clickable anchor tags while keeping identical display text."""
+    return re.sub(
+        r"(https?://[^\s<>]+)",
+        r'<a href="\1" target="_blank" rel="noopener noreferrer">\1</a>',
+        text,
+    )
+
+
 def build_prayer_post_html(prayer_text_display: str,
                            image_id: int | None, image_url: str | None,
                            mp3_id: int | None, mp3_url: str | None,
                            mp4_id: int | None, mp4_url: str | None) -> str:
-    """Build WordPress Gutenberg block HTML with Image, MP3 audio, MP4 video, and Prayer text."""
+    """Build WordPress Gutenberg block HTML with Image, MP3 audio, MP4 video, and full Prayer + Credit text."""
     blocks = []
+    audio_caption = "🎧 語音守望禱告 (MP3)" if is_tw else "🎧 语音守望祷告 (MP3)"
+    video_caption = "🎬 字幕禱告視頻 (MP4)" if is_tw else "🎬 字幕祷告视频 (MP4)"
 
     # 1. Audio Block (MP3)
     if mp3_url:
@@ -573,7 +601,7 @@ def build_prayer_post_html(prayer_text_display: str,
         blocks.append(
             f'<!-- wp:audio{id_attr} -->\n'
             f'<figure class="wp-block-audio"><audio controls src="{mp3_url}"></audio>'
-            f'<figcaption class="wp-element-caption">🎧 語音守望禱告 (MP3)</figcaption></figure>\n'
+            f'<figcaption class="wp-element-caption">{audio_caption}</figcaption></figure>\n'
             f'<!-- /wp:audio -->'
         )
 
@@ -584,24 +612,28 @@ def build_prayer_post_html(prayer_text_display: str,
         blocks.append(
             f'<!-- wp:video{id_attr} -->\n'
             f'<figure class="wp-block-video"><video controls{poster_attr} src="{mp4_url}"></video>'
-            f'<figcaption class="wp-element-caption">🎬 字幕禱告視頻 (MP4)</figcaption></figure>\n'
+            f'<figcaption class="wp-element-caption">{video_caption}</figcaption></figure>\n'
             f'<!-- /wp:video -->'
         )
 
-    # 3. Prayer Text Content
-    lines = [ln.strip() for ln in prayer_text_display.strip().splitlines()]
-    # Skip the first line if it duplicates the post title
-    body_lines = lines[1:] if len(lines) > 1 else lines
+    # 3. Prayer Text + Footer Credits (matching soh-prayer-{date}.txt)
+    para_blocks = [b.strip() for b in re.split(r'\n{2,}', prayer_text_display.strip()) if b.strip()]
+    # Skip the first block if it duplicates the post title already rendered by WordPress h1
+    body_blocks = para_blocks[1:] if len(para_blocks) > 1 else para_blocks
 
     html_paras = []
-    for idx, ln in enumerate(body_lines):
-        if not ln:
+    for blk in body_blocks:
+        sub_lines = [ln.strip() for ln in blk.splitlines() if ln.strip()]
+        if not sub_lines:
             continue
-        # Treat first non-empty subheading line (e.g. 天路音樂鄉音情週六守望禱告) as h3
-        if not html_paras and len(ln) <= 30 and ("禱告" in ln or "祷告" in ln):
-            html_paras.append(f'<!-- wp:heading {{"level":3}} -->\n<h3 class="wp-block-heading">{ln}</h3>\n<!-- /wp:heading -->')
+        # Treat first single-line subheading (e.g. 为 Chino Yang 弟兄及全家献上感恩与祝福的祷告) as h3
+        if not html_paras and len(sub_lines) == 1 and len(sub_lines[0]) <= 35 and ("禱告" in sub_lines[0] or "祷告" in sub_lines[0]):
+            html_paras.append(
+                f'<!-- wp:heading {{"level":3}} -->\n<h3 class="wp-block-heading">{_linkify_html_line(sub_lines[0])}</h3>\n<!-- /wp:heading -->'
+            )
         else:
-            html_paras.append(f'<!-- wp:paragraph -->\n<p>{ln}</p>\n<!-- /wp:paragraph -->')
+            inner_html = "<br>".join(_linkify_html_line(ln) for ln in sub_lines)
+            html_paras.append(f'<!-- wp:paragraph -->\n<p>{inner_html}</p>\n<!-- /wp:paragraph -->')
 
     blocks.extend(html_paras)
 
@@ -819,16 +851,17 @@ async def main():
         final_audio += silence
         for j, footer_line in enumerate(audio_footer_lines):
             voice = voices[(len(paragraphs) + j) % len(voices)]
-            print(f"  > Footer {j+1} ({voice}) - {footer_line}")
+            footer_tts = clean_text_for_tts(footer_line)
+            print(f"  > Footer {j+1} ({voice}) - {footer_tts}")
             temp_file = f"{TEMP_DIR}temp_prayer_footer_{j}.mp3"
-            submaker = await generate_audio(footer_line, voice, temp_file)
+            submaker = await generate_audio(footer_tts, voice, temp_file)
             paragraph_submakers.append(submaker)
             try:
                 segment = AudioSegment.from_mp3(temp_file)
                 paragraph_durations.append(len(segment))
                 final_audio += segment
                 if j < len(audio_footer_lines) - 1:
-                    final_audio += AudioSegment.silent(duration=500)
+                    final_audio += silence
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
@@ -917,7 +950,7 @@ async def main():
             date_str_compact=date_str_compact,
             date_obj=date_obj,
             post_title=first_line,
-            prayer_text_display=TEXT_DISPLAY,
+            prayer_text_display=copy_text,
             image_path=IMAGE_OUTPUT_PATH,
             mp3_path=OUTPUT_PATH,
             mp4_path=MP4_OUTPUT_PATH,

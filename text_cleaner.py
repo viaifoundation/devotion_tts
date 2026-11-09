@@ -182,6 +182,11 @@ def restore_pronunciation_for_display(text):
         else:
             text = text.replace("牧掌", "牧長")
 
+    # Restore phonetic URLs for subtitle display
+    text = re.sub(r"s\s*o\s*h\s*[点點]\s*v\s*i\s*[点點]\s*f\s*y\s*i", "soh.vi.fyi", text, flags=re.IGNORECASE)
+    text = re.sub(r"v\s*o\s*t\s*d\s*[点點]\s*v\s*i\s*[点點]\s*f\s*y\s*i", "votd.vi.fyi", text, flags=re.IGNORECASE)
+    text = re.sub(r"t\s*i\s*n\s*g\s*[点點]\s*v\s*i\s*[点點]\s*f\s*y\s*i", "ting.vi.fyi", text, flags=re.IGNORECASE)
+
     return text
 
 

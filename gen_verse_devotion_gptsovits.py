@@ -12,7 +12,7 @@ from pydub import AudioSegment
 import numpy as np
 import audio_mixer
 import filename_parser
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text
 
@@ -259,7 +259,7 @@ def main():
     # Text Normalization
     TEXT = convert_bible_reference(TEXT)
     TEXT = convert_dates_in_text(TEXT)
-    cleaned_input = clean_text(TEXT)
+    cleaned_input = clean_text_for_tts(TEXT)
     
     print("Synthesizing...")
     # Generator output

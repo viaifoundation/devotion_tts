@@ -38,7 +38,7 @@ except ImportError as e:
     sys.exit(1)
 
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 import filename_parser
 import audio_mixer
 
@@ -198,7 +198,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 intro = paragraphs[0] if paragraphs else ""

@@ -41,7 +41,7 @@ except ImportError as e:
 
 from bible_parser import convert_bible_reference
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 from datetime import datetime
 import argparse
 
@@ -120,7 +120,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 
 
 TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 intro = paragraphs[0] if paragraphs else ""

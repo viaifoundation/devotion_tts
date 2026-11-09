@@ -13,7 +13,7 @@ import requests
 from pydub import AudioSegment
 
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 from datetime import datetime
 import argparse
 import filename_parser
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         exit(1)
 
     TEXT = convert_bible_reference(TEXT)
-    TEXT = clean_text(TEXT)
+    TEXT = clean_text_for_tts(TEXT)
 
     paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
     intro = paragraphs[0] if paragraphs else ""

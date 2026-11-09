@@ -4,7 +4,7 @@ import edge_tts
 from pydub import AudioSegment
 import os
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 
 # Cleaned Chinese devotional text
 TEXT = """
@@ -22,7 +22,7 @@ TEXT = """
 
 # Convert Bible references in the text (e.g., '罗马书 1:17' to '罗马书 1章17節')
 TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 # Split the text into paragraphs
 paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]

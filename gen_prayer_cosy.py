@@ -33,7 +33,7 @@ except ImportError as e:
 
 from bible_parser import convert_bible_reference
 from date_parser import convert_dates_in_text, extract_date_from_text
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 import filename_parser
 import audio_mixer
 
@@ -137,7 +137,7 @@ print(f"Target Output: {OUTPUT_PATH}")
 
 TEXT = convert_bible_reference(TEXT)
 TEXT = convert_dates_in_text(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 paragraphs = [p.strip() for p in re.split(r'\n{2,}', TEXT.strip()) if p.strip()]
 

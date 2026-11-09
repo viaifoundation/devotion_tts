@@ -9,7 +9,7 @@ from google.api_core import exceptions
 from pydub import AudioSegment
 import audio_mixer
 from bible_parser import convert_bible_reference
-from text_cleaner import clean_text
+from text_cleaner import clean_text, clean_text_for_tts
 import filename_parser
 from datetime import datetime
 
@@ -67,7 +67,7 @@ if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
     print("⚠️ WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Ensure you have authenticated via gcloud or set the env var.")
 
 TEXT = convert_bible_reference(TEXT)
-TEXT = clean_text(TEXT)
+TEXT = clean_text_for_tts(TEXT)
 
 paragraphs = [p.strip() for p in TEXT.strip().split("\n\n") if p.strip()]
 first_paragraphs = [paragraphs[0]] # First paragraph (introduction)

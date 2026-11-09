@@ -447,6 +447,8 @@ SLOT_SUFFIX_DASH = "" if PRAYER_SEQ == 1 else f"-{PRAYER_SEQ}"
 FILE_DATE_KEY = f"{date_str_compact}{SLOT_SUFFIX_UNDERSCORE}"
 
 # SOH Convention: 乡音情_{yyyymmdd}.mp3 (or 乡音情_{yyyymmdd}_{seq}.mp3 when >1 prayer in one day)
+wp_slug = f"soh-prayer-{date_str_compact}{SLOT_SUFFIX_DASH}"
+wp_permalink = f"https://prayer.tianlumusic.org/{date_obj.strftime('%Y/%m/%d')}/{wp_slug}/"
 filename = f"乡音情_{FILE_DATE_KEY}.mp3"
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
 IMAGE_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".jpg")
@@ -456,11 +458,42 @@ if PRAYER_SEQ > 1:
     print(f"📌 Detected Prayer #{PRAYER_SEQ} on {date_str_dash} -> using slot '{FILE_DATE_KEY}'")
 print(f"Target Output: {OUTPUT_PATH}")
 
-# Save companion text output for TTS with RAG (matching VOTD convention)
+# Separate display paragraphs and format upload/copy text file
+is_tw = (TARGET_LANG == "zh_TW")
+credit_footer_lines = [
+    "天路音樂「鄉音情」為鄉音禱告" if is_tw else "天路音乐「乡音情」为乡音祷告",
+    f"{'閱讀聆聽' if is_tw else '阅读聆听'} {wp_permalink}",
+    f"{'天路音樂' if is_tw else '天路音乐'}：https://tianlumusic.org",
+    f"{'唯愛智能基金會制作' if is_tw else '唯爱智能基金会制作'} https://weiai.ai",
+]
+paragraphs_display = [p.strip() for p in re.split(r'\n{2,}', TEXT_DISPLAY.strip()) if p.strip()]
+copy_text = "\n\n".join(paragraphs_display) + "\n\n" + "\n".join(credit_footer_lines) + "\n"
+
+# 1. Output txt file for uploading and copying (matching WP slug path convention)
+COPY_TXT_OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"{wp_slug}.txt")
+with open(COPY_TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(copy_text)
+print(f"📄 Saved upload/copy text to: {COPY_TXT_OUTPUT_PATH}")
+
+# 2. Backward-compatible copy at 乡音情_{FILE_DATE_KEY}.txt
 TXT_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".txt")
 with open(TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(copy_text)
+print(f"📄 Saved companion text to: {TXT_OUTPUT_PATH}")
+
+# 3. Companion TTS RAG text (for pronunciation inspection)
+TTS_TXT_OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"{wp_slug}_tts.txt")
+with open(TTS_TXT_OUTPUT_PATH, "w", encoding="utf-8") as f:
     f.write(TEXT_TTS)
-print(f"📄 Saved TTS RAG text output to: {TXT_OUTPUT_PATH}")
+print(f"📄 Saved TTS RAG text to: {TTS_TXT_OUTPUT_PATH}")
+
+# Auto-copy text to macOS clipboard (like pbcopy)
+try:
+    pb_proc = subprocess.Popen(["pbcopy"], stdin=subprocess.PIPE)
+    pb_proc.communicate(copy_text.encode("utf-8"))
+    print("📋 Copied text to macOS clipboard via pbcopy!")
+except Exception:
+    pass
 
 # Clean up legacy prayer_output.txt if present
 for legacy_path in [os.path.join(OUTPUT_DIR, "prayer_output.txt"), os.path.join(os.getcwd(), "prayer_output.txt")]:
@@ -775,6 +808,31 @@ async def main():
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
 
+        # Generate Audio Footer (credits & listening link)
+        audio_footer_lines = [
+            "天路音樂「鄉音情」為鄉音禱告" if is_tw else "天路音乐「乡音情」为乡音祷告",
+            "閱讀聆聽 s o h 點 v i 點 f y i" if is_tw else "阅读聆听 s o h 点 v i 点 f y i",
+            "唯愛智能基金會支持" if is_tw else "唯爱智能基金会支持",
+            "天路音樂事工" if is_tw else "天路音乐事工",
+        ]
+        print(f"Processing audio footer ({len(audio_footer_lines)} lines)...")
+        final_audio += silence
+        for j, footer_line in enumerate(audio_footer_lines):
+            voice = voices[(len(paragraphs) + j) % len(voices)]
+            print(f"  > Footer {j+1} ({voice}) - {footer_line}")
+            temp_file = f"{TEMP_DIR}temp_prayer_footer_{j}.mp3"
+            submaker = await generate_audio(footer_line, voice, temp_file)
+            paragraph_submakers.append(submaker)
+            try:
+                segment = AudioSegment.from_mp3(temp_file)
+                paragraph_durations.append(len(segment))
+                final_audio += segment
+                if j < len(audio_footer_lines) - 1:
+                    final_audio += AudioSegment.silent(duration=500)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+
         # Add Background Music (Optional)
         bgm_info_str = "None"
         if ENABLE_BGM:
@@ -790,7 +848,7 @@ async def main():
             print("🎵 Background Music: Disabled (ENABLE_BGM=False)")
 
         # Metadata extraction
-        PRODUCER = "VI AI Foundation"
+        PRODUCER = "唯愛智能基金會 (VI AI Foundation)" if is_tw else "唯爱智能基金会 (VI AI Foundation)"
         TITLE = first_line
         ALBUM = "SOH Prayer"
         

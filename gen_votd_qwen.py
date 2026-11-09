@@ -653,7 +653,7 @@ def main():
     footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
             
     # 4. Add Foundation Credit
-    footer_lines.append("閱讀聆聽，盡在唯愛 AI 基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")
+    footer_lines.append("閱讀聆聽，盡在唯愛智能基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")
 
     # 5. End with the Title (thematic recap)
     if sections['title']:
@@ -693,7 +693,7 @@ def main():
             intro_delay_ms=BGM_INTRO_DELAY
         )
 
-    PRODUCER = "唯愛 AI 基金會 (VI AI Foundation)"
+    PRODUCER = "唯愛智能基金會 (VI AI Foundation)"
     TITLE = sections['title']
     ALBUM = "今日經文 VOTD"
     bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"

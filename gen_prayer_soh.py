@@ -356,7 +356,7 @@ def _normalize_prayer_body(text: str, drop_first_line: bool = False) -> str:
     raw_lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
     lines = []
     for ln in raw_lines:
-        if any(k in ln for k in ("阅读聆听", "閱讀聆聽", "唯爱智能基金会", "唯愛智能基金會", "https://tianlumusic.org", "https://weiai.ai")):
+        if any(k in ln for k in ("阅读聆听", "閱讀聆聽", "唯爱智能基金会", "唯愛智能基金會", "https://tianlumusic.org", "https://weiai.ai", "https://soh.vi.fyi")):
             continue
         if ln in ("天路音乐「乡音情」为乡音祷告", "天路音樂「鄉音情」為鄉音禱告"):
             continue
@@ -478,7 +478,7 @@ print(f"Target Output: {OUTPUT_PATH}")
 # Separate display paragraphs and format upload/copy text file
 is_tw = (TARGET_LANG == "zh_TW")
 credit_footer_lines = [
-    "天路音樂「鄉音情」為鄉音禱告" if is_tw else "天路音乐「乡音情」为乡音祷告",
+    f"{'天路音樂「鄉音情」為鄉音禱告' if is_tw else '天路音乐「乡音情」为乡音祷告'} https://soh.vi.fyi",
     f"{'閱讀聆聽' if is_tw else '阅读聆听'} {wp_permalink}",
     f"{'天路音樂' if is_tw else '天路音乐'}：https://tianlumusic.org",
     f"{'唯愛智能基金會制作' if is_tw else '唯爱智能基金会制作'} https://weiai.ai",
@@ -896,6 +896,8 @@ async def main():
             'comments': COMMENTS
         })
         print(f"✅ Saved: {OUTPUT_PATH}")
+        print(f"📝 Text saved: {TXT_OUTPUT_PATH}")
+        print(f"📝 Copy Text saved: {COPY_TXT_OUTPUT_PATH}")
 
         # Generate subtitles (.srt) using frame-accurate Edge-TTS timestamps
         srt_output_path = OUTPUT_PATH.replace(".mp3", ".srt")
@@ -958,6 +960,30 @@ async def main():
         )
     else:
         print("\n⏭️ Skipping WordPress upload (--no-upload specified).")
+
+    # Re-copy to clipboard at the very end and print all output info together
+    try:
+        pb_proc = subprocess.Popen(["pbcopy"], stdin=subprocess.PIPE)
+        pb_proc.communicate(copy_text.encode("utf-8"))
+    except Exception:
+        pass
+
+    print("\n" + "═" * 68)
+    print("📦 SOH Prayer Output Summary")
+    print("═" * 68)
+    print(f"🎵 MP3 Audio:   {OUTPUT_PATH}")
+    print(f"🎬 MP4 Video:   {MP4_OUTPUT_PATH}")
+    print(f"🖼️ Cover Image: {IMAGE_OUTPUT_PATH}")
+    print(f"📄 Subtitles:   {OUTPUT_PATH.replace('.mp3', '.srt')}")
+    print(f"📝 Output Text: {TXT_OUTPUT_PATH}")
+    print(f"📝 Copy Text:   {COPY_TXT_OUTPUT_PATH}")
+    print(f"🌐 WP Post URL: {wp_permalink}")
+    print(f"🔗 Short Link:  https://soh.vi.fyi/{date_obj.strftime('%Y/%m/%d')}/{wp_slug}/")
+    print("═" * 68)
+    print("📋 Copy Text Content (also copied to clipboard via pbcopy):")
+    print("─" * 68)
+    print(copy_text.strip())
+    print("═" * 68)
 
 
 if __name__ == "__main__":

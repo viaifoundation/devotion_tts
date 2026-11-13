@@ -266,6 +266,109 @@ def generate_soh_dated_background(
     return output_path
 
 
+def generate_votd_dated_background(
+    base_bg_path: str = None,
+    date_text: str = None,
+    title_text: str = None,
+    verse_text: str = None,
+    output_path: str = None,
+    resolution: str = "1920x1080",
+) -> str:
+    """
+    Generates a VOTD hero/cover image & video background stamped with:
+    - Date pill badge in the top-left whitespace
+    - Devotion title in deep VI navy
+    - Scripture reference + '今日经文 VOTD' in VI crimson
+    """
+    import re
+    import tempfile
+    from PIL import Image, ImageDraw
+
+    if not base_bg_path or not os.path.exists(base_bg_path):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        cand = os.path.join(script_dir, DEFAULT_BG)
+        base_bg_path = cand if os.path.exists(cand) else DEFAULT_BG
+
+    width, height = [int(v) for v in resolution.split("x")]
+    scale = height / 1080.0
+    im = Image.open(base_bg_path).convert("RGBA").resize((width, height), Image.Resampling.LANCZOS)
+
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    # Extract clean title and verse from title_text if formatted as "Title (Book X:Y) MM/DD/YYYY"
+    clean_title = (title_text or "").strip()
+    if clean_title:
+        m_v = re.search(r"\(([^)]+)\)", clean_title)
+        if m_v and not verse_text:
+            verse_text = m_v.group(1).strip()
+        clean_title = re.sub(r"\s*\([^)]*\)", "", clean_title)
+        clean_title = re.sub(r"\s*\d{1,2}/\d{1,2}/\d{4}.*$", "", clean_title)
+        clean_title = re.sub(r"\s*\d{4}[-年]\d{1,2}[-月]\d{1,2}日?.*$", "", clean_title).strip()
+
+    left_x = int(round(80 * (width / 1920.0)))
+    curr_y = int(round(52 * scale))
+
+    if date_text:
+        clean_date = date_text.strip()
+        m_d = re.match(r"^(\d{4})[-年]\s*(\d{1,2})[-月]\s*(\d{1,2})日?$", clean_date)
+        if m_d:
+            clean_date = f"{m_d.group(1)} 年 {int(m_d.group(2))} 月 {int(m_d.group(3))} 日"
+        font_date = get_cjk_font_for_text(clean_date, int(round(42 * scale)))
+        bb_d = draw.textbbox((0, 0), clean_date, font=font_date)
+        tw_d, th_d = bb_d[2] - bb_d[0], bb_d[3] - bb_d[1]
+        pad_x = int(round(28 * scale))
+        pad_y = int(round(12 * scale))
+        box = (
+            left_x,
+            curr_y,
+            left_x + tw_d + pad_x * 2,
+            curr_y + th_d + pad_y * 2 + int(round(4 * scale)),
+        )
+        radius = (box[3] - box[1]) // 2
+        draw.rounded_rectangle(
+            box,
+            radius=radius,
+            fill=(242, 247, 252, 245),
+            outline=(0, 82, 136, 210),
+            width=max(2, int(round(3 * scale))),
+        )
+        draw.text(
+            (box[0] + pad_x, box[1] + pad_y - int(round(2 * scale))),
+            clean_date,
+            font=font_date,
+            fill=(0, 74, 128, 255),
+        )
+        curr_y = box[3] + int(round(24 * scale))
+
+    if clean_title:
+        title_font_size = int(round(68 * scale))
+        font_title = get_cjk_font_for_text(clean_title, title_font_size)
+        max_title_w = int(round(1020 * (width / 1920.0)))
+        bb_t = draw.textbbox((0, 0), clean_title, font=font_title)
+        tw_t = bb_t[2] - bb_t[0]
+        if tw_t > max_title_w and tw_t > 0:
+            title_font_size = max(int(round(36 * scale)), int(round(title_font_size * (max_title_w / tw_t))))
+            font_title = get_cjk_font_for_text(clean_title, title_font_size)
+        tx = left_x + int(round(4 * scale))
+        draw.text((tx, curr_y), clean_title, font=font_title, fill=(0, 62, 112, 255))
+        bb_t = draw.textbbox((tx, curr_y), clean_title, font=font_title)
+        curr_y = bb_t[3] + int(round(16 * scale))
+
+    sub_str = f"{verse_text}  ·  今日经文 VOTD" if verse_text else "今日经文 · Verse of the Day"
+    font_sub = get_cjk_font_for_text(sub_str, int(round(40 * scale)))
+    draw.text((left_x + int(round(6 * scale)), curr_y), sub_str, font=font_sub, fill=(196, 24, 48, 255))
+
+    out = Image.alpha_composite(im, overlay).convert("RGB")
+    if not output_path:
+        temp_file = tempfile.NamedTemporaryFile(suffix="_votd_bg.jpg", delete=False)
+        output_path = temp_file.name
+        temp_file.close()
+
+    out.save(output_path, quality=95)
+    return output_path
+
+
 
 # CLI Help
 if "-?" in sys.argv:

@@ -18,7 +18,11 @@ Usage:
 """
 
 import asyncio
+import json
+import shutil
+import subprocess
 import sys
+import urllib.parse
 from typing import Optional, Tuple
 
 import edge_tts
@@ -32,7 +36,7 @@ from date_parser import convert_dates_in_text
 from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
-from audio_to_mp4 import create_mp4, DEFAULT_BG
+from audio_to_mp4 import create_mp4, generate_votd_dated_background, DEFAULT_BG
 from caption_generator import parse_caption_flag, parse_caption_scale
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 from chapter_narration_gain import CHAPTER_VOICE_CHOICES, boost_db_for_chapter_voice
@@ -47,16 +51,42 @@ BIBLE_BGM_DIR = os.path.join(SCRIPT_DIR, "assets", "bible", "bgm")
 
 _chapter_voice_rotation_idx = 0  # Global counter for rotation
 
+
+def load_votd_wp_credentials():
+    """Load VOTD WordPress credentials from environment or ~/.secrets."""
+    secrets_file = os.path.expanduser("~/.secrets")
+    if os.path.exists(secrets_file):
+        try:
+            with open(secrets_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("export ") and "=" in line:
+                        kv = line[len("export "):].strip()
+                        k, v = kv.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k not in os.environ:
+                            os.environ[k] = v
+        except Exception as e:
+            print(f"⚠️ Notice reading ~/.secrets: {e}")
+
+    wp_url = os.environ.get("VOTD_WP_URL", "https://votd.viaifoundation.org/wp-json/wp/v2").rstrip("/")
+    wp_user = os.environ.get("VOTD_WP_USERNAME") or os.environ.get("WP_USERNAME", "michaelhuo")
+    wp_pass = os.environ.get("VOTD_WP_APP_PASSWORD") or os.environ.get("WP_APP_PASSWORD", "")
+    return wp_url, wp_user, wp_pass
+
+
 # ─── CLI Args ───
 if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print(f"Usage: python {sys.argv[0]} [OPTIONS]")
     print("\nOptions:")
-    print("  --input FILE, -i     Text file to read input from")
+    print("  --input FILE, -i     Text file to read input from (Default: input.txt)")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
     print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
     print("  --voices LIST        Custom voices (CSV, overrides --voice)")
     print("  --speed SPEED        Speech rate: +10%, --speed=-10% (Default: +0%)")
-    print("  --bgm                Enable background music for non-bible sections")
+    print("  --bgm                Enable background music (Default: True)")
+    print("  --no-bgm             Disable background music")
     print("  --bgm-track TRACK    BGM filename (Default: AmazingGrace.MP3)")
     print("  --bgm-volume VOL     BGM volume in dB (Default: -20)")
     print("  --bgm-intro MS       BGM intro delay in ms (Default: 4000)")
@@ -65,7 +95,8 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --speech-volume VOL  Boost for chapter speech in dB (Default: 4)")
     print("  --chapter-speed SPD  Speed multiplier for Everest chapter audio (Default: 1.5)")
     print("  --bible-db PATH      Path to bible.sqlite (Default: assets/bible/bible.sqlite)")
-    print("  --mp4                Generate MP4 video from audio (both short and long versions)")
+    print("  --mp4                Generate MP4 video from audio (Default: True)")
+    print("  --no-mp4             Skip MP4 video generation")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
     print("  --caption [true/false]       Enable burned-in captions on video (Default: true)")
@@ -74,6 +105,9 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --caption-large [true/false] Make burned-in caption font size 3x larger (Default: false)")
     print("  --caption-file FILE          Explicit SRT/VTT caption file for MP4")
     print("  --chapter-voice V    everest | davidyen | rotate | rotate_male_first | rotate_female_first")
+    print("  --upload                     Upload hero image, text, audio & short video to votd.viaifoundation.org (Default: True)")
+    print("  --no-upload, --skip-upload   Skip uploading to WordPress")
+    print("  --upload-only                Skip TTS/MP4 generation and only upload existing files for the date")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
     print("  male    - Single male voice (YunyangNeural)")
@@ -83,22 +117,22 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  six     - Rotate all 6 zh-CN voices (Default)")
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i input.txt")
-    print(f"  python {sys.argv[0]} -i input.txt --voice six --bgm")
-    print(f"  python {sys.argv[0]} -i input.txt --bible-bgm-volume -18")
-    print(f"  python {sys.argv[0]} -i input.txt --mp4 --caption true")
+    print(f"  python {sys.argv[0]} -i input.txt --no-upload")
+    print(f"  python {sys.argv[0]} -i input.txt --upload-only")
     sys.exit(0)
 
 import argparse
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--input", "-i", type=str, help="Input text file")
+parser.add_argument("--input", "-i", type=str, help="Input text file (Default: input.txt)")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
 parser.add_argument("--voice", type=str, default="six", choices=["male", "female", "two", "four", "six"],
                     help="Voice mode: male, female, two, four, six")
 parser.add_argument("--voices", type=str, default=None,
                     help="Custom voices (CSV format, overrides --voice)")
 parser.add_argument("--speed", type=str, default=None, help="Speech rate adjustment (e.g. +10%%)")
-parser.add_argument("--bgm", action="store_true", help="Enable background music for non-bible sections")
+parser.add_argument("--bgm", action="store_true", default=True, help="Enable background music (Default: True)")
+parser.add_argument("--no-bgm", action="store_true", help="Disable background music")
 parser.add_argument("--bgm-track", type=str, default="AmazingGrace.MP3", help="BGM filename")
 parser.add_argument("--bgm-volume", type=int, default=-20, help="BGM volume in dB")
 parser.add_argument("--bgm-intro", type=int, default=4000, help="BGM intro delay in ms")
@@ -112,7 +146,8 @@ parser.add_argument(
 )
 parser.add_argument("--chapter-speed", type=float, default=1.5, help="Speed multiplier for Everest chapter audio (Default: 1.5)")
 parser.add_argument("--bible-db", type=str, default=None, help="Path to bible.sqlite")
-parser.add_argument("--mp4", action="store_true", help="Generate MP4 video from audio (both short and long versions)")
+parser.add_argument("--mp4", action="store_true", default=True, help="Generate MP4 video from audio (Default: True)")
+parser.add_argument("--no-mp4", action="store_true", help="Disable MP4 video generation")
 parser.add_argument("--mp4-bg", type=str, default=DEFAULT_BG, help="Background image for MP4")
 parser.add_argument("--mp4-res", type=str, default="1920x1080", help="MP4 resolution")
 parser.add_argument("--caption", "--captions", nargs="?", const="true", default=None,
@@ -131,11 +166,16 @@ parser.add_argument(
     choices=CHAPTER_VOICE_CHOICES,
     help="Recorded chapter: everest/davidyen fixed; rotate*=alternate (male-first or female-first)",
 )
+parser.add_argument("--upload", action="store_true", default=True, help="Upload to votd.viaifoundation.org (Default: True)")
+parser.add_argument("--no-upload", "--skip-upload", dest="no_upload", action="store_true", help="Skip uploading to WordPress")
+parser.add_argument("--upload-only", action="store_true", help="Skip TTS/MP4 generation and only upload existing files")
 
 args, unknown = parser.parse_known_args()
 CLI_PREFIX = args.prefix
 
-ENABLE_BGM = args.bgm
+ENABLE_BGM = not args.no_bgm
+ENABLE_MP4 = not args.no_mp4
+ENABLE_UPLOAD = not args.no_upload
 BGM_FILE = args.bgm_track
 BGM_VOLUME = args.bgm_volume
 BGM_INTRO_DELAY = args.bgm_intro
@@ -177,6 +217,7 @@ else:  # six (default)
 
 
 # ─── Input text loading ───
+default_input_file = os.path.join(SCRIPT_DIR, "input.txt")
 if args.input:
     print(f"Reading text from file: {args.input}")
     with open(args.input, "r", encoding="utf-8") as f:
@@ -184,6 +225,14 @@ if args.input:
 elif not sys.stdin.isatty():
     print("Reading text from Stdin...")
     TEXT = sys.stdin.read()
+elif os.path.exists("input.txt"):
+    print("Reading text from default file: input.txt")
+    with open("input.txt", "r", encoding="utf-8") as f:
+        TEXT = f.read()
+elif os.path.exists(default_input_file):
+    print(f"Reading text from default file: {default_input_file}")
+    with open(default_input_file, "r", encoding="utf-8") as f:
+        TEXT = f.read()
 else:
     print("❌ No input provided. Use --input or pipe text via stdin.")
     sys.exit(1)
@@ -204,6 +253,10 @@ else:
         date_str = f"{y}-{int(m):02d}-{int(d):02d}"
     else:
         date_str = datetime.today().strftime("%Y-%m-%d")
+
+date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+date_str_compact = date_obj.strftime("%Y%m%d")
+date_display = f"{date_obj.year} 年 {date_obj.month} 月 {date_obj.day} 日"
 
 verse_ref = filename_parser.extract_verse_from_text(TEXT)
 
@@ -233,6 +286,12 @@ OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, filename)
+SHORT_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_short.mp3")
+IMAGE_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".jpg")
+THUMB_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_thumb.jpg")
+SHORT_IMAGE_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_short.jpg")
+MP4_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", ".mp4")
+SHORT_MP4_OUTPUT_PATH = OUTPUT_PATH.replace(".mp3", "_short.mp4")
 print(f"Target Output: {OUTPUT_PATH}")
 
 
@@ -437,440 +496,893 @@ async def generate_audio(text, voice, output_file, retries=5, backoff_factor=2):
             await asyncio.sleep(wait_time)
 
 
+# ─── WordPress Upload Helpers (votd.viaifoundation.org) ───
+VOTD_DEFAULT_CATEGORIES = [5]      # Verse of the Day 今日經文 (slug: votd)
+VOTD_DEFAULT_TAGS = [7, 6, 35]     # Verse of the Day, 今日經文, 今日经文
+
+
+def build_votd_slug(title_line: str) -> str:
+    """Build WordPress slug matching votd.viaifoundation.org convention (e.g. 耶稣是我们的光-约翰福音-15-11-14-2026)."""
+    s = title_line.strip().lower()
+    s = re.sub(r"[():：（）\[\]【】「」『』\"'，,。！？!?]+", "", s)
+    s = re.sub(r"[\s/\\]+", "-", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s
+
+
+def _resolve_host_ip(hostname: str) -> Optional[str]:
+    """Resolve hostname via 1.1.1.1 if local DNS cache has stale NXDOMAIN."""
+    try:
+        import socket
+        socket.gethostbyname(hostname)
+        return None
+    except Exception:
+        pass
+    try:
+        res = subprocess.run(
+            ["dig", "+short", hostname, "@1.1.1.1"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in res.stdout.splitlines():
+            line = line.strip()
+            if re.match(r"^\d+\.\d+\.\d+\.\d+$", line):
+                return line
+    except Exception:
+        pass
+    return None
+
+
+def _wp_curl_json(method: str, url: str, user: str, password: str,
+                  headers: Optional[list] = None,
+                  data_bytes: Optional[bytes] = None,
+                  data_file: Optional[str] = None,
+                  timeout: int = 300):
+    """Execute a WordPress REST API call via curl with automatic DNS fallback."""
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.hostname or "votd.viaifoundation.org"
+    ip = _resolve_host_ip(host)
+
+    cmd = [
+        "curl", "-sS",
+        "-X", method,
+        "-u", f"{user}:{password}",
+        "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "--max-time", str(timeout),
+    ]
+    if ip:
+        cmd.extend(["--resolve", f"{host}:443:{ip}"])
+    if headers:
+        for h in headers:
+            cmd.extend(["-H", h])
+    if data_file:
+        cmd.extend(["--data-binary", f"@{data_file}"])
+    elif data_bytes is not None:
+        cmd.extend(["--data-binary", "@-"])
+
+    proc = subprocess.run(
+        cmd + [url],
+        input=data_bytes,
+        capture_output=True,
+        timeout=timeout + 10,
+    )
+    out = proc.stdout.decode("utf-8", errors="replace").strip()
+    if not out:
+        return None
+    try:
+        return json.loads(out)
+    except Exception:
+        print(f"⚠️ Non-JSON response from {url}: {out[:300]}")
+        return None
+
+
+def _upload_wp_media(wp_url: str, user: str, password: str,
+                     file_path: str, mime_type: str, target_filename: str,
+                     ascii_fallback: str) -> Tuple[Optional[int], Optional[str]]:
+    """Upload a media file (image, mp3, or mp4) to votd.viaifoundation.org, replacing prior copies of the same file."""
+    if not file_path or not os.path.exists(file_path):
+        print(f"⚠️ Media file not found, skipping: {file_path}")
+        return None, None
+
+    stem, ext = os.path.splitext(target_filename)
+    ascii_stem, _ = os.path.splitext(ascii_fallback)
+    for search_key in {stem, ascii_stem}:
+        if not search_key:
+            continue
+        q = urllib.parse.quote(search_key)
+        existing_media = _wp_curl_json(
+            "GET",
+            f"{wp_url}/media?search={q}&per_page=20",
+            user,
+            password,
+        )
+        if isinstance(existing_media, list):
+            for item in existing_media:
+                if not isinstance(item, dict):
+                    continue
+                src = urllib.parse.unquote(item.get("source_url", ""))
+                mid = item.get("id")
+                if mid and (
+                    re.search(rf"/{re.escape(stem)}(?:-\d+)?{re.escape(ext)}$", src, re.IGNORECASE)
+                    or re.search(rf"/{re.escape(ascii_stem)}(?:-\d+)?{re.escape(ext)}$", src, re.IGNORECASE)
+                ):
+                    _wp_curl_json("DELETE", f"{wp_url}/media/{mid}?force=true", user, password)
+
+    size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    print(f"  ⬆️ Uploading {os.path.basename(file_path)} ({size_mb:.1f} MB)...")
+
+    encoded_name = urllib.parse.quote(target_filename)
+    headers = [
+        f"Content-Type: {mime_type}",
+        f"Content-Disposition: attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded_name}",
+    ]
+    res = _wp_curl_json(
+        "POST",
+        f"{wp_url}/media",
+        user,
+        password,
+        headers=headers,
+        data_file=file_path,
+        timeout=600,
+    )
+    if isinstance(res, dict) and res.get("id") and res.get("source_url"):
+        media_id = res["id"]
+        source_url = res["source_url"]
+        print(f"  ✓ Uploaded {target_filename} -> ID {media_id} ({urllib.parse.unquote(source_url)})")
+        return media_id, source_url
+    else:
+        msg = res.get("message") if isinstance(res, dict) else str(res)
+        code = res.get("code") if isinstance(res, dict) else ""
+        print(f"  ❌ Failed to upload {target_filename} ({code}): {msg}")
+        return None, None
+
+
+def _linkify_votd_html(text: str) -> str:
+    """Turn bare ASCII http(s) URLs into clickable anchor tags without swallowing Chinese punctuation."""
+    return re.sub(
+        r"(https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+)",
+        r'<a href="\1">\1</a>',
+        text,
+    )
+
+
+def build_votd_post_html(votd_text_long: str,
+                         image_url: Optional[str],
+                         long_mp3_id: Optional[int], long_mp3_url: Optional[str],
+                         short_mp3_id: Optional[int], short_mp3_url: Optional[str],
+                         short_mp4_id: Optional[int], short_mp4_url: Optional[str],
+                         existing_youtube_blocks: Optional[list] = None) -> str:
+    """
+    Build WordPress Gutenberg block HTML matching votd.viaifoundation.org post structure:
+    1. Long Audio MP3 block
+    2. Short Audio MP3 block
+    3. Short Video MP4 block (with hero image poster)
+    4. Existing YouTube embed blocks (if any, preserved on update)
+    5. Full VOTD text paragraphs (Verses, Essay, Prayer, Bible Translations, Chapters, Credits)
+    """
+    blocks = []
+
+    # 1. Long Audio Block
+    if long_mp3_url:
+        id_attr = f' {{"id":{long_mp3_id}}}' if long_mp3_id else ''
+        blocks.append(
+            f'<!-- wp:audio{id_attr} -->\n'
+            f'<figure class="wp-block-audio"><audio controls src="{long_mp3_url}"></audio></figure>\n'
+            f'<!-- /wp:audio -->'
+        )
+
+    # 2. Short Audio Block
+    if short_mp3_url:
+        id_attr = f' {{"id":{short_mp3_id}}}' if short_mp3_id else ''
+        blocks.append(
+            f'<!-- wp:audio{id_attr} -->\n'
+            f'<figure class="wp-block-audio"><audio controls src="{short_mp3_url}"></audio></figure>\n'
+            f'<!-- /wp:audio -->'
+        )
+
+    # 3. Short Video Block (MP4 with hero cover poster)
+    if short_mp4_url:
+        id_attr = f' {{"id":{short_mp4_id}}}' if short_mp4_id else ''
+        poster_attr = f' poster="{image_url}"' if image_url else ''
+        blocks.append(
+            f'<!-- wp:video{id_attr} -->\n'
+            f'<figure class="wp-block-video"><video controls{poster_attr} src="{short_mp4_url}"></video></figure>\n'
+            f'<!-- /wp:video -->'
+        )
+
+    # 4. Preserve any existing YouTube embeds if updating an existing post
+    if existing_youtube_blocks:
+        blocks.extend(existing_youtube_blocks)
+
+    # 5. Full VOTD Text Paragraphs (skipping line 1 if it matches post title)
+    para_blocks = [b.strip() for b in re.split(r'\n{2,}', votd_text_long.strip()) if b.strip()]
+    body_blocks = para_blocks[1:] if len(para_blocks) > 1 else para_blocks
+
+    for blk in body_blocks:
+        sub_lines = [ln.strip() for ln in blk.splitlines() if ln.strip()]
+        if not sub_lines:
+            continue
+        inner_html = "<br>".join(_linkify_votd_html(ln) for ln in sub_lines)
+        blocks.append(
+            f'<!-- wp:paragraph -->\n'
+            f'<p class="wp-block-paragraph">{inner_html}</p>\n'
+            f'<!-- /wp:paragraph -->'
+        )
+
+    return "\n\n".join(blocks)
+
+
+def upload_votd_to_wordpress(post_title: str,
+                             votd_text_long: str,
+                             image_path: str,
+                             long_mp3_path: str,
+                             short_mp3_path: str,
+                             short_mp4_path: str) -> Optional[str]:
+    """Upload hero image, long MP3, short MP3, short MP4, and full text to votd.viaifoundation.org."""
+    wp_url, wp_user, wp_pass = load_votd_wp_credentials()
+    slug = build_votd_slug(post_title)
+
+    print("\n" + "═" * 68)
+    print(f"🌐 Uploading VOTD ({date_str_compact}, slug: {slug}) to {wp_url}")
+    print("═" * 68)
+
+    if not wp_pass:
+        print("❌ VOTD_WP_APP_PASSWORD (or WP_APP_PASSWORD) is not set in ~/.secrets.")
+        print("   Please create a WordPress Application Password on votd.viaifoundation.org and add to ~/.secrets:")
+        print('   export VOTD_WP_USERNAME="your_username"')
+        print('   export VOTD_WP_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"')
+        print("═" * 68)
+        return None
+
+    # Verify authentication before uploading large media files
+    auth_check = _wp_curl_json("GET", f"{wp_url}/users/me", wp_user, wp_pass, timeout=20)
+    if not isinstance(auth_check, dict) or not auth_check.get("id"):
+        code = auth_check.get("code") if isinstance(auth_check, dict) else "unknown"
+        msg = auth_check.get("message") if isinstance(auth_check, dict) else str(auth_check)
+        print(f"❌ WordPress authentication failed for user '{wp_user}' ({code}): {msg}")
+        print("💡 How to enable & create the API key (Application Password) on votd.viaifoundation.org:")
+        print("   1. Log in to https://votd.viaifoundation.org/wp-admin/")
+        print("   2. In Wordfence -> All Options -> Brute Force Protection (or Login Security -> Settings):")
+        print("      Uncheck 'Disable WordPress application passwords' and click Save Changes.")
+        print("   3. Go to Users -> Profile -> scroll down to 'Application Passwords'.")
+        print("   4. Enter a name (e.g. 'votd_cli'), click 'Add New Application Password', and copy the key.")
+        print("   5. Add to ~/.secrets:")
+        print(f'      export VOTD_WP_USERNAME="{wp_user}"')
+        print('      export VOTD_WP_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"')
+        print("═" * 68)
+        return None
+
+    # 1. Upload Hero Image, Long MP3, Short MP3, Short MP4
+    img_id, img_url = _upload_wp_media(
+        wp_url, wp_user, wp_pass,
+        image_path, "image/jpeg",
+        os.path.basename(image_path),
+        f"votd_{date_str_compact}_hero.jpg",
+    )
+    long_mp3_id, long_mp3_url = _upload_wp_media(
+        wp_url, wp_user, wp_pass,
+        long_mp3_path, "audio/mpeg",
+        os.path.basename(long_mp3_path),
+        f"votd_{date_str_compact}_bgm.mp3",
+    )
+    short_mp3_id, short_mp3_url = _upload_wp_media(
+        wp_url, wp_user, wp_pass,
+        short_mp3_path, "audio/mpeg",
+        os.path.basename(short_mp3_path),
+        f"votd_{date_str_compact}_bgm_short.mp3",
+    )
+    short_mp4_id, short_mp4_url = (None, None)
+    if short_mp4_path and os.path.exists(short_mp4_path):
+        short_mp4_id, short_mp4_url = _upload_wp_media(
+            wp_url, wp_user, wp_pass,
+            short_mp4_path, "video/mp4",
+            os.path.basename(short_mp4_path),
+            f"votd_{date_str_compact}_bgm_short.mp4",
+        )
+
+    # 2. Check if post with this slug already exists (and preserve any YouTube embeds)
+    encoded_slug = urllib.parse.quote(slug)
+    existing_posts = _wp_curl_json(
+        "GET",
+        f"{wp_url}/posts?slug={encoded_slug}&status=any&context=edit",
+        wp_user,
+        wp_pass,
+        timeout=20,
+    )
+    existing_id = None
+    existing_yt_blocks = []
+    if isinstance(existing_posts, list) and existing_posts:
+        for p in existing_posts:
+            if isinstance(p, dict) and p.get("id"):
+                existing_id = p["id"]
+                raw_content = (
+                    p.get("content", {}).get("raw")
+                    or p.get("content", {}).get("rendered")
+                    or ""
+                )
+                # Preserve any YouTube embed blocks already added to the post
+                yt_matches = re.findall(
+                    r"(<!-- wp:embed [^\n]*youtube[^\n]*-->.*?<!-- /wp:embed -->|<figure class=\"wp-block-embed[^\"]*is-provider-youtube[^\"]*\">.*?</figure>)",
+                    raw_content,
+                    flags=re.DOTALL | re.IGNORECASE,
+                )
+                if yt_matches:
+                    existing_yt_blocks = yt_matches
+                break
+
+    # 3. Build post HTML
+    post_html = build_votd_post_html(
+        votd_text_long=votd_text_long,
+        image_url=img_url,
+        long_mp3_id=long_mp3_id, long_mp3_url=long_mp3_url,
+        short_mp3_id=short_mp3_id, short_mp3_url=short_mp3_url,
+        short_mp4_id=short_mp4_id, short_mp4_url=short_mp4_url,
+        existing_youtube_blocks=existing_yt_blocks,
+    )
+
+    payload = {
+        "title": post_title,
+        "slug": slug,
+        "content": post_html,
+        "status": "publish",
+        "categories": VOTD_DEFAULT_CATEGORIES,
+        "tags": VOTD_DEFAULT_TAGS,
+    }
+    if img_id:
+        payload["featured_media"] = img_id
+
+    headers = ["Content-Type: application/json; charset=utf-8"]
+    body_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+    if existing_id:
+        print(f"  🔄 Updating existing WordPress post ID {existing_id} (slug: {slug})...")
+        post_res = _wp_curl_json(
+            "POST",
+            f"{wp_url}/posts/{existing_id}",
+            wp_user,
+            wp_pass,
+            headers=headers,
+            data_bytes=body_bytes,
+        )
+    else:
+        print(f"  ✨ Creating new WordPress post (slug: {slug})...")
+        create_payload = dict(payload)
+        create_payload.pop("featured_media", None)
+        post_res = _wp_curl_json(
+            "POST",
+            f"{wp_url}/posts",
+            wp_user,
+            wp_pass,
+            headers=headers,
+            data_bytes=json.dumps(create_payload, ensure_ascii=False).encode("utf-8"),
+        )
+        if isinstance(post_res, dict) and post_res.get("id") and img_id:
+            new_post_id = post_res["id"]
+            fm_bytes = json.dumps({"featured_media": img_id}, ensure_ascii=False).encode("utf-8")
+            _wp_curl_json(
+                "POST",
+                f"{wp_url}/posts/{new_post_id}",
+                wp_user,
+                wp_pass,
+                headers=headers,
+                data_bytes=fm_bytes,
+            )
+
+    if isinstance(post_res, dict) and post_res.get("id"):
+        link = urllib.parse.unquote(post_res.get("link", f"https://votd.viaifoundation.org/{slug}/"))
+        print(f"🎉 WordPress Post Published Successfully: {link}")
+        print("═" * 68)
+        return link
+    else:
+        print(f"❌ Failed to publish WordPress post: {post_res}")
+        print("═" * 68)
+        return None
+
+
 async def main():
     # Parse input sections
     sections = parse_input_sections(TEXT)
+    TITLE = sections['title'] or first_line
 
-    print(f"\n📋 Parsed input.txt sections:")
-    print(f"  Title: {sections['title'][:50]}...")
-    print(f"  Verse refs: {len(sections['verse_refs'])}")
-    for ref in sections['verse_refs']:
-        book_name = book_number_to_chinese(ref[0])
-        print(f"    {book_name} {ref[1]}:{ref[2]}-{ref[3]}")
-    print(f"  Essay titles: {len(sections['essay_titles'])}")
-    print(f"  Essay body: {len(sections['essay_body'])} paragraphs")
-    print(f"  Prayer: {'Yes' if sections['prayer'] else 'No'}")
-    print(f"  Credits: {len(sections['credits'])} lines")
-
-    # Open Bible DB for verse expansion
-    db = None
-    try:
-        db = BibleDB(args.bible_db)
-        print(f"\n📖 Bible DB loaded: {db.db_path}")
-    except FileNotFoundError as e:
-        print(f"\n⚠️ {e}")
-        print("   Verse expansion disabled. Only original verse text will be used.")
-
-    # Expand verse blocks using the DB
-    expanded_blocks = []
-    if db and sections['verse_refs']:
-        print(f"\n--- Expanding {len(sections['verse_refs'])} verse(s) ---")
-        for ref in sections['verse_refs']:
-            book_num, chapter, v_start, v_end = ref
-            block = db.expand_verse_block(book_num, chapter, v_start, v_end)
-            expanded_blocks.append(block)
-            book_name = book_number_to_chinese(book_num)
-            print(f"  📖 {book_name} {chapter}:{v_start}-{v_end}")
-            print(f"      Chapter: {len(block['chapter_text'])} chars")
-            print(f"      Translations: {len(block['translations'])}")
-
-    voices = VOICES
-    final_segments = []
-    global_voice_idx = 0
-    txt_lines = []  # For output.txt
-
-    SILENCE_SHORT = AudioSegment.silent(duration=700)
-    SILENCE_SECTION = AudioSegment.silent(duration=1000)
-
-    # ─── Section 1: Title ───
-    print(f"\n--- Section 1: Title ---")
-    if sections['title']:
-        temp_file = os.path.join(OUTPUT_DIR, "temp_votd_title.mp3")
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        await generate_audio(tts_prep(sections['title']), voice, temp_file)
+    # Generate VOTD Hero / Cover Image
+    bg_base_path = args.mp4_bg
+    if not os.path.isabs(bg_base_path):
+        bg_base_path = os.path.join(SCRIPT_DIR, bg_base_path)
+    generate_votd_dated_background(
+        base_bg_path=bg_base_path if os.path.exists(bg_base_path) else None,
+        date_text=date_display,
+        title_text=TITLE,
+        verse_text=verse_ref,
+        output_path=IMAGE_OUTPUT_PATH,
+        resolution=args.mp4_res,
+    )
+    for extra_img in (THUMB_OUTPUT_PATH, SHORT_IMAGE_OUTPUT_PATH):
         try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        txt_lines.append(clean_text_basic(sections['title']))
-        txt_lines.append("")
+            shutil.copyfile(IMAGE_OUTPUT_PATH, extra_img)
+        except Exception:
+            pass
+    print(f"🖼️ Generated VOTD hero cover image: {IMAGE_OUTPUT_PATH}")
 
-    # ─── Section 2: Verse (CUV only) ───
-    print(f"\n--- Section 2: Verse (CUV only) ---")
-    chapter_audio_segments = []  # Collect chapter audio for Section 6 (Bible Audio)
-    chapter_txt_lines = []       # Collect chapter text for output.txt
-    bible_audio_blocks = []      # Collect (translations, chapter_seg) for Section 6
-
-    if expanded_blocks:
-        for block_idx, block in enumerate(expanded_blocks):
-            print(f"\n  📖 Verse Block {block_idx + 1}")
-            book_num = block['book_num']
-            chapter_num = block['chapter_num']
-
-            # Collect chapter audio for Section 6
-            ch_seg, ch_voice_name = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
-            if ch_seg is not None:
-                if not ch_voice_name:
-                    print("  ⚠️ Internal error: chapter audio present but voice label is empty")
-                # 7b1. Per-source leveling (chapter_narration_gain — aligned with ting concat_daily)
-                base_boost = boost_db_for_chapter_voice(ch_voice_name)
-                total_boost = base_boost + args.speech_volume
-                
-                if total_boost != 0:
-                    ch_seg = ch_seg + total_boost
-                
-                # 7b2. Chapter Text
-                if block['chapter_text']:
-                    chapter_txt_lines.append(block['chapter_text'])
-                    chapter_txt_lines.append(f"({block['chapter_ref']})")
-                    chapter_txt_lines.append("")
-                elif block['translations']:
-                    chapter_txt_lines.append(block['translations'][0][2])
-                    chapter_txt_lines.append(f"({block['translations'][0][3]})")
-                    chapter_txt_lines.append("")
-            else:
-                if block_idx < len(sections['verse_texts']):
-                    chapter_txt_lines.append(sections['verse_texts'][block_idx])
-                    chapter_txt_lines.append("")
-
-            # Save full translations + chapter audio for Section 6 (Bible Audio)
-            bible_audio_blocks.append({
-                'translations': block['translations'],
-                'chapter_seg': ch_seg,
-                'chapter_voice': ch_voice_name,
-                'block_idx': block_idx,
-            })
-
-            # Section 2: TTS the CUV (first) translation for each verse
-            if block['translations']:
-                final_segments.append(SILENCE_SECTION)
-                code, label, text, ref_str = block['translations'][0]
-                voice = voices[global_voice_idx % len(voices)]
-                global_voice_idx += 1
-                tts_text = f"{text}\n({ref_str})"
-                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_{block_idx}.mp3")
-                await generate_audio(tts_prep(tts_text), voice, temp_file)
-                try:
-                    seg = AudioSegment.from_mp3(temp_file)
-                    final_segments.append(seg)
-                finally:
-                    if os.path.exists(temp_file):
-                        os.remove(temp_file)
-                txt_lines.append(clean_text_basic(text))
-                txt_lines.append(f"({ref_str})")
-                txt_lines.append("")
-
-    else:
-        # No DB available — use original verse text with TTS only
-        for v_idx, verse_text in enumerate(sections['verse_texts']):
-            voice = voices[global_voice_idx % len(voices)]
-            global_voice_idx += 1
-            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_verse_{v_idx}.mp3")
-            await generate_audio(tts_prep(verse_text), voice, temp_file)
-            try:
-                seg = AudioSegment.from_mp3(temp_file)
-                final_segments.append(SILENCE_SECTION)
-                final_segments.append(seg)
-            finally:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            txt_lines.append(verse_text)
-            txt_lines.append("")
-
-    # ─── Section 3: Essay Titles ───
-    print(f"\n--- Section 3: Essay Titles ---")
-    for et_idx, essay_title in enumerate(sections['essay_titles']):
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_et_{et_idx}.mp3")
-        await generate_audio(tts_prep(essay_title), voice, temp_file)
-        try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        txt_lines.append(clean_text_basic(essay_title))
-        txt_lines.append("")
-
-    # ─── Section 4: Essay Body ───
-    print(f"\n--- Section 4: Essay Body ---")
-    if sections['essay_body']:
-        for eb_idx, essay_para in enumerate(sections['essay_body']):
-            voice = voices[global_voice_idx % len(voices)]
-            global_voice_idx += 1
-            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_essay_{eb_idx}.mp3")
-            await generate_audio(tts_prep(essay_para), voice, temp_file)
-            try:
-                seg = AudioSegment.from_mp3(temp_file)
-                final_segments.append(SILENCE_SECTION)
-                final_segments.append(seg)
-            finally:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            txt_lines.append(clean_text_basic(essay_para))
-            txt_lines.append("")
-
-    # ─── Section 5: Prayer (voice rotation per paragraph) ───
-    print(f"\n--- Section 5: Prayer ---")
-    if sections['prayer']:
-        prayer_paras = [p.strip() for p in sections['prayer'].split("\n\n") if p.strip()]
-        print(f"  Prayer has {len(prayer_paras)} paragraph(s)")
-        for pr_idx, prayer_para in enumerate(prayer_paras):
-            voice = voices[global_voice_idx % len(voices)]
-            global_voice_idx += 1
-            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_prayer_{pr_idx}.mp3")
-            await generate_audio(tts_prep(prayer_para), voice, temp_file)
-            try:
-                seg = AudioSegment.from_mp3(temp_file)
-                final_segments.append(SILENCE_SECTION)
-                final_segments.append(seg)
-            finally:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            txt_lines.append(clean_text_basic(prayer_para))
-            txt_lines.append("")
-
-    # ─── Section 6: Automatic Footer & Credits ───
-    print(f"\n--- Section 6: Automatic Footer & Credits ---")
-    
-    # 1. Start with manual credits from input.txt (if any)
-    footer_lines = [c for c in sections['credits'] if c.strip()]
-    
-    # 2. Add Source Credit
-    footer_lines.append("內容取自 YouVersion「今日經文」與「讀經計劃」。")
-    
-    # 3. Add Voice Attribution (Always credit both Everest (女聲) and 閻大衛 (男聲))
-    footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
-            
-    # 4. Add Foundation Credit
-    footer_lines.append("閱讀聆聽，盡在唯愛智能基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")
-
-    # 5. End with the Title (thematic recap)
-    if sections['title']:
-        footer_lines.append(sections['title'])
-
-    # Store footer_lines for reuse in Section 8
-    sections['footer_lines'] = footer_lines
-
-    credits_audio_segments = []
-    for cr_idx, credit in enumerate(footer_lines):
-        voice = voices[global_voice_idx % len(voices)]
-        global_voice_idx += 1
-        print(f"  🎙️ Footer Line {cr_idx+1}: {credit}")
-        temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_credit_{cr_idx}.mp3")
-        await generate_audio(tts_prep(credit), voice, temp_file)
-        try:
-            seg = AudioSegment.from_mp3(temp_file)
-            final_segments.append(SILENCE_SECTION)
-            final_segments.append(seg)
-            credits_audio_segments.append(SILENCE_SECTION)
-            credits_audio_segments.append(seg)
-        finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-        
-        # In the text file, use the real URL
-        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 v i 點 f y i", "https://ting.vi.fyi")
-        txt_lines.append(txt_credit)
-        txt_lines.append("")
-
-    # ─── Combine and Export Short Version ───
-    print(f"\n--- Combining Short Version ({len(final_segments)} segments) ---")
-    short_final = AudioSegment.empty()
-    for seg in final_segments:
-        short_final += seg
-
-    if ENABLE_BGM:
-        print(f"🎵 Mixing Overall BGM for Short Version...")
-        short_final = audio_mixer.mix_bgm(
-            short_final,
-            specific_filename=BGM_FILE,
-            volume_db=BGM_VOLUME,
-            intro_delay_ms=BGM_INTRO_DELAY
-        )
-
-    PRODUCER = "唯愛智能基金會 (VI AI Foundation)"
-    TITLE = sections['title']
-    ALBUM = "今日經文 VOTD"
-    bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
-    COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
-
-    short_output_path = OUTPUT_PATH.replace(".mp3", "_short.mp3")
-    short_final.export(short_output_path, format="mp3", tags={
-        'title': f"{TITLE} (Short)",
-        'artist': PRODUCER,
-        'album': ALBUM,
-        'comments': COMMENTS
-    })
-    print(f"\n✅ Short version saved: {short_output_path}")
-
-    # Save output_short.txt
     txt_output_short = OUTPUT_PATH.replace(".mp3", "_short.txt")
-    with open(txt_output_short, "w", encoding="utf-8") as f:
-        f.write("\n".join(txt_lines))
-    print(f"📝 Short Text saved: {txt_output_short}")
+    txt_output_long = OUTPUT_PATH.replace(".mp3", ".txt")
+    db = None
 
+    if not args.upload_only:
+        print(f"\n📋 Parsed input.txt sections:")
+        print(f"  Title: {sections['title'][:50]}...")
+        print(f"  Verse refs: {len(sections['verse_refs'])}")
+        for ref in sections['verse_refs']:
+            book_name = book_number_to_chinese(ref[0])
+            print(f"    {book_name} {ref[1]}:{ref[2]}-{ref[3]}")
+        print(f"  Essay titles: {len(sections['essay_titles'])}")
+        print(f"  Essay body: {len(sections['essay_body'])} paragraphs")
+        print(f"  Prayer: {'Yes' if sections['prayer'] else 'No'}")
+        print(f"  Credits: {len(sections['credits'])} lines")
 
-    # ─── Section 7: Bible Audio (added to long version) ───
-    if bible_audio_blocks:
-        print(f"\n--- Section 7: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
-        for ba_block in bible_audio_blocks:
-            translations = ba_block['translations']
-            ch_seg = ba_block['chapter_seg']
-            block_idx = ba_block['block_idx']
+        # Open Bible DB for verse expansion
+        try:
+            db = BibleDB(args.bible_db)
+            print(f"\n📖 Bible DB loaded: {db.db_path}")
+        except FileNotFoundError as e:
+            print(f"\n⚠️ {e}")
+            print("   Verse expansion disabled. Only original verse text will be used.")
 
-            # 7a. TTS all translations of the verse
-            if translations:
-                print(f"  🔁 Verse block {block_idx + 1}: {len(translations)} translation readings")
-                final_segments.append(SILENCE_SECTION)
-                for t_idx, (code, label, text, ref_str) in enumerate(translations):
+        # Expand verse blocks using the DB
+        expanded_blocks = []
+        if db and sections['verse_refs']:
+            print(f"\n--- Expanding {len(sections['verse_refs'])} verse(s) ---")
+            for ref in sections['verse_refs']:
+                book_num, chapter, v_start, v_end = ref
+                block = db.expand_verse_block(book_num, chapter, v_start, v_end)
+                expanded_blocks.append(block)
+                book_name = book_number_to_chinese(book_num)
+                print(f"  📖 {book_name} {chapter}:{v_start}-{v_end}")
+                print(f"      Chapter: {len(block['chapter_text'])} chars")
+                print(f"      Translations: {len(block['translations'])}")
+
+        voices = VOICES
+        final_segments = []
+        global_voice_idx = 0
+        txt_lines = []  # For output.txt
+
+        SILENCE_SHORT = AudioSegment.silent(duration=700)
+        SILENCE_SECTION = AudioSegment.silent(duration=1000)
+
+        # ─── Section 1: Title ───
+        print(f"\n--- Section 1: Title ---")
+        if sections['title']:
+            temp_file = os.path.join(OUTPUT_DIR, "temp_votd_title.mp3")
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            await generate_audio(tts_prep(sections['title']), voice, temp_file)
+            try:
+                seg = AudioSegment.from_mp3(temp_file)
+                final_segments.append(seg)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            txt_lines.append(clean_text_basic(sections['title']))
+            txt_lines.append("")
+
+        # ─── Section 2: Verse (CUV only) ───
+        print(f"\n--- Section 2: Verse (CUV only) ---")
+        chapter_audio_segments = []  # Collect chapter audio for Section 6 (Bible Audio)
+        chapter_txt_lines = []       # Collect chapter text for output.txt
+        bible_audio_blocks = []      # Collect (translations, chapter_seg) for Section 6
+
+        if expanded_blocks:
+            for block_idx, block in enumerate(expanded_blocks):
+                print(f"\n  📖 Verse Block {block_idx + 1}")
+                book_num = block['book_num']
+                chapter_num = block['chapter_num']
+
+                # Collect chapter audio for Section 6
+                ch_seg, ch_voice_name = _load_chapter_audio(book_num, chapter_num, speed=args.chapter_speed)
+                if ch_seg is not None:
+                    if not ch_voice_name:
+                        print("  ⚠️ Internal error: chapter audio present but voice label is empty")
+                    # 7b1. Per-source leveling (chapter_narration_gain — aligned with ting concat_daily)
+                    base_boost = boost_db_for_chapter_voice(ch_voice_name)
+                    total_boost = base_boost + args.speech_volume
+                    
+                    if total_boost != 0:
+                        ch_seg = ch_seg + total_boost
+                    
+                    # 7b2. Chapter Text
+                    if block['chapter_text']:
+                        chapter_txt_lines.append(block['chapter_text'])
+                        chapter_txt_lines.append(f"({block['chapter_ref']})")
+                        chapter_txt_lines.append("")
+                    elif block['translations']:
+                        chapter_txt_lines.append(block['translations'][0][2])
+                        chapter_txt_lines.append(f"({block['translations'][0][3]})")
+                        chapter_txt_lines.append("")
+                else:
+                    if block_idx < len(sections['verse_texts']):
+                        chapter_txt_lines.append(sections['verse_texts'][block_idx])
+                        chapter_txt_lines.append("")
+
+                # Save full translations + chapter audio for Section 6 (Bible Audio)
+                bible_audio_blocks.append({
+                    'translations': block['translations'],
+                    'chapter_seg': ch_seg,
+                    'chapter_voice': ch_voice_name,
+                    'block_idx': block_idx,
+                })
+
+                # Section 2: TTS the CUV (first) translation for each verse
+                if block['translations']:
+                    final_segments.append(SILENCE_SECTION)
+                    code, label, text, ref_str = block['translations'][0]
                     voice = voices[global_voice_idx % len(voices)]
                     global_voice_idx += 1
                     tts_text = f"{text}\n({ref_str})"
-                    temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_ba_trans_{block_idx}_{t_idx}.mp3")
+                    temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_{block_idx}.mp3")
                     await generate_audio(tts_prep(tts_text), voice, temp_file)
                     try:
                         seg = AudioSegment.from_mp3(temp_file)
                         final_segments.append(seg)
-                        if t_idx < len(translations) - 1:
-                            final_segments.append(SILENCE_SHORT)
                     finally:
                         if os.path.exists(temp_file):
                             os.remove(temp_file)
-                    txt_lines.append(text)
+                    txt_lines.append(clean_text_basic(text))
                     txt_lines.append(f"({ref_str})")
-                txt_lines.append("")
+                    txt_lines.append("")
 
-            # 7b. Full chapter audio (Everest pre-recorded)
-            if ch_seg is not None:
-                print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
-                final_segments.append(SILENCE_SECTION)
-                final_segments.append(ch_seg)
-                
-            # 7c. Add CUV translation again after the chapter audio
-            if translations:
-                print(f"  🔁 Appending CUV verse again for block {block_idx + 1}")
-                final_segments.append(SILENCE_SECTION)
-                code, label, text, ref_str = translations[0]
+        else:
+            # No DB available — use original verse text with TTS only
+            for v_idx, verse_text in enumerate(sections['verse_texts']):
                 voice = voices[global_voice_idx % len(voices)]
                 global_voice_idx += 1
-                tts_text = f"{text}\n({ref_str})"
-                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_post_{block_idx}.mp3")
-                await generate_audio(tts_prep(tts_text), voice, temp_file)
+                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_verse_{v_idx}.mp3")
+                await generate_audio(tts_prep(verse_text), voice, temp_file)
                 try:
                     seg = AudioSegment.from_mp3(temp_file)
+                    final_segments.append(SILENCE_SECTION)
                     final_segments.append(seg)
                 finally:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
+                txt_lines.append(verse_text)
+                txt_lines.append("")
 
-        # Add chapter text to output.txt
-        txt_lines.extend(chapter_txt_lines)
+        # ─── Section 3: Essay Titles ───
+        print(f"\n--- Section 3: Essay Titles ---")
+        for et_idx, essay_title in enumerate(sections['essay_titles']):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_et_{et_idx}.mp3")
+            await generate_audio(tts_prep(essay_title), voice, temp_file)
+            try:
+                seg = AudioSegment.from_mp3(temp_file)
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(seg)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            txt_lines.append(clean_text_basic(essay_title))
+            txt_lines.append("")
 
-    # ─── Section 8: Final Credits (copy) ───
-    print(f"\n--- Section 8: Final Credits (copy) ---")
-    for seg in credits_audio_segments:
-        final_segments.append(seg)
-    # Also repeat in txt_lines for the long version
-    for credit in sections.get('footer_lines', []):
-        # Use real URL for text file
-        txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 v i 點 f y i", "https://ting.vi.fyi")
-        txt_lines.append(txt_credit)
-        txt_lines.append("")
+        # ─── Section 4: Essay Body ───
+        print(f"\n--- Section 4: Essay Body ---")
+        if sections['essay_body']:
+            for eb_idx, essay_para in enumerate(sections['essay_body']):
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_essay_{eb_idx}.mp3")
+                await generate_audio(tts_prep(essay_para), voice, temp_file)
+                try:
+                    seg = AudioSegment.from_mp3(temp_file)
+                    final_segments.append(SILENCE_SECTION)
+                    final_segments.append(seg)
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                txt_lines.append(clean_text_basic(essay_para))
+                txt_lines.append("")
 
-    # ─── Combine and Export Long Version ───
-    print(f"\n--- Combining Long Version ({len(final_segments)} segments) ---")
-    long_final = AudioSegment.empty()
-    for seg in final_segments:
-        long_final += seg
+        # ─── Section 5: Prayer (voice rotation per paragraph) ───
+        print(f"\n--- Section 5: Prayer ---")
+        if sections['prayer']:
+            prayer_paras = [p.strip() for p in sections['prayer'].split("\n\n") if p.strip()]
+            print(f"  Prayer has {len(prayer_paras)} paragraph(s)")
+            for pr_idx, prayer_para in enumerate(prayer_paras):
+                voice = voices[global_voice_idx % len(voices)]
+                global_voice_idx += 1
+                temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_prayer_{pr_idx}.mp3")
+                await generate_audio(tts_prep(prayer_para), voice, temp_file)
+                try:
+                    seg = AudioSegment.from_mp3(temp_file)
+                    final_segments.append(SILENCE_SECTION)
+                    final_segments.append(seg)
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                txt_lines.append(clean_text_basic(prayer_para))
+                txt_lines.append("")
 
-    if ENABLE_BGM:
-        print(f"🎵 Mixing Overall BGM for Long Version...")
-        long_final = audio_mixer.mix_bgm(
-            long_final,
-            specific_filename=BGM_FILE,
-            volume_db=BGM_VOLUME,
-            intro_delay_ms=BGM_INTRO_DELAY
-        )
+        # ─── Section 6: Automatic Footer & Credits ───
+        print(f"\n--- Section 6: Automatic Footer & Credits ---")
+        
+        # 1. Start with manual credits from input.txt (if any)
+        footer_lines = [c for c in sections['credits'] if c.strip()]
+        
+        # 2. Add Source Credit
+        footer_lines.append("內容取自 YouVersion「今日經文」與「讀經計劃」。")
+        
+        # 3. Add Voice Attribution (Always credit both Everest (女聲) and 閻大衛 (男聲))
+        footer_lines.append("聖經語音由 Everest (女聲) 與 閻大衛 (男聲) 老師提供。")
+                
+        # 4. Add Foundation Credit
+        footer_lines.append("閱讀聆聽，盡在唯愛智能基金會。VOTD 今日經文：v o t d 點 v i 點 f y i，Shema 讀經計劃：t i n g 點 v i 點 f y i")
 
-    long_output_path = OUTPUT_PATH
-    long_final.export(long_output_path, format="mp3", tags={
-        'title': TITLE,
-        'artist': PRODUCER,
-        'album': ALBUM,
-        'comments': COMMENTS
-    })
-    print(f"\n✅ Long version saved: {long_output_path}")
+        # 5. End with the Title (thematic recap)
+        if sections['title']:
+            footer_lines.append(sections['title'])
 
-    txt_output_long = OUTPUT_PATH.replace(".mp3", ".txt")
-    with open(txt_output_long, "w", encoding="utf-8") as f:
-        f.write("\n".join(txt_lines))
-    print(f"📝 Text saved: {txt_output_long}")
+        # Store footer_lines for reuse in Section 8
+        sections['footer_lines'] = footer_lines
 
-    # ─── Generate MP4 if requested ───
-    if args.mp4:
-        try:
-            if args.no_caption:
-                enable_caption = False
-            elif args.caption is not None:
-                enable_caption = parse_caption_flag(args.caption, default=True)
-            else:
-                enable_caption = True  # Captions are ON by default when --mp4 is used!
-
-            enable_caption_large = parse_caption_flag(args.caption_large, default=False) if args.caption_large is not None else False
-            scale_val = parse_caption_scale(args.caption_scale, default=2.0)
-            if enable_caption_large:
-                scale_val = 3.0
-            caption_scale_str = f"{scale_val:g}x"
-        except ValueError as e:
-            print(f"❌ {e}")
-            sys.exit(1)
-
-        bg_path = args.mp4_bg
-        if not os.path.isabs(bg_path):
-            bg_path = os.path.join(SCRIPT_DIR, bg_path)
+        credits_audio_segments = []
+        for cr_idx, credit in enumerate(footer_lines):
+            voice = voices[global_voice_idx % len(voices)]
+            global_voice_idx += 1
+            print(f"  🎙️ Footer Line {cr_idx+1}: {credit}")
+            temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_credit_{cr_idx}.mp3")
+            await generate_audio(tts_prep(credit), voice, temp_file)
+            try:
+                seg = AudioSegment.from_mp3(temp_file)
+                final_segments.append(SILENCE_SECTION)
+                final_segments.append(seg)
+                credits_audio_segments.append(SILENCE_SECTION)
+                credits_audio_segments.append(seg)
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
             
-        if os.path.exists(bg_path):
-            # 1. Long Version MP4
-            mp4_output = OUTPUT_PATH.replace(".mp3", ".mp4")
-            print(f"\n🎬 Generating Long MP4...")
-            create_mp4(
-                input_mp3=OUTPUT_PATH,
-                bg_image=bg_path,
-                output_mp4=mp4_output,
-                resolution=args.mp4_res,
-                caption=enable_caption,
-                caption_file=args.caption_file,
-                caption_scale=caption_scale_str,
-                caption_large=enable_caption_large,
+            # In the text file, use the real URL
+            txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 v i 點 f y i", "https://ting.vi.fyi")
+            txt_lines.append(txt_credit)
+            txt_lines.append("")
+
+        # ─── Combine and Export Short Version ───
+        print(f"\n--- Combining Short Version ({len(final_segments)} segments) ---")
+        short_final = AudioSegment.empty()
+        for seg in final_segments:
+            short_final += seg
+
+        if ENABLE_BGM:
+            print(f"🎵 Mixing Overall BGM for Short Version...")
+            short_final = audio_mixer.mix_bgm(
+                short_final,
+                specific_filename=BGM_FILE,
+                volume_db=BGM_VOLUME,
+                intro_delay_ms=BGM_INTRO_DELAY
             )
-            
-            # 2. Short Version MP4
-            short_mp3 = OUTPUT_PATH.replace(".mp3", "_short.mp3")
-            short_mp4 = OUTPUT_PATH.replace(".mp3", "_short.mp4")
-            if os.path.exists(short_mp3):
-                print(f"\n🎬 Generating Short MP4...")
+
+        PRODUCER = "唯愛智能基金會 (VI AI Foundation)"
+        ALBUM = "今日經文 VOTD"
+        bgm_info = os.path.basename(BGM_FILE) if ENABLE_BGM else "None"
+        COMMENTS = f"Verse: {verse_ref}; BGM: {bgm_info}"
+
+        short_final.export(SHORT_OUTPUT_PATH, format="mp3", tags={
+            'title': f"{TITLE} (Short)",
+            'artist': PRODUCER,
+            'album': ALBUM,
+            'comments': COMMENTS
+        })
+        print(f"\n✅ Short version saved: {SHORT_OUTPUT_PATH}")
+
+        # Save output_short.txt
+        with open(txt_output_short, "w", encoding="utf-8") as f:
+            f.write("\n".join(txt_lines))
+        print(f"📝 Short Text saved: {txt_output_short}")
+
+        # ─── Section 7: Bible Audio (added to long version) ───
+        if bible_audio_blocks:
+            print(f"\n--- Section 7: Bible Audio ({len(bible_audio_blocks)} verse blocks) ---")
+            for ba_block in bible_audio_blocks:
+                translations = ba_block['translations']
+                ch_seg = ba_block['chapter_seg']
+                block_idx = ba_block['block_idx']
+
+                # 7a. TTS all translations of the verse
+                if translations:
+                    print(f"  🔁 Verse block {block_idx + 1}: {len(translations)} translation readings")
+                    final_segments.append(SILENCE_SECTION)
+                    for t_idx, (code, label, text, ref_str) in enumerate(translations):
+                        voice = voices[global_voice_idx % len(voices)]
+                        global_voice_idx += 1
+                        tts_text = f"{text}\n({ref_str})"
+                        temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_ba_trans_{block_idx}_{t_idx}.mp3")
+                        await generate_audio(tts_prep(tts_text), voice, temp_file)
+                        try:
+                            seg = AudioSegment.from_mp3(temp_file)
+                            final_segments.append(seg)
+                            if t_idx < len(translations) - 1:
+                                final_segments.append(SILENCE_SHORT)
+                        finally:
+                            if os.path.exists(temp_file):
+                                os.remove(temp_file)
+                        txt_lines.append(text)
+                        txt_lines.append(f"({ref_str})")
+                    txt_lines.append("")
+
+                # 7b. Full chapter audio (Everest pre-recorded)
+                if ch_seg is not None:
+                    print(f"  📖 Appending chapter audio for block {block_idx + 1} ({len(ch_seg)/1000:.1f}s)")
+                    final_segments.append(SILENCE_SECTION)
+                    final_segments.append(ch_seg)
+                    
+                # 7c. Add CUV translation again after the chapter audio
+                if translations:
+                    print(f"  🔁 Appending CUV verse again for block {block_idx + 1}")
+                    final_segments.append(SILENCE_SECTION)
+                    code, label, text, ref_str = translations[0]
+                    voice = voices[global_voice_idx % len(voices)]
+                    global_voice_idx += 1
+                    tts_text = f"{text}\n({ref_str})"
+                    temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_post_{block_idx}.mp3")
+                    await generate_audio(tts_prep(tts_text), voice, temp_file)
+                    try:
+                        seg = AudioSegment.from_mp3(temp_file)
+                        final_segments.append(seg)
+                    finally:
+                        if os.path.exists(temp_file):
+                            os.remove(temp_file)
+
+            # Add chapter text to output.txt
+            txt_lines.extend(chapter_txt_lines)
+
+        # ─── Section 8: Final Credits (copy) ───
+        print(f"\n--- Section 8: Final Credits (copy) ---")
+        for seg in credits_audio_segments:
+            final_segments.append(seg)
+        # Also repeat in txt_lines for the long version
+        for credit in sections.get('footer_lines', []):
+            # Use real URL for text file
+            txt_credit = credit.replace("v o t d 點 v i 點 f y i", "https://votd.vi.fyi").replace("t i n g 點 v i 點 f y i", "https://ting.vi.fyi")
+            txt_lines.append(txt_credit)
+            txt_lines.append("")
+
+        # ─── Combine and Export Long Version ───
+        print(f"\n--- Combining Long Version ({len(final_segments)} segments) ---")
+        long_final = AudioSegment.empty()
+        for seg in final_segments:
+            long_final += seg
+
+        if ENABLE_BGM:
+            print(f"🎵 Mixing Overall BGM for Long Version...")
+            long_final = audio_mixer.mix_bgm(
+                long_final,
+                specific_filename=BGM_FILE,
+                volume_db=BGM_VOLUME,
+                intro_delay_ms=BGM_INTRO_DELAY
+            )
+
+        long_final.export(OUTPUT_PATH, format="mp3", tags={
+            'title': TITLE,
+            'artist': PRODUCER,
+            'album': ALBUM,
+            'comments': COMMENTS
+        })
+        print(f"\n✅ Long version saved: {OUTPUT_PATH}")
+
+        with open(txt_output_long, "w", encoding="utf-8") as f:
+            f.write("\n".join(txt_lines))
+        print(f"📝 Text saved: {txt_output_long}")
+
+        # ─── Generate MP4 if requested ───
+        if ENABLE_MP4:
+            try:
+                if args.no_caption:
+                    enable_caption = False
+                elif args.caption is not None:
+                    enable_caption = parse_caption_flag(args.caption, default=True)
+                else:
+                    enable_caption = True  # Captions are ON by default when --mp4 is used!
+
+                enable_caption_large = parse_caption_flag(args.caption_large, default=False) if args.caption_large is not None else False
+                scale_val = parse_caption_scale(args.caption_scale, default=2.0)
+                if enable_caption_large:
+                    scale_val = 3.0
+                caption_scale_str = f"{scale_val:g}x"
+            except ValueError as e:
+                print(f"❌ {e}")
+                sys.exit(1)
+
+            bg_for_mp4 = IMAGE_OUTPUT_PATH if os.path.exists(IMAGE_OUTPUT_PATH) else bg_base_path
+
+            if os.path.exists(bg_for_mp4):
+                # 1. Long Version MP4
+                print(f"\n🎬 Generating Long MP4...")
                 create_mp4(
-                    input_mp3=short_mp3,
-                    bg_image=bg_path,
-                    output_mp4=short_mp4,
+                    input_mp3=OUTPUT_PATH,
+                    bg_image=bg_for_mp4,
+                    output_mp4=MP4_OUTPUT_PATH,
                     resolution=args.mp4_res,
                     caption=enable_caption,
+                    caption_file=args.caption_file,
                     caption_scale=caption_scale_str,
                     caption_large=enable_caption_large,
                 )
-        else:
-            print(f"⚠️ Background image not found: {bg_path}")
-            print(f"   Skipping MP4 generation.")
+                
+                # 2. Short Version MP4
+                if os.path.exists(SHORT_OUTPUT_PATH):
+                    print(f"\n🎬 Generating Short MP4...")
+                    create_mp4(
+                        input_mp3=SHORT_OUTPUT_PATH,
+                        bg_image=bg_for_mp4,
+                        output_mp4=SHORT_MP4_OUTPUT_PATH,
+                        resolution=args.mp4_res,
+                        caption=enable_caption,
+                        caption_scale=caption_scale_str,
+                        caption_large=enable_caption_large,
+                    )
+            else:
+                print(f"⚠️ Background image not found: {bg_for_mp4}")
+                print(f"   Skipping MP4 generation.")
+    else:
+        print(f"\n⏭️ --upload-only specified: skipping TTS/MP4 generation and using existing files for {date_str_compact}.")
 
-    # Cleanup
+    # Cleanup DB
     if db:
         db.close()
+
+    # Load generated text files for upload and summary
+    votd_text_long_str = ""
+    if os.path.exists(txt_output_long):
+        with open(txt_output_long, "r", encoding="utf-8") as f:
+            votd_text_long_str = f.read()
+    else:
+        votd_text_long_str = TEXT
+
+    votd_text_short_str = ""
+    if os.path.exists(txt_output_short):
+        with open(txt_output_short, "r", encoding="utf-8") as f:
+            votd_text_short_str = f.read()
+    else:
+        votd_text_short_str = votd_text_long_str
+
+    # Auto-Upload to votd.viaifoundation.org
+    wp_slug = build_votd_slug(TITLE)
+    wp_permalink = f"https://votd.viaifoundation.org/{wp_slug}/"
+    if ENABLE_UPLOAD:
+        published_url = upload_votd_to_wordpress(
+            post_title=TITLE,
+            votd_text_long=votd_text_long_str,
+            image_path=IMAGE_OUTPUT_PATH,
+            long_mp3_path=OUTPUT_PATH,
+            short_mp3_path=SHORT_OUTPUT_PATH,
+            short_mp4_path=SHORT_MP4_OUTPUT_PATH,
+        )
+        if published_url:
+            wp_permalink = published_url
+    else:
+        print("\n⏭️ Skipping WordPress upload (--no-upload specified).")
+
+    # Copy short text to macOS clipboard via pbcopy
+    try:
+        pb_proc = subprocess.Popen(["pbcopy"], stdin=subprocess.PIPE)
+        pb_proc.communicate(votd_text_short_str.strip().encode("utf-8"))
+    except Exception:
+        pass
+
+    print("\n" + "═" * 68)
+    print("📦 VOTD Output Summary")
+    print("═" * 68)
+    print(f"🖼️ Hero Image:  {IMAGE_OUTPUT_PATH}")
+    print(f"🎵 Short MP3:   {SHORT_OUTPUT_PATH}")
+    print(f"🎵 Long MP3:    {OUTPUT_PATH}")
+    print(f"🎬 Short MP4:   {SHORT_MP4_OUTPUT_PATH}")
+    print(f"🎬 Long MP4:    {MP4_OUTPUT_PATH}")
+    print(f"📝 Short Text:  {txt_output_short}")
+    print(f"📝 Long Text:   {txt_output_long}")
+    print(f"🌐 WP Post URL: {wp_permalink}")
+    print("═" * 68)
+    print("📋 Short Text Content (also copied to clipboard via pbcopy):")
+    print("─" * 68)
+    print(votd_text_short_str.strip())
+    print("═" * 68)
 
 
 if __name__ == "__main__":

@@ -71,7 +71,7 @@ def load_votd_wp_credentials():
             print(f"⚠️ Notice reading ~/.secrets: {e}")
 
     wp_url = os.environ.get("VOTD_WP_URL", "https://votd.viaifoundation.org/wp-json/wp/v2").rstrip("/")
-    wp_user = os.environ.get("VOTD_WP_USERNAME") or os.environ.get("WP_USERNAME", "michaelhuo")
+    wp_user = os.environ.get("VOTD_WP_USERNAME", "huomingxu@gmail.com")
     wp_pass = os.environ.get("VOTD_WP_APP_PASSWORD") or os.environ.get("WP_APP_PASSWORD", "")
     return wp_url, wp_user, wp_pass
 

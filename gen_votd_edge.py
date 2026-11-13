@@ -37,7 +37,7 @@ from text_cleaner import clean_text_basic, clean_text_for_tts
 import filename_parser
 import audio_mixer
 from audio_to_mp4 import create_mp4, generate_votd_dated_background, DEFAULT_BG
-from caption_generator import parse_caption_flag, parse_caption_scale
+from caption_generator import parse_caption_flag, parse_caption_scale, create_subtitles_from_edge_cues
 from bible_db import BibleDB, parse_verse_reference, book_number_to_chinese
 from chapter_narration_gain import CHAPTER_VOICE_CHOICES, boost_db_for_chapter_voice
 from votd_narration_chapter import load_narration_chapter_mp3
@@ -99,8 +99,8 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --no-mp4             Skip MP4 video generation")
     print("  --mp4-bg IMAGE       Background image for MP4")
     print("  --mp4-res RES        MP4 resolution (Default: 1920x1080)")
-    print("  --caption [true/false]       Enable burned-in captions on video (Default: true)")
-    print("  --no-caption                 Disable burned-in captions on video")
+    print("  --caption [true/false]       Enable burned-in captions on video (Default: false)")
+    print("  --no-caption                 Disable burned-in captions on video (Default)")
     print("  --caption-scale SCALE        Caption font scale multiplier: 1x, 2x, 3x, 4x, etc. (Default: 2x)")
     print("  --caption-large [true/false] Make burned-in caption font size 3x larger (Default: false)")
     print("  --caption-file FILE          Explicit SRT/VTT caption file for MP4")
@@ -480,13 +480,23 @@ def tts_prep(text: str) -> str:
 
 
 async def generate_audio(text, voice, output_file, retries=5, backoff_factor=2):
-    """Generate TTS audio using edge_tts with automatic retries for WebSocket/connection timeouts."""
+    """Generate TTS audio using edge_tts with automatic retries and return SubMaker for frame-accurate SRT."""
     print(f"  🔊 TTS ({voice}): {text[:60]}...")
     for attempt in range(1, retries + 1):
         try:
             communicate = edge_tts.Communicate(text=text, voice=voice, rate=TTS_RATE)
-            await communicate.save(output_file)
-            return
+            submaker = edge_tts.SubMaker()
+            has_audio = False
+            with open(output_file, "wb") as f:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        f.write(chunk["data"])
+                        has_audio = True
+                    elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                        submaker.feed(chunk)
+            if has_audio and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                return submaker
+            raise RuntimeError("Empty audio output received.")
         except Exception as e:
             if attempt == retries:
                 print(f"  ❌ TTS Error on final attempt {attempt}/{retries} for voice {voice}: {e}")
@@ -941,6 +951,8 @@ async def main():
 
         voices = VOICES
         final_segments = []
+        short_submakers = []
+        short_durations = []
         global_voice_idx = 0
         txt_lines = []  # For output.txt
 
@@ -953,10 +965,12 @@ async def main():
             temp_file = os.path.join(OUTPUT_DIR, "temp_votd_title.mp3")
             voice = voices[global_voice_idx % len(voices)]
             global_voice_idx += 1
-            await generate_audio(tts_prep(sections['title']), voice, temp_file)
+            sub = await generate_audio(tts_prep(sections['title']), voice, temp_file)
             try:
                 seg = AudioSegment.from_mp3(temp_file)
                 final_segments.append(seg)
+                short_submakers.append(sub)
+                short_durations.append(len(seg))
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
@@ -1017,10 +1031,12 @@ async def main():
                     global_voice_idx += 1
                     tts_text = f"{text}\n({ref_str})"
                     temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_cuv_{block_idx}.mp3")
-                    await generate_audio(tts_prep(tts_text), voice, temp_file)
+                    sub = await generate_audio(tts_prep(tts_text), voice, temp_file)
                     try:
                         seg = AudioSegment.from_mp3(temp_file)
                         final_segments.append(seg)
+                        short_submakers.append(sub)
+                        short_durations.append(len(seg))
                     finally:
                         if os.path.exists(temp_file):
                             os.remove(temp_file)
@@ -1034,11 +1050,13 @@ async def main():
                 voice = voices[global_voice_idx % len(voices)]
                 global_voice_idx += 1
                 temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_verse_{v_idx}.mp3")
-                await generate_audio(tts_prep(verse_text), voice, temp_file)
+                sub = await generate_audio(tts_prep(verse_text), voice, temp_file)
                 try:
                     seg = AudioSegment.from_mp3(temp_file)
                     final_segments.append(SILENCE_SECTION)
                     final_segments.append(seg)
+                    short_submakers.append(sub)
+                    short_durations.append(len(seg))
                 finally:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
@@ -1051,11 +1069,13 @@ async def main():
             voice = voices[global_voice_idx % len(voices)]
             global_voice_idx += 1
             temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_et_{et_idx}.mp3")
-            await generate_audio(tts_prep(essay_title), voice, temp_file)
+            sub = await generate_audio(tts_prep(essay_title), voice, temp_file)
             try:
                 seg = AudioSegment.from_mp3(temp_file)
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(seg)
+                short_submakers.append(sub)
+                short_durations.append(len(seg))
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
@@ -1069,11 +1089,13 @@ async def main():
                 voice = voices[global_voice_idx % len(voices)]
                 global_voice_idx += 1
                 temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_essay_{eb_idx}.mp3")
-                await generate_audio(tts_prep(essay_para), voice, temp_file)
+                sub = await generate_audio(tts_prep(essay_para), voice, temp_file)
                 try:
                     seg = AudioSegment.from_mp3(temp_file)
                     final_segments.append(SILENCE_SECTION)
                     final_segments.append(seg)
+                    short_submakers.append(sub)
+                    short_durations.append(len(seg))
                 finally:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
@@ -1089,11 +1111,13 @@ async def main():
                 voice = voices[global_voice_idx % len(voices)]
                 global_voice_idx += 1
                 temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_prayer_{pr_idx}.mp3")
-                await generate_audio(tts_prep(prayer_para), voice, temp_file)
+                sub = await generate_audio(tts_prep(prayer_para), voice, temp_file)
                 try:
                     seg = AudioSegment.from_mp3(temp_file)
                     final_segments.append(SILENCE_SECTION)
                     final_segments.append(seg)
+                    short_submakers.append(sub)
+                    short_durations.append(len(seg))
                 finally:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
@@ -1128,13 +1152,15 @@ async def main():
             global_voice_idx += 1
             print(f"  🎙️ Footer Line {cr_idx+1}: {credit}")
             temp_file = os.path.join(OUTPUT_DIR, f"temp_votd_credit_{cr_idx}.mp3")
-            await generate_audio(tts_prep(credit), voice, temp_file)
+            sub = await generate_audio(tts_prep(credit), voice, temp_file)
             try:
                 seg = AudioSegment.from_mp3(temp_file)
                 final_segments.append(SILENCE_SECTION)
                 final_segments.append(seg)
                 credits_audio_segments.append(SILENCE_SECTION)
                 credits_audio_segments.append(seg)
+                short_submakers.append(sub)
+                short_durations.append(len(seg))
             finally:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
@@ -1176,6 +1202,19 @@ async def main():
         with open(txt_output_short, "w", encoding="utf-8") as f:
             f.write("\n".join(txt_lines))
         print(f"📝 Short Text saved: {txt_output_short}")
+
+        # Save frame-accurate _short.srt using Edge-TTS SubMaker + exact pydub durations
+        short_srt_path = SHORT_OUTPUT_PATH.replace(".mp3", ".srt")
+        if short_submakers:
+            create_subtitles_from_edge_cues(
+                paragraph_submakers=short_submakers,
+                output_path=short_srt_path,
+                intro_delay_ms=BGM_INTRO_DELAY if ENABLE_BGM else 0,
+                silence_ms=1000,
+                show_title_during_intro=True,
+                paragraph_durations=short_durations,
+            )
+            print(f"📄 Frame-accurate Short SRT saved: {short_srt_path}")
 
         # ─── Section 7: Bible Audio (added to long version) ───
         if bible_audio_blocks:
@@ -1279,7 +1318,7 @@ async def main():
                 elif args.caption is not None:
                     enable_caption = parse_caption_flag(args.caption, default=True)
                 else:
-                    enable_caption = True  # Captions are ON by default when --mp4 is used!
+                    enable_caption = False  # Captions are OFF by default for VOTD
 
                 enable_caption_large = parse_caption_flag(args.caption_large, default=False) if args.caption_large is not None else False
                 scale_val = parse_caption_scale(args.caption_scale, default=2.0)

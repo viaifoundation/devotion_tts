@@ -908,6 +908,7 @@ async def main():
             intro_delay_ms=intro_offset,
             silence_ms=800,
             show_title_during_intro=True,
+            paragraph_durations=paragraph_durations,
         )
         print(f"📄 Saved frame-accurate subtitles to: {srt_output_path}")
 

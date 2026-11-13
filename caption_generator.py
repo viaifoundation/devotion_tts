@@ -259,6 +259,7 @@ def create_subtitles_from_edge_cues(
     max_chars: int = 22,
     lead_in_ms: int = 150,
     show_title_during_intro: bool = True,
+    paragraph_durations: Optional[List[float]] = None,
 ) -> str:
     """
     Generate frame-accurate SRT subtitles directly from Edge-TTS's native
@@ -275,10 +276,15 @@ def create_subtitles_from_edge_cues(
 
     for p_idx, sub in enumerate(paragraph_submakers):
         if not sub or not sub.cues:
+            if paragraph_durations and p_idx < len(paragraph_durations):
+                current_offset_ms += float(paragraph_durations[p_idx]) + float(silence_ms)
             continue
 
         p_cues = sub.cues
-        p_dur_ms = p_cues[-1].end.total_seconds() * 1000.0
+        if paragraph_durations and p_idx < len(paragraph_durations) and paragraph_durations[p_idx] > 0:
+            p_dur_ms = float(paragraph_durations[p_idx])
+        else:
+            p_dur_ms = p_cues[-1].end.total_seconds() * 1000.0
 
         for c_idx, cue in enumerate(p_cues):
             cue_text = restore_pronunciation_for_display(cue.content.strip())

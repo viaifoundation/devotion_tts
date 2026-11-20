@@ -478,10 +478,13 @@ print(f"Target Output: {OUTPUT_PATH}")
 # Separate display paragraphs and format upload/copy text file
 is_tw = (TARGET_LANG == "zh_TW")
 credit_footer_lines = [
-    f"{'天路音樂「鄉音情」為鄉音禱告' if is_tw else '天路音乐「乡音情」为乡音祷告'} https://soh.vi.fyi",
-    f"{'閱讀聆聽' if is_tw else '阅读聆听'} {wp_permalink}",
-    f"{'天路音樂' if is_tw else '天路音乐'}：https://tianlumusic.org",
-    f"{'唯愛智能基金會制作' if is_tw else '唯爱智能基金会制作'} https://weiai.ai",
+    "———",
+    "天路音樂 鄉音情 · 為鄉音禱告" if is_tw else "天路音乐 乡音情 · 为乡音祷告",
+    "禱文提供：鄉音情禱告團隊牧者同工" if is_tw else "祷文提供：乡音情祷告团队牧者同工",
+    f"{'本期聆聽' if is_tw else '本期聆听'}：{wp_permalink}",
+    f"{'全部禱告' if is_tw else '全部祷告'}：https://soh.vi.fyi",
+    f"{'唯愛智能基金會支持' if is_tw else '唯爱智能基金会支持'}：https://weiai.ai",
+    f"{'天路音樂事工' if is_tw else '天路音乐事工'}：https://tianlumusic.org",
 ]
 paragraphs_display = [p.strip() for p in re.split(r'\n{2,}', TEXT_DISPLAY.strip()) if p.strip()]
 copy_text = "\n\n".join(paragraphs_display) + "\n\n" + "\n".join(credit_footer_lines) + "\n"
@@ -842,7 +845,8 @@ async def main():
 
         # Generate Audio Footer (credits & listening link)
         audio_footer_lines = [
-            "天路音樂「鄉音情」為鄉音禱告" if is_tw else "天路音乐「乡音情」为乡音祷告",
+            "天路音樂 鄉音情 為鄉音禱告" if is_tw else "天路音乐 乡音情 为乡音祷告",
+            "禱文由鄉音情禱告團隊牧者同工提供" if is_tw else "祷文由乡音情祷告团队牧者同工提供",
             "閱讀聆聽 s o h 點 v i 點 f y i" if is_tw else "阅读聆听 s o h 点 v i 点 f y i",
             "唯愛智能基金會支持" if is_tw else "唯爱智能基金会支持",
             "天路音樂事工" if is_tw else "天路音乐事工",

@@ -82,7 +82,7 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("\nOptions:")
     print("  --input FILE, -i     Text file to read input from (Default: input.txt)")
     print("  --prefix PREFIX      Filename prefix (e.g. MyPrefix)")
-    print("  --voice MODE         Voice mode: male, female, two, four, six (Default: six)")
+    print("  --voice MODE         Voice mode: mix, tw, six, four, two, male, female (Default: mix)")
     print("  --voices LIST        Custom voices (CSV, overrides --voice)")
     print("  --speed SPEED        Speech rate: +10%, --speed=-10% (Default: +0%)")
     print("  --bgm                Enable background music (Default: True)")
@@ -110,11 +110,13 @@ if "-?" in sys.argv or "-h" in sys.argv or "--help" in sys.argv:
     print("  --upload-only                Skip TTS/MP4 generation and only upload existing files for the date")
     print("  -?, -h, --help       Show this help")
     print("\nVoice Modes:")
+    print("  mix     - Rotate 8 CN + TW Mandarin voices (Default)")
+    print("  tw      - Rotate 3 Taiwan Mandarin voices (HsiaoChen, YunJhe, HsiaoYu)")
+    print("  six     - Rotate 6 zh-CN voices")
+    print("  four    - Rotate 4 voices (2 male + 2 female)")
+    print("  two     - Rotate 2 voices (1 male + 1 female)")
     print("  male    - Single male voice (YunyangNeural)")
     print("  female  - Single female voice (XiaoxiaoNeural)")
-    print("  two     - Rotate 2 voices (1 male + 1 female)")
-    print("  four    - Rotate 4 voices (2 male + 2 female)")
-    print("  six     - Rotate all 6 zh-CN voices (Default)")
     print("\nExamples:")
     print(f"  python {sys.argv[0]} -i input.txt")
     print(f"  python {sys.argv[0]} -i input.txt --no-upload")
@@ -126,8 +128,8 @@ import argparse
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--input", "-i", type=str, help="Input text file (Default: input.txt)")
 parser.add_argument("--prefix", type=str, default=None, help="Filename prefix")
-parser.add_argument("--voice", type=str, default="six", choices=["male", "female", "two", "four", "six"],
-                    help="Voice mode: male, female, two, four, six")
+parser.add_argument("--voice", type=str, default="mix", choices=["mix", "tw", "male", "female", "two", "four", "six"],
+                    help="Voice mode: mix (8 CN+TW, default), tw, male, female, two, four, six")
 parser.add_argument("--voices", type=str, default=None,
                     help="Custom voices (CSV format, overrides --voice)")
 parser.add_argument("--speed", type=str, default=None, help="Speech rate adjustment (e.g. +10%%)")
@@ -187,13 +189,16 @@ if args.speed:
     else:
         TTS_RATE = args.speed
 
-# Voice presets
-VOICE_MALE_1 = "zh-CN-YunyangNeural"    # Professional, Reliable
-VOICE_MALE_2 = "zh-CN-YunxiNeural"      # Lively, Sunshine
-VOICE_MALE_3 = "zh-CN-YunjianNeural"    # Passion
-VOICE_FEMALE_1 = "zh-CN-XiaoxiaoNeural"  # Warm
-VOICE_FEMALE_2 = "zh-CN-XiaoyiNeural"    # Lively
-VOICE_FEMALE_3 = "zh-CN-YunxiaNeural"    # Cute (Male but high pitch)
+# Voice presets (Mainland Mandarin + Taiwan Mandarin)
+VOICE_MALE_1 = "zh-CN-YunyangNeural"      # CN Male — Professional, Reliable
+VOICE_MALE_2 = "zh-CN-YunxiNeural"        # CN Male — Lively, Sunshine
+VOICE_MALE_3 = "zh-CN-YunjianNeural"      # CN Male — Passion
+VOICE_FEMALE_1 = "zh-CN-XiaoxiaoNeural"   # CN Female — Warm
+VOICE_FEMALE_2 = "zh-CN-XiaoyiNeural"     # CN Female — Lively
+VOICE_FEMALE_3 = "zh-CN-YunxiaNeural"     # CN High-pitched / Youthful
+VOICE_TW_FEMALE_1 = "zh-TW-HsiaoChenNeural"  # TW Female — Gentle, Warm
+VOICE_TW_MALE_1 = "zh-TW-YunJheNeural"       # TW Male — Calm, Clear
+VOICE_TW_FEMALE_2 = "zh-TW-HsiaoYuNeural"    # TW Female — Soothing
 
 # Voice mode configuration
 if args.voices:
@@ -211,9 +216,24 @@ elif args.voice == "two":
 elif args.voice == "four":
     VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2]
     print(f"🎤 Voice mode: four (rotating 4 voices)")
-else:  # six (default)
+elif args.voice == "six":
     VOICES = [VOICE_MALE_1, VOICE_FEMALE_1, VOICE_MALE_2, VOICE_FEMALE_2, VOICE_MALE_3, VOICE_FEMALE_3]
-    print(f"🎤 Voice mode: six (rotating 6 voices)")
+    print(f"🎤 Voice mode: six (rotating 6 zh-CN voices)")
+elif args.voice == "tw":
+    VOICES = [VOICE_TW_FEMALE_1, VOICE_TW_MALE_1, VOICE_TW_FEMALE_2]
+    print(f"🎤 Voice mode: tw (rotating 3 zh-TW voices)")
+else:  # mix (default: 8 CN + TW Mandarin voices, alternating M/F and CN/TW)
+    VOICES = [
+        VOICE_MALE_1,
+        VOICE_TW_FEMALE_1,
+        VOICE_FEMALE_1,
+        VOICE_TW_MALE_1,
+        VOICE_MALE_2,
+        VOICE_TW_FEMALE_2,
+        VOICE_MALE_3,
+        VOICE_FEMALE_2,
+    ]
+    print(f"🎤 Voice mode: mix (rotating 8 CN + TW Mandarin voices)")
 
 
 # ─── Input text loading ───
